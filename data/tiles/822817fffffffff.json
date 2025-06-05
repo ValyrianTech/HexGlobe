@@ -1,0 +1,21 @@
+{
+  "id": "822817fffffffff",
+  "content": "Sample content for hexagon 822817fffffffff",
+  "visual_properties": {
+    "border_color": "#000000",
+    "border_thickness": 2,
+    "border_style": "solid",
+    "fill_color": "#dcb894",
+    "fill_opacity": 0.7
+  },
+  "parent_id": "81283ffffffffff",
+  "children_ids": [
+    "832814fffffffff",
+    "832813fffffffff",
+    "832812fffffffff",
+    "832810fffffffff",
+    "832816fffffffff",
+    "832811fffffffff",
+    "832815fffffffff"
+  ]
+}
