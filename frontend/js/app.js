@@ -145,7 +145,7 @@ window.hexGlobeApp = {
             4: "8400013ffffffff", // Res 4
             5: "85000033fffffff", // Res 5
             6: "860000057ffffff", // Res 6
-            7: "87000000fffffff", // Res 7
+            7: "870000051ffffff", // Res 7 - Updated to a valid index
             8: "880000003ffffff", // Res 8
             9: "890000000ffffff", // Res 9
             10: "8a0000000ffffff", // Res 10
@@ -156,7 +156,7 @@ window.hexGlobeApp = {
             15: "8f000000000003f"  // Res 15
         };
         
-        return defaultIndexes[resolution] || "87000000fffffff"; // Default to res 7 if not found
+        return defaultIndexes[resolution] || "870000051ffffff"; // Default to res 7 if not found
     },
     
     // Set up the canvas
