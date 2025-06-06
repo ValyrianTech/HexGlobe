@@ -170,6 +170,7 @@ The backend provides the following RESTful API endpoints:
 - `GET /api/tiles/{tile_id}/children`: Get child tiles
 - `POST /api/tiles/{tile_id}/move-content/{target_id}`: Move content to target tile
 - `PUT /api/tiles/{tile_id}/visual`: Update visual properties
+- `GET /api/tiles/{tile_id}/grid`: Get a 2D grid of H3 indexes centered around the specified tile
 
 ## License
 

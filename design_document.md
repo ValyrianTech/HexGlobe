@@ -118,6 +118,7 @@ HexGlobe is a web application framework that implements a global hexagonal grid 
 - `GET /api/tiles/{tile_id}/parent`: Get parent tile
 - `GET /api/tiles/{tile_id}/children`: Get child tiles
 - `POST /api/tiles/{tile_id}/move-content/{target_id}`: Move content to target tile
+- `GET /api/tiles/{tile_id}/grid`: Get a 2D grid of H3 indexes centered around the specified tile
 
 #### Visual Operations
 - `PUT /api/tiles/{tile_id}/visual`: Update visual properties
@@ -195,6 +196,8 @@ HexGlobe is a web application framework that implements a global hexagonal grid 
 - Added comprehensive logging to backend API endpoints
 - Fixed tile data persistence with proper JSON serialization
 - Implemented click navigation between hexagons
+- Added grid endpoint to return a 2D grid of H3 indexes centered around a specified tile
+- Updated frontend to use the grid endpoint for accurate hexagon positioning
 
 ### 6.2 In Progress
 - Enhancing error handling for API failures
