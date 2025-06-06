@@ -89,43 +89,93 @@ const calculateHexPoints = (center = { x: centerX.value, y: centerY.value }, siz
 const getNeighbors = () => {
   errorMessage.value = '' // Clear previous errors
   try {
-    // Get the neighbors using gridDisk with ringSize 1, then filter out the center cell
-    const allCells = h3.gridDisk(props.hexId, 1)
+    // Use zoom level to determine how many rings of neighbors to show
+    // Zoom level 1 = 1 ring, zoom level 10 = 10 rings
+    const ringSize = props.zoomLevel
+    
+    // Get the neighbors using gridDisk with ringSize based on zoom level
+    const allCells = h3.gridDisk(props.hexId, ringSize)
     const neighborIndices = allCells.filter(id => id !== props.hexId)
     neighbors.value = neighborIndices
     
     // Calculate positions for all neighbors
     neighborPositions.value = []
     
-    // Define the angles for the six directions (in radians)
-    // Starting from the east (0) and going counterclockwise
-    const angles = [
-      0,                // East (right)
-      Math.PI/3,        // Northeast
-      2*Math.PI/3,      // Northwest
-      Math.PI,          // West (left)
-      4*Math.PI/3,      // Southwest
-      5*Math.PI/3       // Southeast
-    ]
+    // Get the distance of each neighbor from the center
+    const neighborDistances = neighborIndices.map(id => ({
+      id,
+      distance: h3.gridDistance(props.hexId, id)
+    }))
     
-    // The perfect distance for hexagons to touch edge-to-edge
-    const distance = hexSize.value * 1.73 // √3 ≈ 1.73
+    // Group neighbors by their distance (ring number)
+    const neighborsByRing = {}
+    neighborDistances.forEach(item => {
+      if (!neighborsByRing[item.distance]) {
+        neighborsByRing[item.distance] = []
+      }
+      neighborsByRing[item.distance].push(item.id)
+    })
     
-    // Position each neighbor
-    for (let i = 0; i < Math.min(neighborIndices.length, angles.length); i++) {
-      const angle = angles[i]
+    // For each ring
+    for (let ringNum = 1; ringNum <= ringSize; ringNum++) {
+      const ringNeighbors = neighborsByRing[ringNum] || []
       
-      const x = centerX.value + Math.cos(angle) * distance
-      const y = centerY.value + Math.sin(angle) * distance
+      // The perfect distance for hexagons to touch edge-to-edge, multiplied by ring number
+      const distance = hexSize.value * 1.73 * ringNum // √3 ≈ 1.73
       
-      neighborPositions.value.push({ 
-        x, 
-        y, 
-        id: neighborIndices[i] 
-      })
+      // For the first ring, use fixed angles for perfect positioning
+      if (ringNum === 1) {
+        // Define the angles for the six directions (in radians)
+        // Starting from the east (0) and going counterclockwise
+        const angles = [
+          0,                // East (right)
+          Math.PI/3,        // Northeast
+          2*Math.PI/3,      // Northwest
+          Math.PI,          // West (left)
+          4*Math.PI/3,      // Southwest
+          5*Math.PI/3       // Southeast
+        ]
+        
+        // Position each neighbor in the first ring
+        for (let i = 0; i < Math.min(ringNeighbors.length, angles.length); i++) {
+          const angle = angles[i]
+          const id = ringNeighbors[i]
+          
+          const x = centerX.value + Math.cos(angle) * distance
+          const y = centerY.value + Math.sin(angle) * distance
+          
+          neighborPositions.value.push({ 
+            x, 
+            y, 
+            id,
+            distance: ringNum
+          })
+        }
+      } else {
+        // For outer rings, distribute neighbors evenly around the circle
+        const totalNeighbors = ringNeighbors.length
+        if (totalNeighbors > 0) {
+          const angleStep = (2 * Math.PI) / totalNeighbors
+          
+          for (let i = 0; i < totalNeighbors; i++) {
+            const angle = i * angleStep
+            const id = ringNeighbors[i]
+            
+            const x = centerX.value + Math.cos(angle) * distance
+            const y = centerY.value + Math.sin(angle) * distance
+            
+            neighborPositions.value.push({ 
+              x, 
+              y, 
+              id,
+              distance: ringNum
+            })
+          }
+        }
+      }
     }
     
-    console.log(`Displaying ${neighborPositions.value.length} neighbors`)
+    console.log(`Displaying ${neighborPositions.value.length} neighbors with ${ringSize} rings`)
     
     return neighborIndices
   } catch (e) {
@@ -162,12 +212,16 @@ const handleCanvasClick = (event) => {
     const neighbor = neighborPositions.value[i]
     if (!neighbor.id) continue
     
+    // All hexagons are the same size
+    const neighborSize = hexSize.value
+    
     const distance = Math.sqrt(
       Math.pow(x - neighbor.x, 2) + 
       Math.pow(y - neighbor.y, 2)
     )
     
-    if (distance <= hexSize.value * 0.8) {
+    // Check if click is within the hexagon
+    if (distance <= neighborSize * 0.8) {
       selectedNeighbor.value = neighbor.id
       emit('selectNeighbor', neighbor.id)
       drawHexagon()
@@ -276,29 +330,38 @@ const drawHexagon = () => {
 const drawNeighbors = (ctx) => {
   const neighborIds = neighbors.value
   
+  // Sort neighbors by distance to draw them in order (furthest first)
+  const sortedPositions = [...neighborPositions.value].sort((a, b) => b.distance - a.distance)
+  
   // Draw each neighbor using the reusable function
-  neighborIds.forEach((id, index) => {
-    if (index >= neighborPositions.value.length) return
-    
-    const pos = neighborPositions.value[index]
+  sortedPositions.forEach((pos) => {
     if (!pos || !pos.id) return // Skip if position or ID is missing
     
+    // All hexagons should be the same size
+    const neighborSize = hexSize.value
+    
     // Use the same styling as the main hexagon, just highlight selected ones
-    const fillColor = id === selectedNeighbor.value ? '#b3e5fc' : props.fillColor
-    const strokeColor = id === selectedNeighbor.value ? '#0288d1' : props.strokeColor
-    const strokeWidth = id === selectedNeighbor.value ? props.strokeWidth : props.strokeWidth
+    const fillColor = pos.id === selectedNeighbor.value 
+      ? '#b3e5fc' // Light blue
+      : props.fillColor
+    
+    const strokeColor = pos.id === selectedNeighbor.value 
+      ? '#0288d1' 
+      : props.strokeColor
+    
+    const strokeWidth = pos.id === selectedNeighbor.value ? props.strokeWidth : props.strokeWidth
     
     // Draw the neighbor hexagon using the reusable function
     drawSingleHexagon(
       ctx,
       { x: pos.x, y: pos.y },
-      hexSize.value, // Same size as the main hexagon
+      neighborSize,
       fillColor,
       strokeColor,
       strokeWidth,
       '', // No content for neighbors
-      id,
-      id === selectedNeighbor.value
+      pos.id,
+      pos.id === selectedNeighbor.value
     )
   })
 }
