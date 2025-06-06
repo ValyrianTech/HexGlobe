@@ -31,7 +31,8 @@ window.hexGlobeApp = {
         activeTileCoords: { col: 0, row: 0 }, // Will be set to center tile later
         debugMode: true, // Always show debug information
         tiles: [], // Array of tile objects
-        zoomLevel: 5 // Default zoom level (1-10)
+        zoomLevel: 5, // Default zoom level (1-10)
+        resolution: 7 // Default H3 resolution (0-15)
     },
     
     // Initialize the application
@@ -40,8 +41,12 @@ window.hexGlobeApp = {
         
         // Check if H3 library is available before proceeding
         this.ensureH3LibraryLoaded(() => {
-            // Get H3 index from URL query parameter
+            // Get H3 index from URL query parameter or set default based on resolution
             this.getH3IndexFromUrl();
+            
+            // Initialize resolution slider with current resolution
+            document.getElementById("resolution-value").textContent = this.state.resolution;
+            document.getElementById("resolution-slider").value = this.state.resolution;
             
             // Set up the canvas
             this.setupCanvas();
@@ -86,17 +91,48 @@ window.hexGlobeApp = {
         const h3Index = urlParams.get('h3');
         
         // Default H3 index to use if none is provided or if the provided one is invalid
-        const defaultH3Index = "872830828ffffff";
+        // Use a resolution-specific default index
+        const defaultH3Index = this.getDefaultH3IndexForResolution(this.state.resolution);
         
         // Validate the H3 index if provided
         if (h3Index && window.h3 && typeof window.h3.isValid === 'function' && window.h3.isValid(h3Index)) {
             this.state.activeTileId = h3Index;
-            console.log(`Using H3 index from URL: ${h3Index}`);
+            // Extract resolution from the provided H3 index
+            if (typeof window.h3.h3GetResolution === 'function') {
+                this.state.resolution = window.h3.h3GetResolution(h3Index);
+            }
+            console.log(`Using H3 index from URL: ${h3Index} (resolution: ${this.state.resolution})`);
         } else {
             // Use default H3 index
             this.state.activeTileId = defaultH3Index;
-            console.log(`Using default H3 index: ${this.state.activeTileId}`);
+            console.log(`Using default H3 index: ${this.state.activeTileId} (resolution: ${this.state.resolution})`);
         }
+    },
+    
+    // Get a default H3 index for a specific resolution
+    getDefaultH3IndexForResolution: function(resolution) {
+        // These are example H3 indexes for different resolutions
+        // Each represents approximately the same area but at different resolutions
+        const defaultIndexes = {
+            0: "8001fffffffffff", // Res 0
+            1: "81007ffffffffff", // Res 1
+            2: "820043fffffffff", // Res 2
+            3: "83000dfffffffff", // Res 3
+            4: "8400013ffffffff", // Res 4
+            5: "85000033fffffff", // Res 5
+            6: "860000057ffffff", // Res 6
+            7: "87000000fffffff", // Res 7
+            8: "880000003ffffff", // Res 8
+            9: "890000000ffffff", // Res 9
+            10: "8a0000000ffffff", // Res 10
+            11: "8b00000003fffff", // Res 11
+            12: "8c000000003ffff", // Res 12
+            13: "8d0000000003fff", // Res 13
+            14: "8e00000000003ff", // Res 14
+            15: "8f000000000003f"  // Res 15
+        };
+        
+        return defaultIndexes[resolution] || "87000000fffffff"; // Default to res 7 if not found
     },
     
     // Set up the canvas
@@ -147,6 +183,47 @@ window.hexGlobeApp = {
             this.render();
             this.updateDebugPanel();
         });
+
+        // Handle resolution slider changes
+        document.getElementById("resolution-slider").addEventListener("input", (event) => {
+            const newResolution = parseInt(event.target.value);
+            
+            // Only update if resolution actually changed
+            if (newResolution !== this.state.resolution) {
+                this.state.resolution = newResolution;
+                document.getElementById("resolution-value").textContent = this.state.resolution;
+                
+                // Update the active tile ID to use the new resolution
+                if (window.h3 && typeof window.h3.h3ToGeo === 'function' && typeof window.h3.geoToH3 === 'function') {
+                    try {
+                        // Get the lat/lng of the current index
+                        const latLng = window.h3.h3ToGeo(this.state.activeTileId);
+                        
+                        // Convert to the new resolution
+                        const newIndex = window.h3.geoToH3(latLng[0], latLng[1], this.state.resolution);
+                        this.state.activeTileId = newIndex;
+                        
+                        console.log(`Updated H3 index to resolution ${this.state.resolution}: ${newIndex}`);
+                        
+                        // Update URL to reflect the new H3 index
+                        const url = new URL(window.location);
+                        url.searchParams.set('h3', newIndex);
+                        window.history.replaceState({}, '', url);
+                    } catch (error) {
+                        console.error("Error updating H3 resolution:", error);
+                        // Fall back to a default index for this resolution
+                        this.state.activeTileId = this.getDefaultH3IndexForResolution(this.state.resolution);
+                    }
+                } else {
+                    // If H3 functions aren't available, use default index
+                    this.state.activeTileId = this.getDefaultH3IndexForResolution(this.state.resolution);
+                }
+                
+                this.generateGrid();
+                this.render();
+                this.updateDebugPanel();
+            }
+        });
     },
     
     // Calculate grid dimensions based on canvas size and zoom level
@@ -182,7 +259,7 @@ window.hexGlobeApp = {
         gridWidth = Math.max(gridWidth, minTilesForRings);
         gridHeight = Math.max(gridHeight, minTilesForRings);
         
-        console.log(`Grid dimensions: ${gridWidth}x${gridHeight}, hex size: ${adjustedHexSize}, zoom level: ${this.state.zoomLevel}`);
+        console.log(`Grid dimensions: ${gridWidth}x${gridHeight}, hex size: ${adjustedHexSize}, zoom level: ${this.state.zoomLevel}, resolution: ${this.state.resolution}`);
         
         return {
             hexSize: adjustedHexSize,
@@ -346,31 +423,36 @@ window.hexGlobeApp = {
     
     // Update the tile information panel
     updateDebugPanel: function() {
-        const debugPanel = document.getElementById("tile-info");
+        if (!this.state.debugMode) return;
         
-        // Always show tile info as debug mode is now always on
-        debugPanel.style.display = "block";
+        const tileInfo = document.getElementById("tile-info");
         
-        // Get the active tile
+        // Find the active tile
         const activeTile = this.state.tiles.find(tile => tile.isActive);
         
         if (!activeTile) {
-            debugPanel.textContent = "No active tile selected";
+            tileInfo.innerHTML = "<p>No active tile selected</p>";
             return;
         }
         
-        // Format the tile information
-        const debugInfo = `
-Active Tile:
-H3 Index: ${activeTile.id}
-Center X,Y: ${Math.round(activeTile.center.x)}, ${Math.round(activeTile.center.y)}
-Hex Size: ${Math.round(activeTile.size)}
-Grid Size: ${this.state.tiles.length} tiles
-Zoom Level: ${this.state.zoomLevel}
-Canvas Size: ${this.canvas.width} x ${this.canvas.height}
-        `;
+        // Get the H3 resolution from the active tile ID if possible
+        let detectedResolution = "Unknown";
+        if (window.h3 && typeof window.h3.h3GetResolution === 'function') {
+            try {
+                detectedResolution = window.h3.h3GetResolution(activeTile.id);
+            } catch (error) {
+                console.warn("Could not detect H3 resolution from index:", error);
+            }
+        }
         
-        debugPanel.textContent = debugInfo;
+        // Display tile information
+        tileInfo.innerHTML = `
+            <p><strong>H3 Index:</strong> ${activeTile.id}</p>
+            <p><strong>Resolution:</strong> ${this.state.resolution} (detected: ${detectedResolution})</p>
+            <p><strong>Zoom Level:</strong> ${this.state.zoomLevel}</p>
+            <p><strong>Hex Size:</strong> ${Math.round(activeTile.size)} pixels</p>
+            <p><strong>Position:</strong> (${Math.round(activeTile.center.x)}, ${Math.round(activeTile.center.y)})</p>
+        `;
     }
 };
 
