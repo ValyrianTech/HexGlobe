@@ -59,9 +59,10 @@ window.hexGlobeApp = {
             this.setupEventListeners();
             
             // Generate and render the grid
-            this.generateGrid();
-            this.render();
-            this.updateDebugPanel();
+            this.generateGrid().then(() => {
+                this.render();
+                this.updateDebugPanel();
+            });
         });
     },
     
@@ -203,9 +204,10 @@ window.hexGlobeApp = {
         document.getElementById("zoom-slider").addEventListener("input", (event) => {
             this.state.zoomLevel = parseInt(event.target.value);
             document.getElementById("zoom-value").textContent = this.state.zoomLevel;
-            this.generateGrid();
-            this.render();
-            this.updateDebugPanel();
+            this.generateGrid().then(() => {
+                this.render();
+                this.updateDebugPanel();
+            });
         });
 
         // Handle resolution slider changes
@@ -243,9 +245,11 @@ window.hexGlobeApp = {
                     this.state.activeTileId = this.getDefaultH3IndexForResolution(this.state.resolution);
                 }
                 
-                this.generateGrid();
-                this.render();
-                this.updateDebugPanel();
+                // Generate grid and wait for it to complete before rendering
+                this.generateGrid().then(() => {
+                    this.render();
+                    this.updateDebugPanel();
+                });
             }
         });
     },
@@ -293,7 +297,7 @@ window.hexGlobeApp = {
     },
     
     // Generate a grid of hexagons that fills the available space
-    generateGrid: function() {
+    generateGrid: async function() {
         this.state.tiles = [];
         
         // Calculate dimensions
@@ -313,6 +317,72 @@ window.hexGlobeApp = {
         
         console.log(`Grid size in pixels: ${gridWidthPx}x${gridHeightPx}`);
         console.log(`Grid offset: ${offsetX},${offsetY}`);
+        
+        // Fetch grid data from the API
+        try {
+            console.log(`Fetching grid data for dimensions: ${width}x${height}`);
+            const gridData = await this.state.navigation.fetchTileGrid(width, height);
+            console.log("Grid data received:", gridData);
+            
+            // Create the grid
+            for (let row = 0; row < height; row++) {
+                for (let col = 0; col < width; col++) {
+                    // Calculate the center position of this hexagon
+                    const x = offsetX + col * (hexWidth * 0.75) + (hexWidth / 2);
+                    const y = offsetY + row * hexHeight + (hexHeight / 2) + (col % 2 === 0 ? 0 : hexHeight / 2);
+                    
+                    // Get H3 index from the grid data
+                    let h3Index = null;
+                    if (gridData && gridData.grid && gridData.grid[row] && gridData.grid[row][col]) {
+                        h3Index = gridData.grid[row][col];
+                    }
+                    
+                    // Skip if we don't have a valid H3 index (empty cell)
+                    if (!h3Index) continue;
+                    
+                    // Check if this is a pentagon
+                    const isPentagon = gridData.pentagon_positions && 
+                        gridData.pentagon_positions.some(pos => pos[0] === row && pos[1] === col);
+                    
+                    // Calculate if this is the center/active tile
+                    const isCenter = (h3Index === gridData.center_tile_id);
+                    
+                    // Create the tile object
+                    const tile = {
+                        id: h3Index,
+                        col: col,
+                        row: row,
+                        x: x,
+                        y: y,
+                        isActive: isCenter,
+                        isPentagon: isPentagon
+                    };
+                    
+                    // Add the tile to the array
+                    this.state.tiles.push(tile);
+                    
+                    // Update active tile coordinates
+                    if (isCenter) {
+                        this.state.activeTileCoords = { col: col, row: row };
+                    }
+                }
+            }
+            
+            console.log(`Generated ${this.state.tiles.length} tiles`);
+        } catch (error) {
+            console.error("Error generating grid:", error);
+            
+            // Fallback to the old method if the API fails
+            this.generateGridFallback(width, height, size, offsetX, offsetY);
+        }
+    },
+    
+    // Fallback grid generation method (original implementation)
+    generateGridFallback: function(width, height, size, offsetX, offsetY) {
+        console.log("Using fallback grid generation method");
+        
+        const hexWidth = size * 2;
+        const hexHeight = Math.sqrt(3) * size;
         
         // Generate H3 indexes for the grid
         // Start with the center tile (from URL or default)
@@ -376,7 +446,7 @@ window.hexGlobeApp = {
         // Set the center tile as active
         this.state.activeTileCoords = { col: centerCol, row: centerRow };
         
-        console.log(`Generated ${this.state.tiles.length} tiles`);
+        console.log(`Generated ${this.state.tiles.length} tiles (fallback method)`);
     },
     
     // Handle canvas clicks
@@ -404,20 +474,21 @@ window.hexGlobeApp = {
                     console.log(`Navigating to tile: ${tile.id} via API`);
                     this.state.navigation.navigateTo(tile.id).then(() => {
                         // Regenerate the grid with the new center tile
-                        this.generateGrid();
-                        
-                        // Re-render the canvas
-                        this.render();
-                        
-                        // Update the debug panel
-                        this.updateDebugPanel();
+                        this.generateGrid().then(() => {
+                            // Re-render the canvas
+                            this.render();
+                            
+                            // Update the debug panel
+                            this.updateDebugPanel();
+                        });
                     });
                 } else {
                     console.warn("Navigation system not initialized, using fallback");
                     // Fallback to the old method
-                    this.generateGrid();
-                    this.render();
-                    this.updateDebugPanel();
+                    this.generateGrid().then(() => {
+                        this.render();
+                        this.updateDebugPanel();
+                    });
                 }
                 
                 return;

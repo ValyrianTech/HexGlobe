@@ -232,4 +232,45 @@ class HexNavigation {
     getNeighbors() {
         return this.neighbors;
     }
+
+    /**
+     * Fetch a grid of tiles centered around the active tile
+     * @param {number} width - Width of the grid (number of columns)
+     * @param {number} height - Height of the grid (number of rows)
+     * @returns {Promise} - Promise that resolves with the grid data
+     */
+    async fetchTileGrid(width, height) {
+        try {
+            const response = await fetch(`${this.apiBaseUrl}/tiles/${this.activeTileId}/grid?width=${width}&height=${height}`);
+            
+            if (!response.ok) {
+                throw new Error(`Failed to load grid: ${response.statusText}`);
+            }
+            
+            const gridData = await response.json();
+            
+            // Dispatch an event to notify that the grid data has been loaded
+            const event = new CustomEvent('gridDataLoaded', { detail: gridData });
+            window.dispatchEvent(event);
+            
+            return gridData;
+        } catch (error) {
+            console.error("Error loading grid data:", error);
+            
+            // If the API fails, create a fallback grid for development
+            const fallbackGrid = {
+                center_tile_id: this.activeTileId,
+                width: width,
+                height: height,
+                grid: Array(height).fill().map(() => Array(width).fill(this.activeTileId)),
+                pentagon_positions: []
+            };
+            
+            // Dispatch an event with the fallback grid
+            const event = new CustomEvent('gridDataLoaded', { detail: fallbackGrid });
+            window.dispatchEvent(event);
+            
+            return fallbackGrid;
+        }
+    }
 }
