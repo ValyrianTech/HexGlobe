@@ -359,159 +359,117 @@ async def get_tile_grid(
             logger.warning(f"[{datetime.now()}] Invalid H3 index: {tile_id}")
             raise HTTPException(status_code=400, detail="Invalid H3 index")
         
-        # Get the resolution of the center tile
-        resolution = h3.h3_get_resolution(tile_id)
-        
-        # Get the center coordinates
-        center_lat, center_lng = h3.h3_to_geo(tile_id)
-        logger.info(f"[{datetime.now()}] Center tile coordinates: lat={center_lat}, lng={center_lng}")
-        
-        # Calculate how far to search (k-ring distance)
-        k = max(width, height) // 2 + 1
-        logger.info(f"[{datetime.now()}] Using k-ring distance: {k}")
-        
-        # Get all tiles within k distance
-        tiles = list(h3.k_ring(tile_id, k))
-        logger.info(f"[{datetime.now()}] Found {len(tiles)} tiles in k-ring")
-        
-        # Get coordinates for all tiles
-        tile_coords = {}
-        for t in tiles:
-            lat, lng = h3.h3_to_geo(t)
-            tile_coords[t] = (lat, lng)
-        
-        # Sort tiles by latitude (north to south)
-        sorted_by_lat = sorted(tiles, key=lambda t: -tile_coords[t][0])  # Negative for north-south order
-        
-        # Group tiles by latitude bands
-        lat_bands = []
-        current_band = []
-        
-        if sorted_by_lat:
-            prev_lat = tile_coords[sorted_by_lat[0]][0]
-            
-            for t in sorted_by_lat:
-                current_lat = tile_coords[t][0]
-                # If we've moved significantly in latitude, start a new band
-                # Using a small threshold to group nearby latitudes
-                if abs(current_lat - prev_lat) > 0.0001:  # Threshold may need adjustment
-                    if current_band:
-                        lat_bands.append(current_band)
-                    current_band = [t]
-                    prev_lat = current_lat
-                else:
-                    current_band.append(t)
-            
-            # Add the last band
-            if current_band:
-                lat_bands.append(current_band)
-        
-        # Sort each band by longitude (west to east)
-        for i in range(len(lat_bands)):
-            lat_bands[i] = sorted(lat_bands[i], key=lambda t: tile_coords[t][1])
-        
-        # Create a grid with the specified dimensions
+        # Initialize the grid with None values
         grid = [[None for _ in range(width)] for _ in range(height)]
         
         # Calculate center position in the grid
         center_row = height // 2
         center_col = width // 2
         
+        # Define position offsets for neighbors (flat-bottom hexagon)
+        position_offsets = {
+            "top_left": (-1, -1),
+            "top_middle": (0, -1),
+            "top_right": (1, -1),
+            "bottom_left": (-1, 1),
+            "bottom_middle": (0, 1),
+            "bottom_right": (1, 1)
+        }
+        
+        # Set to track visited tiles
+        visited = set()
+        
+        # Queue for BFS traversal (tile_id, row, col, distance)
+        queue = [(tile_id, center_row, center_col, 0)]
+        
         # Place the center tile
         grid[center_row][center_col] = tile_id
+        visited.add(tile_id)
         
-        # Try to fill the grid with the closest tiles from our sorted bands
-        # This is a simplified approach and may need refinement
-        rows_filled = 1
-        top_row = center_row - 1
-        bottom_row = center_row + 1
+        # Maximum distance from center to include
+        max_distance = max(width, height)
         
-        # Find the center tile's band
-        center_band_idx = None
-        for i, band in enumerate(lat_bands):
-            if tile_id in band:
-                center_band_idx = i
-                break
-        
-        if center_band_idx is not None:
-            # Fill rows above center
-            band_idx = center_band_idx - 1
-            while band_idx >= 0 and top_row >= 0:
-                if band_idx < len(lat_bands):
-                    band = lat_bands[band_idx]
-                    # Find center longitude
-                    center_lng = tile_coords[tile_id][1]
-                    # Sort band by distance from center longitude
-                    band_sorted = sorted(band, key=lambda t: abs(tile_coords[t][1] - center_lng))
-                    
-                    # Fill the row
-                    col = center_col
-                    left_col = center_col - 1
-                    right_col = center_col + 1
-                    
-                    for t in band_sorted:
-                        if col == center_col:  # First tile goes in center
-                            grid[top_row][col] = t
-                        elif left_col >= 0:  # Then alternate left
-                            grid[top_row][left_col] = t
-                            left_col -= 1
-                        elif right_col < width:  # Then right
-                            grid[top_row][right_col] = t
-                            right_col += 1
-                        else:
-                            break  # Row is full
-                
-                top_row -= 1
-                band_idx -= 1
-                rows_filled += 1
+        # BFS traversal
+        while queue:
+            current_id, row, col, distance = queue.pop(0)
             
-            # Fill rows below center
-            band_idx = center_band_idx + 1
-            while band_idx < len(lat_bands) and bottom_row < height:
-                band = lat_bands[band_idx]
-                # Find center longitude
-                center_lng = tile_coords[tile_id][1]
-                # Sort band by distance from center longitude
-                band_sorted = sorted(band, key=lambda t: abs(tile_coords[t][1] - center_lng))
+            # Skip if we're too far from center
+            if distance > max_distance:
+                continue
+            
+            # Load the current tile
+            current_tile = Tile.load(current_id)
+            
+            # If tile doesn't exist in storage, create it
+            if current_tile is None:
+                if h3.h3_is_pentagon(current_id):
+                    current_tile = PentagonTile(current_id)
+                else:
+                    current_tile = HexagonTile(current_id)
+                current_tile.save()
+            
+            # Process each neighbor
+            for position, neighbor_id in current_tile.neighbor_ids.items():
+                # Skip if this is a pentagon's missing position
+                if neighbor_id == "pentagon":
+                    continue
                 
-                # Fill the row
-                col = center_col
-                left_col = center_col - 1
-                right_col = center_col + 1
+                # Calculate grid position
+                offset_x, offset_y = position_offsets.get(position, (0, 0))
+                new_row = row + offset_y
+                new_col = col + offset_x
                 
-                for t in band_sorted:
-                    if col == center_col:  # First tile goes in center
-                        grid[bottom_row][col] = t
-                    elif left_col >= 0:  # Then alternate left
-                        grid[bottom_row][left_col] = t
-                        left_col -= 1
-                    elif right_col < width:  # Then right
-                        grid[bottom_row][right_col] = t
-                        right_col += 1
-                    else:
-                        break  # Row is full
-                
-                bottom_row += 1
-                band_idx += 1
-                rows_filled += 1
+                # Check if position is valid and not already filled
+                if (0 <= new_row < height and 0 <= new_col < width and 
+                    grid[new_row][new_col] is None and 
+                    neighbor_id not in visited):
+                    
+                    # Place neighbor in grid
+                    grid[new_row][new_col] = neighbor_id
+                    
+                    # Mark as visited
+                    visited.add(neighbor_id)
+                    
+                    # Add to queue for further expansion
+                    queue.append((neighbor_id, new_row, new_col, distance + 1))
         
-        # Fill in any remaining empty cells with the closest available tiles
-        # This is a simplified approach and may need refinement
-        remaining_tiles = set(tiles) - {t for row in grid for t in row if t is not None}
-        
+        # Fill any remaining empty cells using k-ring
+        empty_cells = []
         for row in range(height):
             for col in range(width):
-                if grid[row][col] is None and remaining_tiles:
-                    # Find the closest remaining tile to this position
-                    target_lat = center_lat + (center_row - row) * 0.01  # Approximate offset
-                    target_lng = center_lng + (col - center_col) * 0.01  # Approximate offset
+                if grid[row][col] is None:
+                    empty_cells.append((row, col))
+        
+        if empty_cells:
+            # Calculate how far to search (k-ring distance)
+            k = max(width, height)
+            
+            # Get all tiles within k distance that haven't been placed yet
+            all_tiles = set(h3.k_ring(tile_id, k)) - visited
+            
+            if all_tiles:
+                # For each empty cell, find the closest unplaced tile
+                for row, col in empty_cells:
+                    if not all_tiles:
+                        break
                     
-                    closest_tile = min(remaining_tiles, 
-                                      key=lambda t: (tile_coords[t][0] - target_lat)**2 + 
-                                                   (tile_coords[t][1] - target_lng)**2)
+                    # Calculate approximate target coordinates
+                    # (This is a fallback when BFS doesn't fill all cells)
+                    center_lat, center_lng = h3.h3_to_geo(tile_id)
+                    row_offset = (row - center_row) * 0.01  # Approximate offset
+                    col_offset = (col - center_col) * 0.01  # Approximate offset
+                    target_lat = center_lat - row_offset  # Subtract because rows increase downward
+                    target_lng = center_lng + col_offset
+                    
+                    # Find closest tile
+                    closest_tile = min(all_tiles, 
+                                      key=lambda t: _calculate_distance(
+                                          h3.h3_to_geo(t), 
+                                          (target_lat, target_lng)
+                                      ))
                     
                     grid[row][col] = closest_tile
-                    remaining_tiles.remove(closest_tile)
+                    all_tiles.remove(closest_tile)
         
         # Check for pentagons in the grid
         pentagon_positions = []
@@ -520,7 +478,7 @@ async def get_tile_grid(
                 if grid[row][col] and h3.h3_is_pentagon(grid[row][col]):
                     pentagon_positions.append([row, col])
         
-        logger.info(f"[{datetime.now()}] Grid created successfully with {rows_filled} rows filled")
+        logger.info(f"[{datetime.now()}] Grid created successfully using neighbor-based approach")
         logger.info(f"[{datetime.now()}] Found {len(pentagon_positions)} pentagons in the grid")
         
         return {
@@ -534,6 +492,13 @@ async def get_tile_grid(
     except Exception as e:
         logger.error(f"[{datetime.now()}] Error creating grid for tile {tile_id}: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
+def _calculate_distance(point1, point2):
+    """
+    Calculate the squared distance between two points (lat, lng).
+    Using squared distance to avoid unnecessary sqrt calculations.
+    """
+    return (point1[0] - point2[0])**2 + (point1[1] - point2[1])**2
 
 @router.get("/{tile_id}/resolutions")
 async def get_resolutions(tile_id: str = Path(..., description="H3 index of the tile")):
