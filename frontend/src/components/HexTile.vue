@@ -112,16 +112,29 @@ const getNeighbors = () => {
     const neighborIndices = allCells.filter(id => id !== props.hexId)
     neighbors.value = neighborIndices
     
-    // Calculate positions for neighbors
+    // Calculate positions for neighbors using a simpler approach
     neighborPositions.value = []
-    for (let i = 0; i < 6; i++) {
-      const angle = (Math.PI / 3) * i - Math.PI / 2
-      const x = centerX.value + hexSize.value * 2 * Math.cos(angle)
-      const y = centerY.value + hexSize.value * 2 * Math.sin(angle)
-      // Only assign an ID if it exists in the neighborIndices array
-      const neighborId = i < neighborIndices.length ? neighborIndices[i] : null
-      neighborPositions.value.push({ x, y, id: neighborId })
+    
+    // Use a fixed distance and angles for neighbor positions
+    // This is a simplified approach that ensures neighbors are visible
+    const neighborCount = neighborIndices.length
+    
+    for (let i = 0; i < neighborCount; i++) {
+      // Calculate position in a hexagonal pattern around the center
+      const angle = (Math.PI * 2 * i) / neighborCount
+      const distance = hexSize.value * 1.8 // Adjust this value to control neighbor distance
+      
+      const x = centerX.value + Math.cos(angle) * distance
+      const y = centerY.value + Math.sin(angle) * distance
+      
+      neighborPositions.value.push({ 
+        x, 
+        y, 
+        id: neighborIndices[i] 
+      })
     }
+    
+    console.log(`Found ${neighborIndices.length} neighbors, created ${neighborPositions.value.length} positions`)
     
     return neighborIndices
   } catch (e) {
@@ -181,6 +194,57 @@ const navigateToNeighbor = () => {
   }
 }
 
+// Draw a single hexagon with the given parameters
+const drawSingleHexagon = (ctx, center, size, fillColor, strokeColor, strokeWidth, content, id, isSelected = false) => {
+  const points = calculateHexPoints(center, size)
+  
+  // Create path (hexagon shape)
+  ctx.beginPath()
+  ctx.moveTo(points[0].x, points[0].y)
+  for (let i = 1; i < points.length; i++) {
+    ctx.lineTo(points[i].x, points[i].y)
+  }
+  ctx.closePath()
+  
+  // Fill
+  ctx.fillStyle = fillColor
+  ctx.fill()
+  
+  // Draw grid pattern if it's the main hexagon, otherwise draw simple grid
+  if (id === props.hexId) {
+    drawGridPattern(ctx, points)
+  } else {
+    drawSimpleGrid(ctx, points)
+  }
+  
+  // Draw content text if available
+  if (content) {
+    ctx.fillStyle = '#333'
+    ctx.font = '16px Arial'
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.fillText(content, center.x, center.y)
+  }
+  
+  // Draw the hexagon ID
+  ctx.fillStyle = '#333'
+  ctx.font = isSelected ? '12px monospace' : '10px monospace'
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'bottom'
+  ctx.fillText(id.substring(0, 6) + (isSelected ? '' : '...'), center.x, center.y + size * 0.6)
+  
+  // Stroke (border)
+  ctx.beginPath()
+  ctx.moveTo(points[0].x, points[0].y)
+  for (let i = 1; i < points.length; i++) {
+    ctx.lineTo(points[i].x, points[i].y)
+  }
+  ctx.closePath()
+  ctx.strokeStyle = strokeColor
+  ctx.lineWidth = strokeWidth
+  ctx.stroke()
+}
+
 // Draw the hexagon on the canvas
 const drawHexagon = () => {
   errorMessage.value = '' // Clear previous errors
@@ -199,50 +263,19 @@ const drawHexagon = () => {
       drawNeighbors(ctx)
     }
     
-    // Draw main hexagon
-    const points = calculateHexPoints()
+    // Draw main hexagon using the reusable function
+    drawSingleHexagon(
+      ctx,
+      { x: centerX.value, y: centerY.value },
+      hexSize.value,
+      props.fillColor,
+      props.strokeColor,
+      props.strokeWidth,
+      props.content,
+      props.hexId,
+      true
+    )
     
-    // Create path (hexagon shape)
-    ctx.beginPath()
-    ctx.moveTo(points[0].x, points[0].y)
-    for (let i = 1; i < points.length; i++) {
-      ctx.lineTo(points[i].x, points[i].y)
-    }
-    ctx.closePath()
-    
-    // Fill
-    ctx.fillStyle = props.fillColor
-    ctx.fill()
-    
-    // Draw grid pattern
-    drawGridPattern(ctx, points)
-    
-    // Draw content text if available
-    if (props.content) {
-      ctx.fillStyle = '#333'
-      ctx.font = '16px Arial'
-      ctx.textAlign = 'center'
-      ctx.textBaseline = 'middle'
-      ctx.fillText(props.content, centerX.value, centerY.value)
-    }
-    
-    // Draw the hexagon ID
-    ctx.fillStyle = '#333'
-    ctx.font = '12px monospace'
-    ctx.textAlign = 'center'
-    ctx.textBaseline = 'bottom'
-    ctx.fillText(props.hexId, centerX.value, centerY.value + hexSize.value * 0.8)
-    
-    // Stroke (border) - Make sure to use the same path
-    ctx.beginPath()
-    ctx.moveTo(points[0].x, points[0].y)
-    for (let i = 1; i < points.length; i++) {
-      ctx.lineTo(points[i].x, points[i].y)
-    }
-    ctx.closePath()
-    ctx.strokeStyle = props.strokeColor
-    ctx.lineWidth = props.strokeWidth
-    ctx.stroke()
   } catch (e) {
     console.error('Error drawing hexagon:', e)
     errorMessage.value = `Failed to draw hexagon: ${e.message}`
@@ -253,50 +286,30 @@ const drawHexagon = () => {
 const drawNeighbors = (ctx) => {
   const neighborIds = neighbors.value
   
-  // Draw each neighbor
+  // Draw each neighbor using the reusable function
   neighborIds.forEach((id, index) => {
     if (index >= neighborPositions.value.length) return
     
     const pos = neighborPositions.value[index]
     if (!pos || !pos.id) return // Skip if position or ID is missing
     
-    const points = calculateHexPoints({ x: pos.x, y: pos.y }, hexSize.value * 0.8)
+    // Determine colors based on selection state
+    const fillColor = id === selectedNeighbor.value ? '#b3e5fc' : '#e0e0e0'
+    const strokeColor = id === selectedNeighbor.value ? '#0288d1' : '#999'
+    const strokeWidth = id === selectedNeighbor.value ? 2 : 1
     
-    // Draw hexagon
-    ctx.beginPath()
-    ctx.moveTo(points[0].x, points[0].y)
-    for (let i = 1; i < points.length; i++) {
-      ctx.lineTo(points[i].x, points[i].y)
-    }
-    ctx.closePath()
-    
-    // Fill with a lighter color or highlight if selected
-    if (id === selectedNeighbor.value) {
-      ctx.fillStyle = '#b3e5fc' // Light blue for selected neighbor
-    } else {
-      ctx.fillStyle = '#e0e0e0'
-    }
-    ctx.fill()
-    
-    // Draw simple grid
-    drawSimpleGrid(ctx, points)
-    
-    // Draw ID
-    ctx.fillStyle = '#666'
-    ctx.font = '10px monospace'
-    ctx.textAlign = 'center'
-    ctx.textBaseline = 'middle'
-    ctx.fillText(id.substring(0, 6) + '...', pos.x, pos.y)
-    
-    // Stroke with different color if selected
-    if (id === selectedNeighbor.value) {
-      ctx.strokeStyle = '#0288d1' // Darker blue for selected neighbor border
-      ctx.lineWidth = 2
-    } else {
-      ctx.strokeStyle = '#999'
-      ctx.lineWidth = 1
-    }
-    ctx.stroke()
+    // Draw the neighbor hexagon using the reusable function
+    drawSingleHexagon(
+      ctx,
+      { x: pos.x, y: pos.y },
+      hexSize.value * 0.8, // Slightly smaller than the main hexagon
+      fillColor,
+      strokeColor,
+      strokeWidth,
+      '', // No content for neighbors
+      id,
+      false
+    )
   })
 }
 
