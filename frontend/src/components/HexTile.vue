@@ -1,6 +1,6 @@
 <template>
   <div class="hex-tile-container">
-    <canvas ref="hexCanvas" :width="width" :height="height" class="hex-canvas"></canvas>
+    <canvas ref="hexCanvas" :width="width" :height="height" class="hex-canvas" @click="handleCanvasClick"></canvas>
     <div v-if="showDebug" class="debug-info">
       <h3>Tile Information</h3>
       <p><strong>Tile ID:</strong> {{ hexId }}</p>
@@ -19,6 +19,13 @@
       </div>
       <div class="controls">
         <button @click="toggleNeighbors">{{ showNeighbors ? 'Hide' : 'Show' }} Neighbors</button>
+      </div>
+      <div v-if="selectedNeighbor" class="selected-info">
+        <p><strong>Selected:</strong> {{ selectedNeighbor.substring(0, 6) }}...</p>
+        <button @click="navigateToNeighbor" class="navigate-btn">Navigate to Selected</button>
+      </div>
+      <div v-if="errorMessage" class="error-message">
+        <p><strong>Error:</strong> {{ errorMessage }}</p>
       </div>
     </div>
   </div>
@@ -63,13 +70,25 @@ const props = defineProps({
   }
 })
 
+const emit = defineEmits(['navigate'])
+
 const hexCanvas = ref(null)
 const centerX = ref(props.width / 2)
 const centerY = ref(props.height / 2)
 const hexSize = ref(Math.min(props.width, props.height) * 0.35)
-const resolution = computed(() => h3.getResolution(props.hexId))
+const resolution = computed(() => {
+  try {
+    return h3.getResolution(props.hexId)
+  } catch (e) {
+    errorMessage.value = `Invalid H3 index: ${props.hexId}`
+    return '?'
+  }
+})
 const showNeighbors = ref(false)
 const neighbors = ref([])
+const neighborPositions = ref([])
+const selectedNeighbor = ref(null)
+const errorMessage = ref('')
 
 // Calculate hexagon points
 const calculateHexPoints = (center = { x: centerX.value, y: centerY.value }, size = hexSize.value) => {
@@ -86,12 +105,28 @@ const calculateHexPoints = (center = { x: centerX.value, y: centerY.value }, siz
 
 // Get neighboring hexagons
 const getNeighbors = () => {
+  errorMessage.value = '' // Clear previous errors
   try {
     const neighborIndices = h3.kRing(props.hexId, 1).filter(id => id !== props.hexId)
     neighbors.value = neighborIndices
+    
+    // Calculate positions for neighbors
+    neighborPositions.value = []
+    for (let i = 0; i < 6; i++) {
+      const angle = (Math.PI / 3) * i - Math.PI / 2
+      const x = centerX.value + hexSize.value * 2 * Math.cos(angle)
+      const y = centerY.value + hexSize.value * 2 * Math.sin(angle)
+      // Only assign an ID if it exists in the neighborIndices array
+      const neighborId = i < neighborIndices.length ? neighborIndices[i] : null
+      neighborPositions.value.push({ x, y, id: neighborId })
+    }
+    
     return neighborIndices
   } catch (e) {
     console.error('Error getting neighbors:', e)
+    errorMessage.value = `Failed to get neighbors: ${e.message}`
+    neighbors.value = []
+    neighborPositions.value = []
     return []
   }
 }
@@ -99,82 +134,124 @@ const getNeighbors = () => {
 // Toggle showing neighbors
 const toggleNeighbors = () => {
   showNeighbors.value = !showNeighbors.value
+  if (showNeighbors.value) {
+    getNeighbors()
+  } else {
+    selectedNeighbor.value = null
+  }
   drawHexagon()
+}
+
+// Handle canvas click
+const handleCanvasClick = (event) => {
+  if (!showNeighbors.value) return
+  
+  const rect = hexCanvas.value.getBoundingClientRect()
+  const x = event.clientX - rect.left
+  const y = event.clientY - rect.top
+  
+  // Check if a neighbor was clicked
+  for (let i = 0; i < neighborPositions.value.length; i++) {
+    const neighbor = neighborPositions.value[i]
+    if (!neighbor.id) continue
+    
+    const distance = Math.sqrt(
+      Math.pow(x - neighbor.x, 2) + 
+      Math.pow(y - neighbor.y, 2)
+    )
+    
+    if (distance <= hexSize.value * 0.8) {
+      selectedNeighbor.value = neighbor.id
+      drawHexagon()
+      return
+    }
+  }
+  
+  // If we get here, no neighbor was clicked
+  selectedNeighbor.value = null
+  drawHexagon()
+}
+
+// Navigate to the selected neighbor
+const navigateToNeighbor = () => {
+  if (selectedNeighbor.value) {
+    emit('navigate', selectedNeighbor.value)
+  }
 }
 
 // Draw the hexagon on the canvas
 const drawHexagon = () => {
+  errorMessage.value = '' // Clear previous errors
   const canvas = hexCanvas.value
-  if (!canvas) return
-  
-  const ctx = canvas.getContext('2d')
-  ctx.clearRect(0, 0, props.width, props.height)
-  
-  // Draw neighbors if enabled
-  if (showNeighbors.value) {
-    drawNeighbors(ctx)
+  if (!canvas) {
+    errorMessage.value = 'Canvas not available'
+    return
   }
   
-  // Draw main hexagon
-  const points = calculateHexPoints()
-  
-  // Create clipping path (hexagon shape)
-  ctx.beginPath()
-  ctx.moveTo(points[0].x, points[0].y)
-  for (let i = 1; i < points.length; i++) {
-    ctx.lineTo(points[i].x, points[i].y)
-  }
-  ctx.closePath()
-  
-  // Fill
-  ctx.fillStyle = props.fillColor
-  ctx.fill()
-  
-  // Draw grid pattern
-  drawGridPattern(ctx, points)
-  
-  // Draw content text if available
-  if (props.content) {
+  try {
+    const ctx = canvas.getContext('2d')
+    ctx.clearRect(0, 0, props.width, props.height)
+    
+    // Draw neighbors if enabled
+    if (showNeighbors.value) {
+      drawNeighbors(ctx)
+    }
+    
+    // Draw main hexagon
+    const points = calculateHexPoints()
+    
+    // Create clipping path (hexagon shape)
+    ctx.beginPath()
+    ctx.moveTo(points[0].x, points[0].y)
+    for (let i = 1; i < points.length; i++) {
+      ctx.lineTo(points[i].x, points[i].y)
+    }
+    ctx.closePath()
+    
+    // Fill
+    ctx.fillStyle = props.fillColor
+    ctx.fill()
+    
+    // Draw grid pattern
+    drawGridPattern(ctx, points)
+    
+    // Draw content text if available
+    if (props.content) {
+      ctx.fillStyle = '#333'
+      ctx.font = '16px Arial'
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      ctx.fillText(props.content, centerX.value, centerY.value)
+    }
+    
+    // Draw the hexagon ID
     ctx.fillStyle = '#333'
-    ctx.font = '16px Arial'
+    ctx.font = '12px monospace'
     ctx.textAlign = 'center'
-    ctx.textBaseline = 'middle'
-    ctx.fillText(props.content, centerX.value, centerY.value)
+    ctx.textBaseline = 'bottom'
+    ctx.fillText(props.hexId, centerX.value, centerY.value + hexSize.value * 0.8)
+    
+    // Stroke (border)
+    ctx.strokeStyle = props.strokeColor
+    ctx.lineWidth = props.strokeWidth
+    ctx.stroke()
+  } catch (e) {
+    console.error('Error drawing hexagon:', e)
+    errorMessage.value = `Failed to draw hexagon: ${e.message}`
   }
-  
-  // Draw the hexagon ID
-  ctx.fillStyle = '#333'
-  ctx.font = '12px monospace'
-  ctx.textAlign = 'center'
-  ctx.textBaseline = 'bottom'
-  ctx.fillText(props.hexId, centerX.value, centerY.value + hexSize.value * 0.8)
-  
-  // Stroke (border)
-  ctx.strokeStyle = props.strokeColor
-  ctx.lineWidth = props.strokeWidth
-  ctx.stroke()
 }
 
 // Draw neighboring hexagons
 const drawNeighbors = (ctx) => {
-  const neighborIds = getNeighbors()
-  
-  // Calculate positions for neighbors (simplified for visualization)
-  const neighborPositions = []
-  
-  // For each neighbor, calculate a position relative to the center
-  for (let i = 0; i < 6; i++) {
-    const angle = (Math.PI / 3) * i - Math.PI / 2
-    const x = centerX.value + hexSize.value * 2 * Math.cos(angle)
-    const y = centerY.value + hexSize.value * 2 * Math.sin(angle)
-    neighborPositions.push({ x, y })
-  }
+  const neighborIds = neighbors.value
   
   // Draw each neighbor
   neighborIds.forEach((id, index) => {
-    if (index >= neighborPositions.length) return
+    if (index >= neighborPositions.value.length) return
     
-    const pos = neighborPositions[index]
+    const pos = neighborPositions.value[index]
+    if (!pos || !pos.id) return // Skip if position or ID is missing
+    
     const points = calculateHexPoints({ x: pos.x, y: pos.y }, hexSize.value * 0.8)
     
     // Draw hexagon
@@ -185,8 +262,12 @@ const drawNeighbors = (ctx) => {
     }
     ctx.closePath()
     
-    // Fill with a lighter color
-    ctx.fillStyle = '#e0e0e0'
+    // Fill with a lighter color or highlight if selected
+    if (id === selectedNeighbor.value) {
+      ctx.fillStyle = '#b3e5fc' // Light blue for selected neighbor
+    } else {
+      ctx.fillStyle = '#e0e0e0'
+    }
     ctx.fill()
     
     // Draw simple grid
@@ -199,9 +280,14 @@ const drawNeighbors = (ctx) => {
     ctx.textBaseline = 'middle'
     ctx.fillText(id.substring(0, 6) + '...', pos.x, pos.y)
     
-    // Stroke
-    ctx.strokeStyle = '#999'
-    ctx.lineWidth = 1
+    // Stroke with different color if selected
+    if (id === selectedNeighbor.value) {
+      ctx.strokeStyle = '#0288d1' // Darker blue for selected neighbor border
+      ctx.lineWidth = 2
+    } else {
+      ctx.strokeStyle = '#999'
+      ctx.lineWidth = 1
+    }
     ctx.stroke()
   })
 }
@@ -294,7 +380,13 @@ const drawSimpleGrid = (ctx, points) => {
 }
 
 // Watch for changes to redraw
-watch(() => props.hexId, drawHexagon)
+watch(() => props.hexId, () => {
+  selectedNeighbor.value = null
+  if (showNeighbors.value) {
+    getNeighbors()
+  }
+  drawHexagon()
+})
 watch(() => props.width, drawHexagon)
 watch(() => props.height, drawHexagon)
 watch(() => props.fillColor, drawHexagon)
@@ -336,7 +428,9 @@ defineExpose({
   hexSize,
   toggleNeighbors,
   showNeighbors,
-  neighbors
+  neighbors,
+  selectedNeighbor,
+  navigateToNeighbor
 })
 </script>
 
@@ -354,6 +448,7 @@ defineExpose({
 .hex-canvas {
   max-width: 100%;
   max-height: 100%;
+  cursor: pointer;
 }
 
 .debug-info {
@@ -408,7 +503,7 @@ defineExpose({
   justify-content: center;
 }
 
-.controls button {
+.controls button, .navigate-btn {
   background-color: #4CAF50;
   color: white;
   border: none;
@@ -419,7 +514,37 @@ defineExpose({
   transition: background-color 0.3s;
 }
 
-.controls button:hover {
+.controls button:hover, .navigate-btn:hover {
   background-color: #45a049;
+}
+
+.selected-info {
+  margin-top: 15px;
+  padding-top: 10px;
+  border-top: 1px solid #ddd;
+  text-align: center;
+}
+
+.navigate-btn {
+  background-color: #2196F3;
+  margin-top: 5px;
+}
+
+.navigate-btn:hover {
+  background-color: #0b7dda;
+}
+
+.error-message {
+  margin-top: 15px;
+  padding: 10px;
+  background-color: #ffebee;
+  border-left: 4px solid #f44336;
+  border-radius: 4px;
+}
+
+.error-message p {
+  margin: 0;
+  color: #d32f2f;
+  font-size: 12px;
 }
 </style>

@@ -44,13 +44,20 @@ HexGlobe provides a framework for visualizing and interacting with a global hexa
 #### Backend
 
 ```bash
+# Create and activate virtual environment (from project root)
+python3 -m venv venv
+source venv/bin/activate
+
+# Install backend dependencies
 cd backend
 poetry install
+cd ..
 ```
 
 #### Frontend
 
 ```bash
+# With virtual environment activated
 cd frontend
 npm install
 ```
@@ -60,13 +67,15 @@ npm install
 #### Backend
 
 ```bash
+# With virtual environment activated
 cd backend
-poetry run python run.py
+python run.py
 ```
 
 #### Frontend
 
 ```bash
+# With virtual environment activated
 cd frontend
 npm run dev
 ```
