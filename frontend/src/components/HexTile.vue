@@ -39,6 +39,10 @@ const props = defineProps({
   content: {
     type: String,
     default: ''
+  },
+  zoomLevel: {
+    type: Number,
+    default: 1
   }
 })
 
@@ -47,7 +51,13 @@ const emit = defineEmits(['navigate', 'selectNeighbor'])
 const hexCanvas = ref(null)
 const centerX = ref(props.width / 2)
 const centerY = ref(props.height / 2)
-const hexSize = ref(Math.min(props.width, props.height) * 0.45)
+const hexSize = computed(() => {
+  // Adjust hexagon size based on zoom level
+  // As zoom level increases, hexagon size decreases
+  const baseSize = Math.min(props.width, props.height) * 0.45
+  return baseSize / props.zoomLevel
+})
+
 const resolution = computed(() => {
   try {
     return h3.getResolution(props.hexId)
@@ -394,6 +404,12 @@ watch(() => props.fillColor, drawHexagon)
 watch(() => props.strokeColor, drawHexagon)
 watch(() => props.strokeWidth, drawHexagon)
 watch(() => props.content, drawHexagon)
+watch(() => props.zoomLevel, () => {
+  if (showNeighbors.value) {
+    getNeighbors()
+  }
+  drawHexagon()
+})
 watch(() => showNeighbors.value, drawHexagon)
 
 // Initialize on mount
@@ -413,7 +429,6 @@ onMounted(() => {
       
       centerX.value = canvasWidth / 2
       centerY.value = canvasHeight / 2
-      hexSize.value = Math.min(canvasWidth, canvasHeight) * 0.45
       
       if (showNeighbors.value) {
         getNeighbors()

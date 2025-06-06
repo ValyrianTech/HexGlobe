@@ -9,6 +9,7 @@
         :content="tileContent" 
         :fillColor="fillColor"
         :strokeColor="strokeColor"
+        :zoomLevel="zoomLevel"
         @navigate="navigateToTile"
         @selectNeighbor="handleNeighborSelection"
       />
@@ -32,6 +33,13 @@
               <input type="color" v-model="strokeColor">
             </label>
           </div>
+        </div>
+        
+        <div class="zoom-control">
+          <label>
+            <strong>Zoom Level:</strong> {{ zoomLevel }}
+            <input type="range" v-model="zoomLevel" min="1" max="10" step="1" class="slider">
+          </label>
         </div>
         
         <div class="action-buttons">
@@ -68,6 +76,7 @@ const currentHexId = ref(DEFAULT_HEX_ID);
 const tileContent = ref('Welcome to HexGlobe!');
 const fillColor = ref('#f0f0f0');
 const strokeColor = ref('#ff0000');
+const zoomLevel = ref(1); // Default zoom level
 
 // Navigation history
 const navigationHistory = ref([DEFAULT_HEX_ID]);
@@ -335,5 +344,35 @@ button {
 .navigation-history li span {
   font-weight: bold;
   color: #4CAF50;
+}
+
+.zoom-control {
+  margin-top: 10px;
+  margin-bottom: 15px;
+  width: 90%;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.zoom-control label {
+  display: flex;
+  flex-direction: column;
+  font-size: 12px;
+  width: 100%;
+}
+
+.slider {
+  margin-top: 5px;
+  width: 100%;
+  height: 5px;
+  background: #d3d3d3;
+  outline: none;
+  opacity: 0.7;
+  -webkit-transition: .2s;
+  transition: opacity .2s;
+}
+
+.slider:hover {
+  opacity: 1;
 }
 </style>
