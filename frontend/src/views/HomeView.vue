@@ -200,6 +200,10 @@ const resetToDefaultTile = () => {
   overflow-y: auto;
 }
 
+.tile-info-panel {
+  padding: 0 5px;
+}
+
 .tile-info-panel h3 {
   margin-top: 0;
   margin-bottom: 10px;
@@ -254,6 +258,7 @@ button {
   width: 100%;
   transition: background-color 0.3s;
   white-space: nowrap;
+  margin: 0 auto;
 }
 
 button:hover {
