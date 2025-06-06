@@ -380,16 +380,30 @@ async def get_tile_grid(
         # Place the center tile
         grid[center_row][center_col] = tile_id
         
-        # Load the center tile
+        # Load or create the center tile
         center_tile = Tile.load(tile_id)
-        
-        # If tile doesn't exist in storage, create it
         if center_tile is None:
             if h3.h3_is_pentagon(tile_id):
                 center_tile = PentagonTile(tile_id)
             else:
                 center_tile = HexagonTile(tile_id)
             center_tile.save()
+        
+        # Get all tiles within the required distance
+        max_distance = max(width, height)
+        all_tiles_in_range = h3.k_ring(tile_id, max_distance)
+        
+        # Pre-generate all tile data for tiles in range
+        for h3_index in all_tiles_in_range:
+            # Check if tile data already exists
+            tile = Tile.load(h3_index)
+            if tile is None:
+                # Create and save the tile data
+                if h3.h3_is_pentagon(h3_index):
+                    tile = PentagonTile(h3_index)
+                else:
+                    tile = HexagonTile(h3_index)
+                tile.save()
         
         # Place the immediate neighbors
         for position, neighbor_id in center_tile.neighbor_ids.items():
@@ -399,10 +413,6 @@ async def get_tile_grid(
             row, col = position_to_grid.get(position, (0, 0))
             if 0 <= row < height and 0 <= col < width:
                 grid[row][col] = neighbor_id
-        
-        # Get all tiles within the required distance
-        max_distance = max(width, height)
-        all_tiles = h3.k_ring(tile_id, max_distance)
         
         # Create a mapping of positions for all tiles
         position_map = {}
@@ -467,7 +477,7 @@ async def get_tile_grid(
         if empty_cells:
             # Get tiles that haven't been placed yet
             placed_tiles = set(tile_id for row in grid for tile_id in row if tile_id)
-            unplaced_tiles = all_tiles - placed_tiles
+            unplaced_tiles = all_tiles_in_range - placed_tiles
             
             if unplaced_tiles:
                 # Get geographic coordinates of center tile
@@ -502,7 +512,7 @@ async def get_tile_grid(
                 if grid[row][col] and h3.h3_is_pentagon(grid[row][col]):
                     pentagon_positions.append([row, col])
         
-        logger.info(f"[{datetime.now()}] Grid created successfully using improved neighbor traversal")
+        logger.info(f"[{datetime.now()}] Grid created successfully with pre-generated tile data")
         logger.info(f"[{datetime.now()}] Found {len(pentagon_positions)} pentagons in the grid")
         
         return {
