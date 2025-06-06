@@ -13,7 +13,8 @@ HexGlobe provides a framework for visualizing and interacting with a hexagonal g
 - Interactive tile navigation with click support
 - Neighbor visualization and highlighting
 - Customizable visual properties (border color, thickness, style)
-- Debug information display
+- Zoom control slider (1-10) to adjust visible hex tiles
+- Tile information display
 
 ## Technology Stack
 
@@ -112,7 +113,7 @@ HexGlobe/
 Handles the rendering of individual hexagonal tiles using HTML5 Canvas. Each tile includes:
 - Border and fill styling
 - Grid pattern to simulate map data
-- Debug information display
+- Tile information display
 - Point containment detection for interaction
 
 ### app.js
