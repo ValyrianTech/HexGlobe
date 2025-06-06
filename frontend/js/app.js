@@ -20,7 +20,9 @@ window.hexGlobeApp = {
             borderColor: "#000000",  // Black border for normal tiles
             borderThickness: 1,      // Normal border thickness
             fillColor: "#a3c9e9"     // Light blue fill color for normal tiles
-        }
+        },
+        h3LibraryCheckMaxRetries: 10, // Maximum number of retries for H3 library check
+        h3LibraryCheckInterval: 100   // Interval in ms between H3 library checks
     },
     
     // State
@@ -35,19 +37,46 @@ window.hexGlobeApp = {
     init: function() {
         console.log("Initializing HexGlobe application...");
         
-        // Get H3 index from URL query parameter
-        this.getH3IndexFromUrl();
+        // Check if H3 library is available before proceeding
+        this.ensureH3LibraryLoaded(() => {
+            // Get H3 index from URL query parameter
+            this.getH3IndexFromUrl();
+            
+            // Set up the canvas
+            this.setupCanvas();
+            
+            // Set up event listeners
+            this.setupEventListeners();
+            
+            // Generate and render the grid
+            this.generateGrid();
+            this.render();
+            this.updateDebugPanel();
+        });
+    },
+    
+    // Ensure the H3 library is loaded before proceeding
+    ensureH3LibraryLoaded: function(callback, retryCount = 0) {
+        // Check if H3 library is fully loaded and functional
+        if (window.h3 && typeof window.h3.isValid === 'function') {
+            console.log("H3 library loaded successfully");
+            callback();
+            return;
+        }
         
-        // Set up the canvas
-        this.setupCanvas();
+        // If we've exceeded the maximum retries, use default H3 index
+        if (retryCount >= this.config.h3LibraryCheckMaxRetries) {
+            console.warn("H3 library not loaded after maximum retries, proceeding with default H3 index");
+            this.state.activeTileId = "872830828ffffff";
+            callback();
+            return;
+        }
         
-        // Set up event listeners
-        this.setupEventListeners();
-        
-        // Generate and render the grid
-        this.generateGrid();
-        this.render();
-        this.updateDebugPanel();
+        // Retry after a short delay
+        console.log(`Waiting for H3 library to load (attempt ${retryCount + 1}/${this.config.h3LibraryCheckMaxRetries})...`);
+        setTimeout(() => {
+            this.ensureH3LibraryLoaded(callback, retryCount + 1);
+        }, this.config.h3LibraryCheckInterval);
     },
     
     // Get H3 index from URL query parameter
@@ -55,13 +84,16 @@ window.hexGlobeApp = {
         const urlParams = new URLSearchParams(window.location.search);
         const h3Index = urlParams.get('h3');
         
+        // Default H3 index to use if none is provided or if the provided one is invalid
+        const defaultH3Index = "872830828ffffff";
+        
         // Validate the H3 index if provided
-        if (h3Index && window.h3 && window.h3.isValid(h3Index)) {
+        if (h3Index && window.h3 && typeof window.h3.isValid === 'function' && window.h3.isValid(h3Index)) {
             this.state.activeTileId = h3Index;
             console.log(`Using H3 index from URL: ${h3Index}`);
         } else {
-            // Default to resolution 7 hexagon near the center of the world
-            this.state.activeTileId = "872830828ffffff";
+            // Use default H3 index
+            this.state.activeTileId = defaultH3Index;
             console.log(`Using default H3 index: ${this.state.activeTileId}`);
         }
     },
