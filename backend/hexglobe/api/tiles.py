@@ -368,12 +368,12 @@ async def get_tile_grid(
         
         # Define position offsets for neighbors (flat-bottom hexagon)
         position_offsets = {
-            "top_left": (-1, -1),
-            "top_middle": (0, -1),
-            "top_right": (1, -1),
-            "bottom_left": (-1, 1),
-            "bottom_middle": (0, 1),
-            "bottom_right": (1, 1)
+            "top_left": (0, -1),      # (2,1) relative to center (2,2)
+            "top_middle": (1, 0),     # (3,2) relative to center (2,2)
+            "top_right": (0, 1),      # (2,3) relative to center (2,2)
+            "bottom_left": (-1, -1),  # (1,1) relative to center (2,2)
+            "bottom_middle": (-1, 0), # (1,2) relative to center (2,2)
+            "bottom_right": (-1, 1)   # (1,3) relative to center (2,2)
         }
         
         # Set to track visited tiles
@@ -415,9 +415,9 @@ async def get_tile_grid(
                     continue
                 
                 # Calculate grid position
-                offset_x, offset_y = position_offsets.get(position, (0, 0))
-                new_row = row + offset_y
-                new_col = col + offset_x
+                offset_row, offset_col = position_offsets.get(position, (0, 0))
+                new_row = row + offset_row
+                new_col = col + offset_col
                 
                 # Check if position is valid and not already filled
                 if (0 <= new_row < height and 0 <= new_col < width and 
