@@ -30,7 +30,7 @@ class TileData(BaseModel):
     visual_properties: VisualProperties = VisualProperties()
     parent_id: Optional[str] = None
     children_ids: List[str] = []
-    neighbor_ids: List[str] = []  # New field for neighbor IDs
+    neighbor_ids: Dict[str, str] = {}  # Changed from List to Dict for position-based neighbors
     resolution_ids: Dict[str, str] = {}  # New field for different resolution IDs (resolution -> h3 index)
 
 class Tile(ABC):
@@ -45,10 +45,10 @@ class Tile(ABC):
         # Get parent and children from H3
         try:
             self.parent_id = h3.h3_to_parent(id, h3.h3_get_resolution(id) - 1) if h3.h3_get_resolution(id) > 0 else None
-            self.children_ids = h3.h3_to_children(id, h3.h3_get_resolution(id) + 1)
+            self.children_ids = list(h3.h3_to_children(id, h3.h3_get_resolution(id) + 1))
             
-            # Get neighbor IDs in clockwise order
-            self.neighbor_ids = self._get_ordered_neighbors(id)
+            # Get neighbor IDs with position labels
+            self.neighbor_ids = self._get_positioned_neighbors(id)
             
             # Get different resolution IDs
             self.resolution_ids = {}
@@ -69,20 +69,18 @@ class Tile(ABC):
             logger.error(f"Error initializing tile {id}: {str(e)}")
             self.parent_id = None
             self.children_ids = []
-            self.neighbor_ids = []
+            self.neighbor_ids = {}  # Changed from list to empty dict
             self.resolution_ids = {}
     
-    def _get_ordered_neighbors(self, tile_id: str) -> List[str]:
+    def _get_positioned_neighbors(self, tile_id: str) -> Dict[str, str]:
         """
-        Get neighbor IDs in a consistent clockwise order.
+        Get neighbor IDs as a dictionary mapping position labels to H3 indexes.
         
-        For hexagons:
-        - Determine which edge is closest to the equator
-        - Use that as reference for ordering (bottom edge for northern hemisphere, top edge for southern)
-        - Order neighbors clockwise starting from a consistent position
+        For hexagons with flat edge at bottom:
+        - Keys: top_left, top_middle, top_right, bottom_left, bottom_middle, bottom_right
         
         For pentagons:
-        - Similar approach but with 5 neighbors
+        - Similar approach but with 5 neighbors, with one position set to 'pentagon'
         """
         # Get all neighbors
         neighbors = h3.k_ring(tile_id, 1)
@@ -125,20 +123,47 @@ class Tile(ABC):
         ref_bearing = self._calculate_bearing(center_lat, center_lng, ref_lat, ref_lng)
         
         # Get center coordinates of each neighbor
-        neighbor_coords = []
+        neighbor_bearings = []
         for n_id in neighbors:
             n_lat, n_lng = h3.h3_to_geo(n_id)
             bearing = self._calculate_bearing(center_lat, center_lng, n_lat, n_lng)
             
             # Adjust bearing relative to reference bearing
             rel_bearing = (bearing - ref_bearing) % 360
-            neighbor_coords.append((n_id, rel_bearing))
+            neighbor_bearings.append((n_id, rel_bearing))
         
         # Sort neighbors by relative bearing (clockwise)
-        neighbor_coords.sort(key=lambda x: x[1])
+        neighbor_bearings.sort(key=lambda x: x[1])
         
-        # Extract just the IDs in clockwise order
-        return [n[0] for n in neighbor_coords]
+        # For a flat-bottom hexagon, map the neighbors to positions
+        # The positions are assigned clockwise starting from the reference point
+        is_pentagon = h3.h3_is_pentagon(tile_id)
+        num_neighbors = 5 if is_pentagon else 6
+        
+        # Define position names in clockwise order
+        position_names = [
+            "bottom_right",  # Starting position (reference vertex is at bottom-right)
+            "bottom_middle", 
+            "bottom_left", 
+            "top_left", 
+            "top_middle", 
+            "top_right"
+        ]
+        
+        # Map neighbors to positions
+        positioned_neighbors = {}
+        for i, (n_id, _) in enumerate(neighbor_bearings):
+            if i < len(position_names):
+                positioned_neighbors[position_names[i]] = n_id
+        
+        # For pentagons, identify the missing position and mark it
+        if is_pentagon:
+            for position in position_names:
+                if position not in positioned_neighbors:
+                    positioned_neighbors[position] = "pentagon"
+                    break
+        
+        return positioned_neighbors
     
     def _calculate_bearing(self, lat1, lng1, lat2, lng2):
         """
@@ -165,17 +190,31 @@ class Tile(ABC):
         """Returns neighboring tiles."""
         # Create appropriate tile objects based on the type
         neighbors = []
-        for idx in self.neighbor_ids:
+        for position, idx in self.neighbor_ids.items():
+            if idx == "pentagon":  # Skip pentagon placeholders
+                continue
             if h3.h3_is_pentagon(idx):
                 neighbors.append(PentagonTile(idx))
             else:
                 neighbors.append(HexagonTile(idx))
-        
         return neighbors
     
-    def move_content_to(self, target_tile: "Tile") -> bool:
-        """Moves content to a neighboring tile."""
-        if target_tile.id not in self.neighbor_ids:
+    def move_content_to(self, target_id: str) -> bool:
+        """Move content to another tile."""
+        # Check if target is a neighbor
+        if target_id not in self.neighbor_ids.values():
+            return False
+        
+        target_tile = None
+        for position, idx in self.neighbor_ids.items():
+            if idx == target_id:
+                if h3.h3_is_pentagon(idx):
+                    target_tile = PentagonTile(idx)
+                else:
+                    target_tile = HexagonTile(idx)
+                break
+        
+        if target_tile is None:
             return False
         
         target_tile.content = self.content
@@ -217,15 +256,15 @@ class Tile(ABC):
         return True
     
     def to_dict(self) -> Dict:
-        """Convert tile to dictionary for serialization."""
+        """Convert tile to dictionary for JSON serialization."""
         return {
             "id": self.id,
             "content": self.content,
             "visual_properties": self.visual_properties.dict(),
             "parent_id": self.parent_id,
-            "children_ids": list(self.children_ids),  # Convert set to list for JSON serialization
-            "neighbor_ids": list(self.neighbor_ids),  # Convert set to list for JSON serialization
-            "resolution_ids": self.resolution_ids  # Add resolution IDs to the dictionary
+            "children_ids": list(self.children_ids) if isinstance(self.children_ids, set) else self.children_ids,
+            "neighbor_ids": self.neighbor_ids,  # Now a dictionary with position keys
+            "resolution_ids": self.resolution_ids
         }
     
     def save(self) -> None:
@@ -260,38 +299,39 @@ class Tile(ABC):
     
     @classmethod
     def load(cls, tile_id: str) -> Optional["Tile"]:
-        """Loads tile data from storage."""
+        """Load a tile from storage."""
         file_path = os.path.join(DATA_DIR, f"{tile_id}.json")
-        
         if not os.path.exists(file_path):
-            logger.info(f"Tile file not found: {file_path}")
             return None
         
         try:
             with open(file_path, 'r') as f:
                 data = json.load(f)
             
-            logger.info(f"Loaded tile data from {file_path}")
-            
+            # Create the appropriate tile type
             if h3.h3_is_pentagon(tile_id):
                 tile = PentagonTile(tile_id)
             else:
                 tile = HexagonTile(tile_id)
             
+            # Load data
             tile.content = data.get("content")
             
-            # Load visual properties
-            visual_props = data.get("visual_properties", {})
-            for key, value in visual_props.items():
-                if hasattr(tile.visual_properties, key):
-                    setattr(tile.visual_properties, key, value)
+            if "visual_properties" in data:
+                tile.visual_properties = VisualProperties(**data["visual_properties"])
             
-            # Load neighbor_ids and resolution_ids if they exist in the data
-            if "neighbor_ids" in data:
-                tile.neighbor_ids = data.get("neighbor_ids", [])
+            tile.parent_id = data.get("parent_id")
+            tile.children_ids = data.get("children_ids", [])
             
-            if "resolution_ids" in data:
-                tile.resolution_ids = data.get("resolution_ids", {})
+            # Handle both list and dict formats for backward compatibility
+            neighbor_ids = data.get("neighbor_ids", {})
+            if isinstance(neighbor_ids, list):
+                # Convert old list format to new dict format
+                tile.neighbor_ids = tile._get_positioned_neighbors(tile_id)
+            else:
+                tile.neighbor_ids = neighbor_ids
+            
+            tile.resolution_ids = data.get("resolution_ids", {})
             
             return tile
         except Exception as e:

@@ -94,7 +94,7 @@ async def update_tile(
 
 @router.get("/{tile_id}/neighbors")
 async def get_neighbors(tile_id: str = Path(..., description="H3 index of the tile")):
-    """Get neighboring tiles."""
+    """Get neighboring tiles with their positions."""
     logger.info(f"[{datetime.now()}] GET request received for neighbors of tile: {tile_id}")
     try:
         # Validate the H3 index
@@ -115,13 +115,33 @@ async def get_neighbors(tile_id: str = Path(..., description="H3 index of the ti
             tile.save()
             logger.info(f"[{datetime.now()}] New tile {tile_id} saved to storage")
         
-        # Get neighbors
-        neighbors = tile.get_neighbors()
-        logger.info(f"[{datetime.now()}] Found {len(neighbors)} neighbors for tile {tile_id}")
+        # Get neighbors with positions
+        neighbor_data = {}
+        for position, neighbor_id in tile.neighbor_ids.items():
+            if neighbor_id == "pentagon":
+                # For pentagon placeholders, add special entry
+                neighbor_data[position] = {
+                    "id": "pentagon",
+                    "is_pentagon_placeholder": True
+                }
+            else:
+                # Load or create the neighbor tile
+                neighbor_tile = Tile.load(neighbor_id)
+                if neighbor_tile is None:
+                    if h3.h3_is_pentagon(neighbor_id):
+                        neighbor_tile = PentagonTile(neighbor_id)
+                    else:
+                        neighbor_tile = HexagonTile(neighbor_id)
+                    neighbor_tile.save()
+                
+                # Add neighbor data with position
+                neighbor_data[position] = neighbor_tile.to_dict()
+        
+        logger.info(f"[{datetime.now()}] Found {len(neighbor_data)} neighbors for tile {tile_id}")
         
         return {
             "tile_id": tile_id,
-            "neighbors": [n.to_dict() for n in neighbors]
+            "neighbors": neighbor_data
         }
     except Exception as e:
         logger.error(f"[{datetime.now()}] Error getting neighbors for tile {tile_id}: {str(e)}")
