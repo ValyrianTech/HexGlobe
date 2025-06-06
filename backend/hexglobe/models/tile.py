@@ -143,11 +143,11 @@ class Tile(ABC):
         # Define position names in clockwise order
         position_names = [
             "bottom_middle",  # Starting position (reference vertex is at bottom-middle)
-            "bottom_right", 
-            "top_right", 
-            "top_middle", 
+            "bottom_left", 
             "top_left", 
-            "bottom_left"
+            "top_middle", 
+            "top_right", 
+            "bottom_right"
         ]
         
         # Map neighbors to positions
