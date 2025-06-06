@@ -1,17 +1,17 @@
 # HexGlobe
 
-A web application that implements a generic game board framework using hexagonal grid mapping based on Uber's H3 library.
+A web application that implements a hexagonal grid mapping system using HTML5 Canvas for visualization.
 
 ## Overview
 
-HexGlobe provides a framework for visualizing and interacting with a global hexagonal grid. It uses H3, a hierarchical geospatial indexing system, to create a grid of hexagonal tiles that can be used for various applications including games, data visualization, and geographic analysis.
+HexGlobe provides a framework for visualizing and interacting with a hexagonal grid. It creates a grid of hexagonal tiles that can be used for various applications including games, data visualization, and geographic analysis.
 
 ## Features
 
 - Hexagonal tile visualization using HTML5 Canvas
-- Integration with Uber's H3 library for hexagonal grid calculations
-- Hierarchical resolution system for parent-child relationships between tiles
-- Neighbor visualization and navigation
+- Dynamic grid sizing that fills the available space
+- Interactive tile navigation with click support
+- Neighbor visualization and highlighting
 - Customizable visual properties (border color, thickness, style)
 - Debug information display
 
@@ -23,9 +23,9 @@ HexGlobe provides a framework for visualizing and interacting with a global hexa
 - H3 Python bindings
 
 ### Frontend
-- Vue.js
-- h3-js for hexagonal grid calculations
+- Vanilla JavaScript
 - HTML5 Canvas for rendering
+- h3-js for hexagonal grid calculations
 - HTML5/CSS3
 
 ### Data Storage
@@ -59,7 +59,7 @@ cd ..
 ```bash
 # With virtual environment activated
 cd frontend
-npm install
+# No build step needed - pure HTML/CSS/JS implementation
 ```
 
 ### Running the Application
@@ -74,13 +74,15 @@ python run.py
 
 #### Frontend
 
+Simply open the `frontend/index.html` file in your browser, or serve it using a simple HTTP server:
+
 ```bash
 # With virtual environment activated
 cd frontend
-npm run dev
+python -m http.server 8080
 ```
 
-The application will be available at `http://localhost:3001` by default.
+The application will be available at `http://localhost:8080` by default.
 
 ## Project Structure
 
@@ -94,17 +96,38 @@ HexGlobe/
 │   ├── pyproject.toml     # Python dependencies
 │   └── run.py             # Entry point
 ├── frontend/
-│   ├── public/            # Static files
-│   ├── src/
-│   │   ├── components/    # Vue components
-│   │   ├── views/         # Vue views
-│   │   ├── store/         # Pinia stores
-│   │   ├── App.vue        # Root component
-│   │   └── main.js        # Entry point
-│   ├── package.json       # JavaScript dependencies
-│   └── vite.config.js     # Vite configuration
+│   ├── css/
+│   │   └── styles.css     # Main stylesheet
+│   ├── js/
+│   │   ├── app.js         # Main application logic
+│   │   ├── hexTile.js     # Canvas-based hexagon rendering module
+│   │   └── navigation.js  # Tile navigation and neighbor management
+│   └── index.html         # Main HTML entry point
 └── README.md              # This file
 ```
+
+## Core Components
+
+### HexTile.js
+Handles the rendering of individual hexagonal tiles using HTML5 Canvas. Each tile includes:
+- Border and fill styling
+- Grid pattern to simulate map data
+- Debug information display
+- Point containment detection for interaction
+
+### app.js
+Main application logic that:
+- Sets up the canvas and event listeners
+- Calculates grid dimensions to fill available space
+- Manages the active tile state
+- Handles rendering and updates
+
+### navigation.js
+Manages tile navigation including:
+- Loading tile data from the API
+- Managing neighbor relationships
+- Handling navigation between tiles
+- Providing fallback functionality for development
 
 ## License
 
@@ -113,5 +136,5 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## Acknowledgments
 
 - [Uber H3](https://github.com/uber/h3) - Hexagonal hierarchical geospatial indexing system
-- [Vue.js](https://vuejs.org/) - The Progressive JavaScript Framework
+- [HTML5 Canvas](https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API) - For rendering the hexagonal grid
 - [FastAPI](https://fastapi.tiangolo.com/) - Modern, fast web framework for building APIs with Python
