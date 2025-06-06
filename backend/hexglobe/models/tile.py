@@ -1,13 +1,18 @@
 from abc import ABC, abstractmethod
 import json
 import os
+import logging
 from typing import Dict, List, Optional, Union
 import h3
 from pydantic import BaseModel
 
+# Set up logging
+logger = logging.getLogger(__name__)
+
 # Data directory for tile storage
 DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), "data", "tiles")
 os.makedirs(DATA_DIR, exist_ok=True)
+logger.info(f"Data directory set to: {DATA_DIR}")
 
 class VisualProperties(BaseModel):
     """Visual properties for a tile."""
@@ -108,14 +113,38 @@ class Tile(ABC):
             "content": self.content,
             "visual_properties": self.visual_properties.dict(),
             "parent_id": self.parent_id,
-            "children_ids": self.children_ids
+            "children_ids": list(self.children_ids)  # Convert set to list for JSON serialization
         }
     
     def save(self) -> None:
         """Persists tile data to storage."""
-        file_path = os.path.join(DATA_DIR, f"{self.id}.json")
-        with open(file_path, 'w') as f:
-            json.dump(self.to_dict(), f, indent=2)
+        try:
+            file_path = os.path.join(DATA_DIR, f"{self.id}.json")
+            logger.info(f"Attempting to save tile {self.id} to {file_path}")
+            
+            # Check if directory exists
+            if not os.path.exists(DATA_DIR):
+                logger.warning(f"Data directory {DATA_DIR} does not exist, creating it")
+                os.makedirs(DATA_DIR, exist_ok=True)
+            
+            # Convert to dict and save
+            tile_data = self.to_dict()
+            logger.info(f"Tile data to save: {tile_data}")
+            
+            with open(file_path, 'w') as f:
+                json.dump(tile_data, f, indent=2)
+                
+            logger.info(f"Successfully saved tile {self.id} to {file_path}")
+            
+            # Verify file was created
+            if os.path.exists(file_path):
+                logger.info(f"Verified file exists: {file_path}")
+            else:
+                logger.error(f"File was not created: {file_path}")
+                
+        except Exception as e:
+            logger.error(f"Error saving tile {self.id}: {str(e)}")
+            raise
     
     @classmethod
     def load(cls, tile_id: str) -> Optional["Tile"]:
@@ -123,25 +152,32 @@ class Tile(ABC):
         file_path = os.path.join(DATA_DIR, f"{tile_id}.json")
         
         if not os.path.exists(file_path):
+            logger.info(f"Tile file not found: {file_path}")
             return None
         
-        with open(file_path, 'r') as f:
-            data = json.load(f)
-        
-        if h3.h3_is_pentagon(tile_id):
-            tile = PentagonTile(tile_id)
-        else:
-            tile = HexagonTile(tile_id)
-        
-        tile.content = data.get("content")
-        
-        # Load visual properties
-        visual_props = data.get("visual_properties", {})
-        for key, value in visual_props.items():
-            if hasattr(tile.visual_properties, key):
-                setattr(tile.visual_properties, key, value)
-        
-        return tile
+        try:
+            with open(file_path, 'r') as f:
+                data = json.load(f)
+            
+            logger.info(f"Loaded tile data from {file_path}")
+            
+            if h3.h3_is_pentagon(tile_id):
+                tile = PentagonTile(tile_id)
+            else:
+                tile = HexagonTile(tile_id)
+            
+            tile.content = data.get("content")
+            
+            # Load visual properties
+            visual_props = data.get("visual_properties", {})
+            for key, value in visual_props.items():
+                if hasattr(tile.visual_properties, key):
+                    setattr(tile.visual_properties, key, value)
+            
+            return tile
+        except Exception as e:
+            logger.error(f"Error loading tile {tile_id}: {str(e)}")
+            return None
     
     @abstractmethod
     def get_geometry(self) -> List[List[float]]:

@@ -36,6 +36,10 @@ async def get_tile(tile_id: str = Path(..., description="H3 index of the tile"))
                 tile = PentagonTile(tile_id)
             else:
                 tile = HexagonTile(tile_id)
+            
+            # Save the newly created tile
+            tile.save()
+            logger.info(f"[{datetime.now()}] New tile {tile_id} saved to storage")
         else:
             logger.info(f"[{datetime.now()}] Tile {tile_id} loaded from storage")
         
@@ -65,6 +69,10 @@ async def update_tile(
                 tile = PentagonTile(tile_id)
             else:
                 tile = HexagonTile(tile_id)
+            
+            # Save the newly created tile
+            tile.save()
+            logger.info(f"[{datetime.now()}] New tile {tile_id} saved to storage")
         
         # Update content if provided
         if "content" in tile_data:
@@ -77,7 +85,7 @@ async def update_tile(
         
         # Save the updated tile
         tile.save()
-        logger.info(f"[{datetime.now()}] Tile {tile_id} updated successfully")
+        logger.info(f"[{datetime.now()}] Updated tile {tile_id} saved to storage")
         
         return {"message": "Tile updated successfully", "tile": tile.to_dict()}
     except Exception as e:
@@ -102,6 +110,10 @@ async def get_neighbors(tile_id: str = Path(..., description="H3 index of the ti
                 tile = PentagonTile(tile_id)
             else:
                 tile = HexagonTile(tile_id)
+            
+            # Save the newly created tile
+            tile.save()
+            logger.info(f"[{datetime.now()}] New tile {tile_id} saved to storage")
         
         # Get neighbors
         neighbors = tile.get_neighbors()
@@ -133,6 +145,10 @@ async def get_parent(tile_id: str = Path(..., description="H3 index of the tile"
                 tile = PentagonTile(tile_id)
             else:
                 tile = HexagonTile(tile_id)
+            
+            # Save the newly created tile
+            tile.save()
+            logger.info(f"[{datetime.now()}] New tile {tile_id} saved to storage")
         
         # Get parent
         parent = tile.get_parent()
@@ -168,6 +184,10 @@ async def get_children(tile_id: str = Path(..., description="H3 index of the til
                 tile = PentagonTile(tile_id)
             else:
                 tile = HexagonTile(tile_id)
+            
+            # Save the newly created tile
+            tile.save()
+            logger.info(f"[{datetime.now()}] New tile {tile_id} saved to storage")
         
         # Get children
         children = tile.get_children()
@@ -202,6 +222,10 @@ async def move_content(
                 source_tile = PentagonTile(tile_id)
             else:
                 source_tile = HexagonTile(tile_id)
+            
+            # Save the newly created tile
+            source_tile.save()
+            logger.info(f"[{datetime.now()}] New source tile {tile_id} saved to storage")
         
         # Load or create the target tile
         target_tile = Tile.load(target_id)
@@ -211,6 +235,10 @@ async def move_content(
                 target_tile = PentagonTile(target_id)
             else:
                 target_tile = HexagonTile(target_id)
+            
+            # Save the newly created tile
+            target_tile.save()
+            logger.info(f"[{datetime.now()}] New target tile {target_id} saved to storage")
         
         # Move content
         success = source_tile.move_content_to(target_tile)
@@ -255,6 +283,10 @@ async def update_visual_properties(
                 tile = PentagonTile(tile_id)
             else:
                 tile = HexagonTile(tile_id)
+            
+            # Save the newly created tile
+            tile.save()
+            logger.info(f"[{datetime.now()}] New tile {tile_id} saved to storage")
         
         # Update visual properties
         updated = False
