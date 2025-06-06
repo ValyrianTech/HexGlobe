@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HexGlobe</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <!-- Include the h3-js library -->
+    <script src="https://unpkg.com/h3-js@3.7.2/dist/h3-js.umd.js"></script>
+</head>
+<body>
+    <header>
+        <h1>HexGlobe</h1>
+        <div class="controls">
+            <button id="toggle-debug">Toggle Debug Info</button>
+        </div>
+    </header>
+    
+    <main>
+        <div class="canvas-container">
+            <canvas id="hexCanvas"></canvas>
+        </div>
+        
+        <div id="debug-panel" class="debug-panel">
+            <h3>Debug Information</h3>
+            <div id="tile-info"></div>
+        </div>
+    </main>
+    
+    <footer>
+        <p>HexGlobe - A hexagonal grid system using Uber's H3 library</p>
+    </footer>
+
+    <!-- Application Scripts -->
+    <script src="js/hexTile.js"></script>
+    <script src="js/navigation.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
