@@ -366,6 +366,17 @@ async def get_tile_grid(
         center_row = height // 2
         center_col = width // 2
         
+        # Direct mapping of neighbor positions to grid positions
+        # This is based on the expected positions in the test script
+        position_to_grid = {
+            "bottom_middle": (center_row - 1, center_col),
+            "bottom_left": (center_row - 1, center_col - 1),
+            "top_left": (center_row, center_col - 1),
+            "top_middle": (center_row + 1, center_col),
+            "top_right": (center_row, center_col + 1),
+            "bottom_right": (center_row - 1, center_col + 1)
+        }
+        
         # Place the center tile
         grid[center_row][center_col] = tile_id
         
@@ -380,17 +391,6 @@ async def get_tile_grid(
                 center_tile = HexagonTile(tile_id)
             center_tile.save()
         
-        # Direct mapping of neighbor positions to grid positions
-        # This is based on the expected positions in the test script
-        position_to_grid = {
-            "bottom_middle": (center_row - 1, center_col),
-            "bottom_left": (center_row - 1, center_col - 1),
-            "top_left": (center_row, center_col - 1),
-            "top_middle": (center_row + 1, center_col),
-            "top_right": (center_row, center_col + 1),
-            "bottom_right": (center_row - 1, center_col + 1)
-        }
-        
         # Place the immediate neighbors
         for position, neighbor_id in center_tile.neighbor_ids.items():
             if neighbor_id == "pentagon":
@@ -400,76 +400,64 @@ async def get_tile_grid(
             if 0 <= row < height and 0 <= col < width:
                 grid[row][col] = neighbor_id
         
-        # Track visited tiles to avoid duplicates
-        visited = {tile_id}
-        for neighbor_id in center_tile.neighbor_ids.values():
-            if neighbor_id != "pentagon":
-                visited.add(neighbor_id)
+        # Get all tiles within the required distance
+        max_distance = max(width, height)
+        all_tiles = h3.k_ring(tile_id, max_distance)
         
-        # Expand the grid with neighbors of neighbors
-        def expand_grid(current_id, current_row, current_col, depth=1):
-            if depth >= 3:  # Limit recursion depth
-                return
-                
-            # Skip if this is the center tile or already processed
-            if current_id == tile_id:
-                return
-                
+        # Create a mapping of positions for all tiles
+        position_map = {}
+        
+        # First, map the center and its immediate neighbors
+        position_map[tile_id] = (center_row, center_col)
+        for position, neighbor_id in center_tile.neighbor_ids.items():
+            if neighbor_id != "pentagon":
+                row, col = position_to_grid.get(position, (0, 0))
+                if 0 <= row < height and 0 <= col < width:
+                    position_map[neighbor_id] = (row, col)
+        
+        # BFS to map positions for all tiles
+        visited = set(position_map.keys())
+        queue = list(position_map.keys())
+        
+        while queue:
+            current_id = queue.pop(0)
+            current_row, current_col = position_map[current_id]
+            
             # Load the current tile
             current_tile = Tile.load(current_id)
-            
-            # If tile doesn't exist in storage, create it
             if current_tile is None:
-                if h3.h3_is_pentagon(current_id):
-                    current_tile = PentagonTile(current_id)
-                else:
-                    current_tile = HexagonTile(current_id)
-                current_tile.save()
-            
-            # Process each neighbor of the current tile
+                continue
+                
+            # Process each neighbor
             for position, neighbor_id in current_tile.neighbor_ids.items():
                 if neighbor_id == "pentagon" or neighbor_id in visited:
                     continue
                     
-                # Calculate the position in the grid
-                # This is more complex for neighbors of neighbors
-                # For now, we'll use a fallback approach
+                visited.add(neighbor_id)
                 
-                # Find the relative position from center
-                center_lat, center_lng = h3.h3_to_geo(tile_id)
-                neighbor_lat, neighbor_lng = h3.h3_to_geo(neighbor_id)
-                
-                # Calculate approximate grid position based on geographic coordinates
-                lat_diff = neighbor_lat - center_lat
-                lng_diff = neighbor_lng - center_lng
-                
-                # Convert to grid coordinates (rough approximation)
-                row_offset = int(round(-lat_diff * 100))  # Negative because rows increase downward
-                col_offset = int(round(lng_diff * 100))
-                
-                new_row = center_row + row_offset
-                new_col = center_col + col_offset
+                # Calculate the position based on the relationship
+                if position == "bottom_middle":
+                    new_row, new_col = current_row - 1, current_col
+                elif position == "bottom_left":
+                    new_row, new_col = current_row - 1, current_col - 1
+                elif position == "top_left":
+                    new_row, new_col = current_row, current_col - 1
+                elif position == "top_middle":
+                    new_row, new_col = current_row + 1, current_col
+                elif position == "top_right":
+                    new_row, new_col = current_row, current_col + 1
+                elif position == "bottom_right":
+                    new_row, new_col = current_row - 1, current_col + 1
+                else:
+                    continue
                 
                 # Check if position is valid and not already filled
-                if (0 <= new_row < height and 0 <= new_col < width and 
-                    grid[new_row][new_col] is None):
-                    
+                if 0 <= new_row < height and 0 <= new_col < width and grid[new_row][new_col] is None:
                     grid[new_row][new_col] = neighbor_id
-                    visited.add(neighbor_id)
-                    
-                    # Recursively expand from this neighbor
-                    expand_grid(neighbor_id, new_row, new_col, depth + 1)
+                    position_map[neighbor_id] = (new_row, new_col)
+                    queue.append(neighbor_id)
         
-        # Expand from each immediate neighbor
-        for position, neighbor_id in center_tile.neighbor_ids.items():
-            if neighbor_id == "pentagon":
-                continue
-                
-            row, col = position_to_grid.get(position, (0, 0))
-            if 0 <= row < height and 0 <= col < width:
-                expand_grid(neighbor_id, row, col)
-        
-        # Fill any remaining empty cells using k-ring
+        # Fill any remaining empty cells using geographic approximation
         empty_cells = []
         for row in range(height):
             for col in range(width):
@@ -477,34 +465,35 @@ async def get_tile_grid(
                     empty_cells.append((row, col))
         
         if empty_cells:
-            # Calculate how far to search (k-ring distance)
-            k = max(width, height)
+            # Get tiles that haven't been placed yet
+            placed_tiles = set(tile_id for row in grid for tile_id in row if tile_id)
+            unplaced_tiles = all_tiles - placed_tiles
             
-            # Get all tiles within k distance that haven't been placed yet
-            all_tiles = set(h3.k_ring(tile_id, k)) - visited
-            
-            if all_tiles:
+            if unplaced_tiles:
+                # Get geographic coordinates of center tile
+                center_lat, center_lng = h3.h3_to_geo(tile_id)
+                
                 # For each empty cell, find the closest unplaced tile
                 for row, col in empty_cells:
-                    if not all_tiles:
+                    if not unplaced_tiles:
                         break
                     
                     # Calculate approximate target coordinates
-                    center_lat, center_lng = h3.h3_to_geo(tile_id)
-                    row_offset = (row - center_row) * 0.01  # Approximate offset
-                    col_offset = (col - center_col) * 0.01  # Approximate offset
+                    # Use a more precise offset calculation
+                    row_offset = (row - center_row) * 0.008  # Fine-tuned offset
+                    col_offset = (col - center_col) * 0.01   # Fine-tuned offset
                     target_lat = center_lat - row_offset  # Subtract because rows increase downward
                     target_lng = center_lng + col_offset
                     
                     # Find closest tile
-                    closest_tile = min(all_tiles, 
+                    closest_tile = min(unplaced_tiles, 
                                       key=lambda t: _calculate_distance(
                                           h3.h3_to_geo(t), 
                                           (target_lat, target_lng)
                                       ))
                     
                     grid[row][col] = closest_tile
-                    all_tiles.remove(closest_tile)
+                    unplaced_tiles.remove(closest_tile)
         
         # Check for pentagons in the grid
         pentagon_positions = []
@@ -513,7 +502,7 @@ async def get_tile_grid(
                 if grid[row][col] and h3.h3_is_pentagon(grid[row][col]):
                     pentagon_positions.append([row, col])
         
-        logger.info(f"[{datetime.now()}] Grid created successfully using direct mapping approach")
+        logger.info(f"[{datetime.now()}] Grid created successfully using improved neighbor traversal")
         logger.info(f"[{datetime.now()}] Found {len(pentagon_positions)} pentagons in the grid")
         
         return {
