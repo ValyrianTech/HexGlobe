@@ -2,6 +2,7 @@
   <div class="home">
     <div class="hex-container">
       <HexTile 
+        ref="hexTileRef"
         :hexId="currentHexId" 
         :width="hexWidth" 
         :height="hexHeight" 
@@ -9,19 +10,39 @@
         :fillColor="fillColor"
         :strokeColor="strokeColor"
         @navigate="navigateToTile"
+        @selectNeighbor="handleNeighborSelection"
       />
     </div>
     <div class="controls">
-      <button @click="resetToDefaultTile">Reset to Default Tile</button>
-      <div class="color-controls">
-        <label>
-          Fill Color:
-          <input type="color" v-model="fillColor">
-        </label>
-        <label>
-          Border Color:
-          <input type="color" v-model="strokeColor">
-        </label>
+      <div class="tile-info-panel">
+        <h3>Tile Information</h3>
+        <p><strong>Tile ID:</strong> {{ currentHexId.substring(0, 8) }}...</p>
+        <p><strong>Resolution:</strong> {{ tileResolution }}</p>
+        <p><strong>Content:</strong> {{ tileContent || 'None' }}</p>
+        
+        <div class="visual-props">
+          <p><strong>Visual Properties:</strong></p>
+          <div class="color-controls">
+            <label>
+              Fill Color:
+              <input type="color" v-model="fillColor">
+            </label>
+            <label>
+              Border Color:
+              <input type="color" v-model="strokeColor">
+            </label>
+          </div>
+        </div>
+        
+        <div class="action-buttons">
+          <button @click="resetToDefaultTile">Reset to Default</button>
+          <button @click="toggleNeighbors">{{ showNeighbors ? 'Hide' : 'Show' }} Neighbors</button>
+        </div>
+        
+        <div v-if="selectedNeighborId" class="selected-info">
+          <p><strong>Selected:</strong> {{ selectedNeighborId.substring(0, 6) }}...</p>
+          <button @click="navigateToSelectedNeighbor" class="navigate-btn">Navigate to Selected</button>
+        </div>
       </div>
     </div>
   </div>
@@ -55,6 +76,21 @@ const navigationHistory = ref([DEFAULT_HEX_ID]);
 const hexWidth = ref(window.innerWidth * 0.95);
 const hexHeight = ref(window.innerHeight * 0.85);
 
+// Reference to the HexTile component
+const hexTileRef = ref(null);
+
+// Computed properties for tile information
+const tileResolution = computed(() => {
+  return hexTileRef.value?.resolution || '?';
+});
+
+const showNeighbors = computed(() => {
+  return hexTileRef.value?.showNeighbors || false;
+});
+
+// Selected neighbor
+const selectedNeighborId = ref(null);
+
 // Handle window resize
 const handleResize = () => {
   hexWidth.value = window.innerWidth * 0.95;
@@ -72,10 +108,30 @@ onUnmounted(() => {
   window.removeEventListener('resize', handleResize);
 });
 
+// Toggle neighbors
+const toggleNeighbors = () => {
+  if (hexTileRef.value) {
+    hexTileRef.value.toggleNeighbors();
+  }
+};
+
+// Handle neighbor selection
+const handleNeighborSelection = (neighborId) => {
+  selectedNeighborId.value = neighborId;
+};
+
+// Navigate to selected neighbor
+const navigateToSelectedNeighbor = () => {
+  if (hexTileRef.value && selectedNeighborId.value) {
+    hexTileRef.value.navigateToNeighbor();
+  }
+};
+
 // Navigate to a new tile
 const navigateToTile = (hexId) => {
   console.log('Navigating to tile:', hexId);
   currentHexId.value = hexId;
+  selectedNeighborId.value = null;
   
   // Add to navigation history if not already the last item
   if (navigationHistory.value[navigationHistory.value.length - 1] !== hexId) {
@@ -144,8 +200,25 @@ const resetToDefaultTile = () => {
   overflow-y: auto;
 }
 
+.tile-info-panel h3 {
+  margin-top: 0;
+  margin-bottom: 10px;
+  font-size: 16px;
+  color: #333;
+}
+
+.tile-info-panel p {
+  margin: 5px 0;
+  font-size: 12px;
+  word-break: break-word;
+}
+
+.visual-props {
+  margin-top: 10px;
+}
+
 .color-controls {
-  margin-top: 15px;
+  margin-top: 8px;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -153,24 +226,53 @@ const resetToDefaultTile = () => {
 
 .color-controls label {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  font-size: 12px;
+  margin-bottom: 5px;
+}
+
+.color-controls input {
+  width: 100%;
+  margin-top: 3px;
+}
+
+.action-buttons {
+  margin-top: 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 button {
   background-color: #4CAF50;
   color: white;
   border: none;
-  padding: 10px 15px;
+  padding: 8px 10px;
   border-radius: 4px;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 12px;
   width: 100%;
   transition: background-color 0.3s;
+  white-space: nowrap;
 }
 
 button:hover {
   background-color: #45a049;
+}
+
+.selected-info {
+  margin-top: 15px;
+  padding-top: 10px;
+  border-top: 1px solid #ddd;
+}
+
+.navigate-btn {
+  background-color: #2196F3;
+  margin-top: 5px;
+}
+
+.navigate-btn:hover {
+  background-color: #0b7dda;
 }
 
 .navigation-history {
@@ -185,14 +287,14 @@ button:hover {
   z-index: 100;
   height: 35px;
   overflow: hidden;
+  display: flex;
+  align-items: center;
 }
 
 .navigation-history h3 {
-  margin-top: 0;
-  margin-bottom: 0;
-  font-size: 16px;
-  float: left;
-  padding: 5px 15px 0 10px;
+  margin: 0;
+  font-size: 14px;
+  padding: 0 10px;
 }
 
 .navigation-history ul {
@@ -200,18 +302,17 @@ button:hover {
   padding: 0;
   margin: 0;
   display: flex;
-  flex-wrap: nowrap;
   overflow-x: auto;
-  height: 35px;
-  align-items: center;
+  white-space: nowrap;
+  flex-grow: 1;
 }
 
 .navigation-history li {
+  display: inline-block;
   padding: 0 10px;
   cursor: pointer;
-  white-space: nowrap;
-  font-size: 14px;
-  height: 35px;
+  font-size: 12px;
+  border-right: 1px solid #ddd;
   line-height: 35px;
 }
 

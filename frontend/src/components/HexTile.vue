@@ -1,32 +1,8 @@
 <template>
   <div class="hex-tile-container">
     <canvas ref="hexCanvas" :width="width" :height="height" class="hex-canvas" @click="handleCanvasClick"></canvas>
-    <div v-if="showDebug" class="debug-info">
-      <h3>Tile Information</h3>
-      <p><strong>Tile ID:</strong> {{ hexId }}</p>
-      <p><strong>Resolution:</strong> {{ resolution }}</p>
-      <p><strong>Content:</strong> {{ content || 'None' }}</p>
-      <div class="visual-props">
-        <p><strong>Visual Properties:</strong></p>
-        <div class="color-samples">
-          <div class="color-sample" :style="{ backgroundColor: fillColor }">
-            <span>Fill</span>
-          </div>
-          <div class="color-sample" :style="{ backgroundColor: strokeColor }">
-            <span>Border</span>
-          </div>
-        </div>
-      </div>
-      <div class="controls">
-        <button @click="toggleNeighbors">{{ showNeighbors ? 'Hide' : 'Show' }} Neighbors</button>
-      </div>
-      <div v-if="selectedNeighbor" class="selected-info">
-        <p><strong>Selected:</strong> {{ selectedNeighbor.substring(0, 6) }}...</p>
-        <button @click="navigateToNeighbor" class="navigate-btn">Navigate to Selected</button>
-      </div>
-      <div v-if="errorMessage" class="error-message">
-        <p><strong>Error:</strong> {{ errorMessage }}</p>
-      </div>
+    <div v-if="errorMessage" class="error-message">
+      <p><strong>Error:</strong> {{ errorMessage }}</p>
     </div>
   </div>
 </template>
@@ -63,14 +39,10 @@ const props = defineProps({
   content: {
     type: String,
     default: ''
-  },
-  showDebug: {
-    type: Boolean,
-    default: true
   }
 })
 
-const emit = defineEmits(['navigate'])
+const emit = defineEmits(['navigate', 'selectNeighbor'])
 
 const hexCanvas = ref(null)
 const centerX = ref(props.width / 2)
@@ -153,6 +125,7 @@ const toggleNeighbors = () => {
     getNeighbors()
   } else {
     selectedNeighbor.value = null
+    emit('selectNeighbor', null)
   }
   drawHexagon()
 }
@@ -177,6 +150,7 @@ const handleCanvasClick = (event) => {
     
     if (distance <= hexSize.value * 0.8) {
       selectedNeighbor.value = neighbor.id
+      emit('selectNeighbor', neighbor.id)
       drawHexagon()
       return
     }
@@ -184,6 +158,7 @@ const handleCanvasClick = (event) => {
   
   // If we get here, no neighbor was clicked
   selectedNeighbor.value = null
+  emit('selectNeighbor', null)
   drawHexagon()
 }
 
@@ -451,18 +426,13 @@ onMounted(() => {
   })
 })
 
-// Expose methods and properties
+// Expose methods and data for parent component
 defineExpose({
-  drawHexagon,
-  calculateHexPoints,
-  centerX,
-  centerY,
-  hexSize,
   toggleNeighbors,
+  navigateToNeighbor,
+  resolution,
   showNeighbors,
-  neighbors,
-  selectedNeighbor,
-  navigateToNeighbor
+  selectedNeighbor
 })
 </script>
 
@@ -483,100 +453,15 @@ defineExpose({
   cursor: pointer;
 }
 
-.debug-info {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  background-color: rgba(255, 255, 255, 0.9);
-  padding: 15px;
-  border-radius: 8px;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-  max-width: 300px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-}
-
-.debug-info h3 {
-  margin-top: 0;
-  margin-bottom: 10px;
-  font-size: 16px;
-  color: #333;
-}
-
-.visual-props {
-  margin-top: 10px;
-}
-
-.color-samples {
-  display: flex;
-  gap: 10px;
-  margin-top: 5px;
-}
-
-.color-sample {
-  width: 60px;
-  height: 25px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.color-sample span {
-  background-color: rgba(255, 255, 255, 0.7);
-  padding: 2px 5px;
-  border-radius: 3px;
-  font-size: 10px;
-}
-
-.controls {
-  margin-top: 15px;
-  display: flex;
-  justify-content: center;
-}
-
-.controls button, .navigate-btn {
-  background-color: #4CAF50;
-  color: white;
-  border: none;
-  padding: 8px 12px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 12px;
-  transition: background-color 0.3s;
-}
-
-.controls button:hover, .navigate-btn:hover {
-  background-color: #45a049;
-}
-
-.selected-info {
-  margin-top: 15px;
-  padding-top: 10px;
-  border-top: 1px solid #ddd;
-  text-align: center;
-}
-
-.navigate-btn {
-  background-color: #2196F3;
-  margin-top: 5px;
-}
-
-.navigate-btn:hover {
-  background-color: #0b7dda;
-}
-
 .error-message {
-  margin-top: 15px;
-  padding: 10px;
-  background-color: #ffebee;
-  border-left: 4px solid #f44336;
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  background-color: rgba(255, 0, 0, 0.8);
+  color: white;
+  padding: 5px 10px;
   border-radius: 4px;
-}
-
-.error-message p {
-  margin: 0;
-  color: #d32f2f;
-  font-size: 12px;
+  font-size: 14px;
+  z-index: 100;
 }
 </style>
