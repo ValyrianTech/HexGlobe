@@ -30,7 +30,8 @@ window.hexGlobeApp = {
         activeTileId: null, // Will be set from URL or default
         activeTileCoords: { col: 0, row: 0 }, // Will be set to center tile later
         debugMode: true,
-        tiles: [] // Array of tile objects
+        tiles: [], // Array of tile objects
+        zoomLevel: 5 // Default zoom level (1-10)
     },
     
     // Initialize the application
@@ -144,38 +145,56 @@ window.hexGlobeApp = {
             
             this.handleCanvasClick(x, y);
         });
+
+        // Handle zoom slider changes
+        document.getElementById("zoom-slider").addEventListener("input", (event) => {
+            this.state.zoomLevel = parseInt(event.target.value);
+            document.getElementById("zoom-value").textContent = this.state.zoomLevel;
+            this.generateGrid();
+            this.render();
+            this.updateDebugPanel();
+        });
     },
     
-    // Calculate grid dimensions based on canvas size
+    // Calculate grid dimensions based on canvas size and zoom level
     calculateGridDimensions: function() {
         const availableWidth = this.canvas.width - (this.config.padding * 2);
         const availableHeight = this.canvas.height - (this.config.padding * 2);
         
         // Calculate hex dimensions
-        const hexHeight = Math.sqrt(3) * this.config.hexSize;
-        const hexWidth = this.config.hexSize * 2;
+        // Adjust hex size based on zoom level
+        // At zoom level 1, hex size is large (active tile takes most of screen)
+        // At zoom level 10, hex size is small (many tiles visible)
+        const zoomFactor = 1 + (10 - this.state.zoomLevel) * 0.5;
+        const baseHexSize = this.config.hexSize;
+        const adjustedHexSize = baseHexSize * zoomFactor;
         
         // Calculate how many hexes can fit in the available space
+        const hexHeight = Math.sqrt(3) * adjustedHexSize;
+        const hexWidth = adjustedHexSize * 2;
+        
         // We use 0.75 * hexWidth for horizontal spacing because hexes overlap horizontally
         const cols = Math.max(1, Math.floor(availableWidth / (hexWidth * 0.75)));
         const rows = Math.max(1, Math.floor(availableHeight / hexHeight));
         
-        // Adjust hex size to better fill the available space if needed
-        let adjustedHexSize = this.config.hexSize;
+        // For zoom level 1, we want to show just the active tile and immediate neighbors
+        // For zoom level 10, we want to show at least 10 rings of neighbors
+        let gridWidth = cols;
+        let gridHeight = rows;
         
-        // If we have very few hexes, try to increase the size to fill more space
-        if (cols < 8 || rows < 8) {
-            const widthBasedSize = availableWidth / (8 * 0.75) / 2;
-            const heightBasedSize = availableHeight / 8 / Math.sqrt(3);
-            adjustedHexSize = Math.min(widthBasedSize, heightBasedSize);
-        }
+        // Ensure we have enough tiles to show the desired number of rings based on zoom level
+        const minRings = this.state.zoomLevel;
+        const minTilesForRings = minRings * 2 + 1; // Diameter of the grid in tiles
         
-        console.log(`Grid dimensions: ${cols}x${rows}, hex size: ${adjustedHexSize}`);
+        gridWidth = Math.max(gridWidth, minTilesForRings);
+        gridHeight = Math.max(gridHeight, minTilesForRings);
+        
+        console.log(`Grid dimensions: ${gridWidth}x${gridHeight}, hex size: ${adjustedHexSize}, zoom level: ${this.state.zoomLevel}`);
         
         return {
             hexSize: adjustedHexSize,
-            gridWidth: cols,
-            gridHeight: rows
+            gridWidth: gridWidth,
+            gridHeight: gridHeight
         };
     },
     
@@ -334,36 +353,35 @@ window.hexGlobeApp = {
     
     // Update the debug panel
     updateDebugPanel: function() {
-        const tileInfoElement = document.getElementById("tile-info");
-        
-        if (!tileInfoElement) return;
+        const debugPanel = document.getElementById("tile-info");
         
         if (!this.state.debugMode) {
-            tileInfoElement.innerHTML = "<p>Debug mode is off</p>";
+            debugPanel.style.display = "none";
             return;
         }
         
-        let infoHTML = "";
+        debugPanel.style.display = "block";
         
-        // Active tile information
-        const activeTile = this.state.tiles.find(t => t.isActive);
-        if (activeTile) {
-            infoHTML += `<h4>Active Tile</h4>`;
-            infoHTML += `<p>ID: ${activeTile.id}</p>`;
-            infoHTML += `<p>Position: (${activeTile.col}, ${activeTile.row})</p>`;
-            infoHTML += `<p>Border Color: ${this.config.activeTileStyles.borderColor}</p>`;
-            infoHTML += `<p>Border Thickness: ${this.config.activeTileStyles.borderThickness}px</p>`;
+        // Get the active tile
+        const activeTile = this.state.tiles.find(tile => tile.isActive);
+        
+        if (!activeTile) {
+            debugPanel.textContent = "No active tile selected";
+            return;
         }
         
-        // Grid information
-        infoHTML += `<h4>Grid Information</h4>`;
-        const dimensions = this.calculateGridDimensions();
-        infoHTML += `<p>Grid Size: ${dimensions.gridWidth} x ${dimensions.gridHeight}</p>`;
-        infoHTML += `<p>Hex Size: ${dimensions.hexSize.toFixed(2)}</p>`;
-        infoHTML += `<p>Canvas Size: ${this.canvas.width} x ${this.canvas.height}</p>`;
-        infoHTML += `<p>Total Tiles: ${this.state.tiles.length}</p>`;
+        // Format the debug information
+        const debugInfo = `
+Active Tile:
+H3 Index: ${activeTile.id}
+Center X,Y: ${Math.round(activeTile.center.x)}, ${Math.round(activeTile.center.y)}
+Hex Size: ${Math.round(activeTile.size)}
+Grid Size: ${this.state.tiles.length} tiles
+Zoom Level: ${this.state.zoomLevel}
+Canvas Size: ${this.canvas.width} x ${this.canvas.height}
+        `;
         
-        tileInfoElement.innerHTML = infoHTML;
+        debugPanel.textContent = debugInfo;
     }
 };
 
