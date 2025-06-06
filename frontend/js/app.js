@@ -204,6 +204,8 @@ window.hexGlobeApp = {
         document.getElementById("zoom-slider").addEventListener("input", (event) => {
             this.state.zoomLevel = parseInt(event.target.value);
             document.getElementById("zoom-value").textContent = this.state.zoomLevel;
+            
+            // Generate grid with new zoom level
             this.generateGrid().then(() => {
                 this.render();
                 this.updateDebugPanel();
@@ -235,21 +237,44 @@ window.hexGlobeApp = {
                         const url = new URL(window.location);
                         url.searchParams.set('h3', newIndex);
                         window.history.replaceState({}, '', url);
+                        
+                        // Update the navigation system with the new active tile ID
+                        if (this.state.navigation) {
+                            this.state.navigation.navigateTo(newIndex).then(() => {
+                                // Generate grid and wait for it to complete before rendering
+                                this.generateGrid().then(() => {
+                                    this.render();
+                                    this.updateDebugPanel();
+                                });
+                            });
+                        } else {
+                            // Generate grid and wait for it to complete before rendering
+                            this.generateGrid().then(() => {
+                                this.render();
+                                this.updateDebugPanel();
+                            });
+                        }
                     } catch (error) {
                         console.error("Error updating H3 resolution:", error);
                         // Fall back to a default index for this resolution
                         this.state.activeTileId = this.getDefaultH3IndexForResolution(this.state.resolution);
+                        
+                        // Generate grid and wait for it to complete before rendering
+                        this.generateGrid().then(() => {
+                            this.render();
+                            this.updateDebugPanel();
+                        });
                     }
                 } else {
                     // If H3 functions aren't available, use default index
                     this.state.activeTileId = this.getDefaultH3IndexForResolution(this.state.resolution);
+                    
+                    // Generate grid and wait for it to complete before rendering
+                    this.generateGrid().then(() => {
+                        this.render();
+                        this.updateDebugPanel();
+                    });
                 }
-                
-                // Generate grid and wait for it to complete before rendering
-                this.generateGrid().then(() => {
-                    this.render();
-                    this.updateDebugPanel();
-                });
             }
         });
     },
