@@ -16,6 +16,9 @@ HexGlobe provides a framework for visualizing and interacting with a hexagonal g
 - Zoom control slider (1-10) to adjust visible hex tiles
 - H3 resolution slider (0-15) to adjust hexagon size on Earth's surface
 - Tile information display
+- Backend API integration for tile data persistence
+- Comprehensive logging for debugging
+- Automatic tile creation and storage
 
 ## Technology Stack
 
@@ -23,12 +26,14 @@ HexGlobe provides a framework for visualizing and interacting with a hexagonal g
 - Python 3.12
 - FastAPI
 - H3 Python bindings
+- JSON-based file storage
 
 ### Frontend
 - Vanilla JavaScript
 - HTML5 Canvas for rendering
 - h3-js for hexagonal grid calculations
 - HTML5/CSS3
+- Fetch API for backend communication
 
 ### Data Storage
 - File-based JSON storage
@@ -74,6 +79,8 @@ cd backend
 python run.py
 ```
 
+The backend API will be available at `http://localhost:8000` by default.
+
 #### Frontend
 
 Simply open the `frontend/index.html` file in your browser, or serve it using a simple HTTP server:
@@ -92,20 +99,24 @@ The application will be available at `http://localhost:8080` by default.
 HexGlobe/
 ├── backend/
 │   ├── hexglobe/
-│   │   ├── main.py        # FastAPI application
-│   │   ├── models/        # Data models
-│   │   └── services/      # Business logic
-│   ├── pyproject.toml     # Python dependencies
-│   └── run.py             # Entry point
+│   │   ├── api/
+│   │   │   └── tiles.py    # API endpoints for tile operations
+│   │   ├── models/
+│   │   │   └── tile.py     # Tile data models and storage
+│   │   └── main.py         # FastAPI application setup
+│   ├── pyproject.toml      # Python dependencies
+│   └── run.py              # Entry point
+├── data/
+│   └── tiles/              # JSON storage for tile data
 ├── frontend/
 │   ├── css/
-│   │   └── styles.css     # Main stylesheet
+│   │   └── styles.css      # Main stylesheet
 │   ├── js/
-│   │   ├── app.js         # Main application logic
-│   │   ├── hexTile.js     # Canvas-based hexagon rendering module
-│   │   └── navigation.js  # Tile navigation and neighbor management
-│   └── index.html         # Main HTML entry point
-└── README.md              # This file
+│   │   ├── app.js          # Main application logic
+│   │   ├── hexTile.js      # Canvas-based hexagon rendering module
+│   │   └── navigation.js   # Tile navigation and API communication
+│   └── index.html          # Main HTML entry point
+└── README.md               # This file
 ```
 
 ## Core Components
@@ -125,13 +136,15 @@ Main application logic that:
 - Handles rendering and updates
 - Controls zoom level and H3 resolution
 - Converts between different H3 resolutions
+- Integrates with the navigation system for API calls
 
 ### navigation.js
-Manages tile navigation including:
-- Loading tile data from the API
-- Managing neighbor relationships
-- Handling navigation between tiles
-- Providing fallback functionality for development
+Manages tile navigation and backend communication:
+- Loads tile data from the backend API
+- Manages neighbor relationships
+- Handles navigation between tiles
+- Provides fallback functionality when API is unavailable
+- Dispatches events when tile data changes
 
 ## H3 Integration
 
@@ -145,6 +158,18 @@ HexGlobe uses Uber's H3 library for hexagonal grid operations:
 - **Zoom vs. Resolution**:
   - Zoom level (1-10): Controls how many hexagons are visible on screen
   - H3 Resolution (0-15): Controls the actual size of each hexagon on Earth's surface
+
+## API Endpoints
+
+The backend provides the following RESTful API endpoints:
+
+- `GET /api/tiles/{tile_id}`: Get tile information
+- `PUT /api/tiles/{tile_id}`: Update tile information
+- `GET /api/tiles/{tile_id}/neighbors`: Get neighboring tiles
+- `GET /api/tiles/{tile_id}/parent`: Get parent tile
+- `GET /api/tiles/{tile_id}/children`: Get child tiles
+- `POST /api/tiles/{tile_id}/move-content/{target_id}`: Move content to target tile
+- `PUT /api/tiles/{tile_id}/visual`: Update visual properties
 
 ## License
 
