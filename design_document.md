@@ -12,7 +12,7 @@ HexGlobe is a web application framework that implements a global hexagonal grid 
 +-------------------+      +-------------------+      +-------------------+
 |                   |      |                   |      |                   |
 |  Frontend         |      |  Backend API      |      |  Tile Storage     |
-|  (Vue.js)         +----->+  (Python/FastAPI) +----->+  (JSON Files)     |
+|  (HTML/JS/CSS)    +----->+  (Python/FastAPI) +----->+  (JSON Files)     |
 |                   |      |                   |      |                   |
 +-------------------+      +-------------------+      +-------------------+
 ```
@@ -30,6 +30,7 @@ HexGlobe is a web application framework that implements a global hexagonal grid 
 - Interactive tile navigation
 - Neighbor visualization and selection
 - Debug information display
+- Pure HTML/CSS/JavaScript implementation
 
 ## 3. Data Model
 
@@ -153,17 +154,19 @@ HexGlobe is a web application framework that implements a global hexagonal grid 
 - Custom rendering of map features within hexagon boundaries
 - Potential for different map styles or data sources per hexagon
 
-### 5.4 Vue.js Implementation
+### 5.4 JavaScript Implementation
 
-- **Component Structure**:
-  - `App.vue`: Main application container
-  - `HomeView.vue`: Main view component
-  - `HexTile.vue`: Canvas-based hexagon rendering component
-  - `TileNavigation.vue`: Controls for navigating between tiles
+- **Structure**:
+  - `index.html`: Main HTML entry point
+  - `css/styles.css`: Main stylesheet
+  - `js/app.js`: Main application logic
+  - `js/hexTile.js`: Canvas-based hexagon rendering module
+  - `js/navigation.js`: Controls for navigating between tiles
 
 - **State Management**:
-  - Pinia store for managing tile data and application state
-  - Reactive properties for handling tile selection and transitions
+  - Vanilla JavaScript for managing application state
+  - Custom event system for handling UI updates
+  - LocalStorage for persisting state between sessions
 
 - **H3 Integration**:
   - h3-js library used for frontend hexagonal grid calculations
@@ -200,7 +203,7 @@ HexGlobe is a web application framework that implements a global hexagonal grid 
 ## 7. Technology Stack
 
 - **Backend**: Python 3.12, FastAPI, H3 Python bindings
-- **Frontend**: Vue.js, HTML5 Canvas, h3-js
+- **Frontend**: HTML5, CSS3, JavaScript, Canvas API, h3-js
 - **Data Storage**: File-based JSON
 - **Development Tools**: Git, Poetry (dependency management)
 
