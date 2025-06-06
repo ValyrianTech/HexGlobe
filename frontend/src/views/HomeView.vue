@@ -198,10 +198,13 @@ const resetToDefaultTile = () => {
   height: 100%;
   width: 160px;
   overflow-y: auto;
+  box-sizing: border-box;
 }
 
 .tile-info-panel {
-  padding: 0 5px;
+  padding: 0 8px;
+  width: calc(100% - 16px);
+  margin: 0 auto;
 }
 
 .tile-info-panel h3 {
@@ -226,6 +229,9 @@ const resetToDefaultTile = () => {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  width: 90%;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .color-controls label {
@@ -245,6 +251,9 @@ const resetToDefaultTile = () => {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  width: 90%;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 button {
@@ -258,17 +267,15 @@ button {
   width: 100%;
   transition: background-color 0.3s;
   white-space: nowrap;
-  margin: 0 auto;
-}
-
-button:hover {
-  background-color: #45a049;
 }
 
 .selected-info {
   margin-top: 15px;
   padding-top: 10px;
   border-top: 1px solid #ddd;
+  width: 90%;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .navigate-btn {
