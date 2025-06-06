@@ -75,7 +75,7 @@ const emit = defineEmits(['navigate'])
 const hexCanvas = ref(null)
 const centerX = ref(props.width / 2)
 const centerY = ref(props.height / 2)
-const hexSize = ref(Math.min(props.width, props.height) * 0.35)
+const hexSize = ref(Math.min(props.width, props.height) * 0.45)
 const resolution = computed(() => {
   try {
     return h3.getResolution(props.hexId)
@@ -122,7 +122,7 @@ const getNeighbors = () => {
     for (let i = 0; i < neighborCount; i++) {
       // Calculate position in a hexagonal pattern around the center
       const angle = (Math.PI * 2 * i) / neighborCount
-      const distance = hexSize.value * 1.8 // Adjust this value to control neighbor distance
+      const distance = hexSize.value * 1.7
       
       const x = centerX.value + Math.cos(angle) * distance
       const y = centerY.value + Math.sin(angle) * distance
@@ -427,7 +427,7 @@ onMounted(() => {
     if (hexCanvas.value) {
       centerX.value = hexCanvas.value.width / 2
       centerY.value = hexCanvas.value.height / 2
-      hexSize.value = Math.min(hexCanvas.value.width, hexCanvas.value.height) * 0.35
+      hexSize.value = Math.min(hexCanvas.value.width, hexCanvas.value.height) * 0.45
       drawHexagon()
     }
   }

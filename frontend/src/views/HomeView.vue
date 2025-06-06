@@ -3,8 +3,8 @@
     <div class="hex-container">
       <HexTile 
         :hexId="currentHexId" 
-        :width="800" 
-        :height="600" 
+        :width="hexWidth" 
+        :height="hexHeight" 
         :content="tileContent" 
         :fillColor="fillColor"
         :strokeColor="strokeColor"
@@ -24,19 +24,19 @@
         </label>
       </div>
     </div>
-    <div class="navigation-history">
-      <h3>Navigation History</h3>
-      <ul>
-        <li v-for="(tile, index) in navigationHistory" :key="index" @click="navigateToHistoryTile(tile)">
-          {{ tile.substring(0, 8) }}... <span v-if="tile === currentHexId">(current)</span>
-        </li>
-      </ul>
-    </div>
+  </div>
+  <div class="navigation-history">
+    <h3>Navigation History</h3>
+    <ul>
+      <li v-for="(tile, index) in navigationHistory" :key="index" @click="navigateToHistoryTile(tile)">
+        {{ tile.substring(0, 8) }}... <span v-if="tile === currentHexId">(current)</span>
+      </li>
+    </ul>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed, onUnmounted } from 'vue';
 import HexTile from '@/components/HexTile.vue';
 
 // Default hex ID (San Francisco at resolution 2)
@@ -50,6 +50,27 @@ const strokeColor = ref('#ff0000');
 
 // Navigation history
 const navigationHistory = ref([DEFAULT_HEX_ID]);
+
+// Responsive dimensions for the hexagon
+const hexWidth = ref(window.innerWidth * 0.95);
+const hexHeight = ref(window.innerHeight * 0.85);
+
+// Handle window resize
+const handleResize = () => {
+  hexWidth.value = window.innerWidth * 0.95;
+  hexHeight.value = window.innerHeight * 0.85;
+};
+
+// Add resize event listener
+onMounted(() => {
+  window.addEventListener('resize', handleResize);
+  console.log('HomeView mounted');
+});
+
+// Clean up event listener
+onUnmounted(() => {
+  window.removeEventListener('resize', handleResize);
+});
 
 // Navigate to a new tile
 const navigateToTile = (hexId) => {
@@ -81,55 +102,52 @@ const navigateToHistoryTile = (hexId) => {
 const resetToDefaultTile = () => {
   navigateToTile(DEFAULT_HEX_ID);
 };
-
-// Initialize
-onMounted(() => {
-  console.log('HomeView mounted');
-});
 </script>
 
 <style scoped>
 .home {
   display: grid;
-  grid-template-columns: 1fr 250px;
-  grid-template-rows: auto 1fr;
-  grid-template-areas:
-    "header header"
-    "main sidebar";
-  gap: 20px;
-  padding: 20px;
-  height: calc(100vh - 40px);
-}
-
-h1 {
-  grid-area: header;
-  margin: 0 0 20px 0;
-  color: #333;
-  text-align: center;
+  grid-template-columns: 1fr 160px;
+  grid-template-rows: 1fr;
+  grid-template-areas: "main sidebar";
+  gap: 0;
+  padding: 0;
+  height: calc(100vh - 60px);
+  margin: 0;
+  overflow: hidden;
 }
 
 .hex-container {
   grid-area: main;
   height: 100%;
+  width: 100%;
   background-color: #f5f5f5;
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 0;
+  overflow: visible;
+  box-shadow: none;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0;
 }
 
 .controls {
   grid-area: sidebar;
-  padding: 20px;
+  padding: 10px;
   background-color: #fff;
   border-radius: 8px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  margin-right: 5px;
+  margin-top: 5px;
+  height: calc(100% - 10px);
+  overflow-y: auto;
 }
 
 .color-controls {
-  margin-top: 20px;
+  margin-top: 15px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 
 .color-controls label {
@@ -155,38 +173,50 @@ button:hover {
 }
 
 .navigation-history {
-  margin-top: 20px;
-  padding: 20px;
-  background-color: #fff;
-  border-radius: 8px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 5px 10px;
+  background-color: #f5f5f5;
+  border-top: 1px solid #ddd;
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
+  z-index: 100;
+  height: 35px;
 }
 
 .navigation-history h3 {
   margin-top: 0;
   margin-bottom: 10px;
   font-size: 16px;
+  float: left;
+  padding-right: 15px;
 }
 
 .navigation-history ul {
   list-style-type: none;
   padding: 0;
   margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  overflow-x: auto;
+  white-space: nowrap;
+  padding-bottom: 5px;
 }
 
 .navigation-history li {
-  padding: 8px;
-  border-bottom: 1px solid #eee;
+  padding: 5px 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
   cursor: pointer;
   font-family: monospace;
+  background-color: #fff;
+  display: inline-block;
 }
 
 .navigation-history li:hover {
-  background-color: #f5f5f5;
-}
-
-.navigation-history li:last-child {
-  border-bottom: none;
+  background-color: #f0f0f0;
 }
 
 .navigation-history li span {
