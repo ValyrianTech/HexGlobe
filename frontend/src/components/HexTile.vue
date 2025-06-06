@@ -202,7 +202,7 @@ const drawHexagon = () => {
     // Draw main hexagon
     const points = calculateHexPoints()
     
-    // Create clipping path (hexagon shape)
+    // Create path (hexagon shape)
     ctx.beginPath()
     ctx.moveTo(points[0].x, points[0].y)
     for (let i = 1; i < points.length; i++) {
@@ -233,7 +233,13 @@ const drawHexagon = () => {
     ctx.textBaseline = 'bottom'
     ctx.fillText(props.hexId, centerX.value, centerY.value + hexSize.value * 0.8)
     
-    // Stroke (border)
+    // Stroke (border) - Make sure to use the same path
+    ctx.beginPath()
+    ctx.moveTo(points[0].x, points[0].y)
+    for (let i = 1; i < points.length; i++) {
+      ctx.lineTo(points[i].x, points[i].y)
+    }
+    ctx.closePath()
     ctx.strokeStyle = props.strokeColor
     ctx.lineWidth = props.strokeWidth
     ctx.stroke()
