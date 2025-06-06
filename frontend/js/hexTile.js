@@ -79,11 +79,6 @@ class HexTile {
         
         // Draw the H3 index in the center
         this.drawH3Index(ctx);
-        
-        // Draw the H3 index in the center if debug mode is on
-        if (window.hexGlobeApp && window.hexGlobeApp.debugMode) {
-            this.drawDebugInfo(ctx);
-        }
     }
     
     /**
@@ -150,22 +145,6 @@ class HexTile {
         
         // Display the full H3 index without truncation
         ctx.fillText(this.content, this.center.x, this.center.y);
-        ctx.restore();
-    }
-    
-    /**
-     * Draw debug information on the hexagon
-     * @param {CanvasRenderingContext2D} ctx - The canvas rendering context
-     */
-    drawDebugInfo(ctx) {
-        ctx.save();
-        ctx.fillStyle = "#000";
-        ctx.font = `${this.size / 6}px Arial`;
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        
-        // Display the full ID without truncation
-        ctx.fillText(this.id, this.center.x, this.center.y);
         ctx.restore();
     }
     

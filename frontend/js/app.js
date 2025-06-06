@@ -29,7 +29,7 @@ window.hexGlobeApp = {
     state: {
         activeTileId: null, // Will be set from URL or default
         activeTileCoords: { col: 0, row: 0 }, // Will be set to center tile later
-        debugMode: true,
+        debugMode: true, // Always show debug information
         tiles: [], // Array of tile objects
         zoomLevel: 5 // Default zoom level (1-10)
     },
@@ -130,13 +130,6 @@ window.hexGlobeApp = {
     
     // Set up event listeners
     setupEventListeners: function() {
-        // Toggle debug mode
-        document.getElementById("toggle-debug").addEventListener("click", () => {
-            this.state.debugMode = !this.state.debugMode;
-            this.render();
-            this.updateDebugPanel();
-        });
-        
         // Handle canvas clicks
         this.canvas.addEventListener("click", (event) => {
             const rect = this.canvas.getBoundingClientRect();
@@ -351,15 +344,11 @@ window.hexGlobeApp = {
         }
     },
     
-    // Update the debug panel
+    // Update the tile information panel
     updateDebugPanel: function() {
         const debugPanel = document.getElementById("tile-info");
         
-        if (!this.state.debugMode) {
-            debugPanel.style.display = "none";
-            return;
-        }
-        
+        // Always show tile info as debug mode is now always on
         debugPanel.style.display = "block";
         
         // Get the active tile
@@ -370,7 +359,7 @@ window.hexGlobeApp = {
             return;
         }
         
-        // Format the debug information
+        // Format the tile information
         const debugInfo = `
 Active Tile:
 H3 Index: ${activeTile.id}
