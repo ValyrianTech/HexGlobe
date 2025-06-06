@@ -12,7 +12,7 @@ class HexTile {
      */
     constructor(id, visualProperties = {}) {
         this.id = id;
-        this.content = "";
+        this.content = id;
         this.visualProperties = {
             borderColor: "#000000",
             borderThickness: 2,
@@ -77,6 +77,9 @@ class HexTile {
         // Draw grid pattern inside the hexagon to simulate map data
         this.drawGridPattern(ctx);
         
+        // Draw the H3 index in the center
+        this.drawH3Index(ctx);
+        
         // Draw the H3 index in the center if debug mode is on
         if (window.hexGlobeApp && window.hexGlobeApp.debugMode) {
             this.drawDebugInfo(ctx);
@@ -129,6 +132,28 @@ class HexTile {
     }
     
     /**
+     * Draw the H3 index on the hexagon
+     * @param {CanvasRenderingContext2D} ctx - The canvas rendering context
+     */
+    drawH3Index(ctx) {
+        if (!this.content) return;
+        
+        ctx.save();
+        ctx.fillStyle = "#000";
+        
+        // Calculate font size based on hexagon size
+        // Use a smaller font size to fit the full H3 index
+        const fontSize = Math.max(6, Math.min(10, this.size / 5));
+        ctx.font = `${fontSize}px monospace`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        
+        // Display the full H3 index without truncation
+        ctx.fillText(this.content, this.center.x, this.center.y);
+        ctx.restore();
+    }
+    
+    /**
      * Draw debug information on the hexagon
      * @param {CanvasRenderingContext2D} ctx - The canvas rendering context
      */
@@ -139,12 +164,8 @@ class HexTile {
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
         
-        // Truncate the H3 index to fit
-        const displayId = this.id.length > 8 ? 
-            `${this.id.substring(0, 4)}...${this.id.substring(this.id.length - 4)}` : 
-            this.id;
-            
-        ctx.fillText(displayId, this.center.x, this.center.y);
+        // Display the full ID without truncation
+        ctx.fillText(this.id, this.center.x, this.center.y);
         ctx.restore();
     }
     

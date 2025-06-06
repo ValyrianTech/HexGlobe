@@ -25,6 +25,7 @@ window.hexGlobeApp = {
     
     // State
     state: {
+        activeTileId: null, // Will be set from URL or default
         activeTileCoords: { col: 0, row: 0 }, // Will be set to center tile later
         debugMode: true,
         tiles: [] // Array of tile objects
@@ -33,6 +34,9 @@ window.hexGlobeApp = {
     // Initialize the application
     init: function() {
         console.log("Initializing HexGlobe application...");
+        
+        // Get H3 index from URL query parameter
+        this.getH3IndexFromUrl();
         
         // Set up the canvas
         this.setupCanvas();
@@ -44,6 +48,22 @@ window.hexGlobeApp = {
         this.generateGrid();
         this.render();
         this.updateDebugPanel();
+    },
+    
+    // Get H3 index from URL query parameter
+    getH3IndexFromUrl: function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const h3Index = urlParams.get('h3');
+        
+        // Validate the H3 index if provided
+        if (h3Index && window.h3 && window.h3.isValid(h3Index)) {
+            this.state.activeTileId = h3Index;
+            console.log(`Using H3 index from URL: ${h3Index}`);
+        } else {
+            // Default to resolution 7 hexagon near the center of the world
+            this.state.activeTileId = "872830828ffffff";
+            console.log(`Using default H3 index: ${this.state.activeTileId}`);
+        }
     },
     
     // Set up the canvas
@@ -149,6 +169,11 @@ window.hexGlobeApp = {
         console.log(`Grid size in pixels: ${gridWidthPx}x${gridHeightPx}`);
         console.log(`Grid offset: ${offsetX},${offsetY}`);
         
+        // Generate H3 indexes for the grid
+        // Start with the center tile (from URL or default)
+        const centerCol = Math.floor(width / 2);
+        const centerRow = Math.floor(height / 2);
+        
         // Create the grid
         for (let row = 0; row < height; row++) {
             for (let col = 0; col < width; col++) {
@@ -156,17 +181,46 @@ window.hexGlobeApp = {
                 const x = offsetX + col * (hexWidth * 0.75) + (hexWidth / 2);
                 const y = offsetY + row * hexHeight + (hexHeight / 2) + (col % 2 === 0 ? 0 : hexHeight / 2);
                 
-                // Create a unique ID for this tile
-                const id = `tile-${col}-${row}`;
+                // Calculate H3 index for this tile
+                let h3Index;
+                
+                if (col === centerCol && row === centerRow) {
+                    // This is the center tile, use the active tile ID
+                    h3Index = this.state.activeTileId;
+                } else {
+                    // Calculate the relative position from the center
+                    const relCol = col - centerCol;
+                    const relRow = row - centerRow;
+                    
+                    // Use H3 library to get the neighboring indexes
+                    // This is a simplified approach - in reality, the grid layout doesn't perfectly match H3 grid
+                    try {
+                        // For simplicity, we'll use kRing to get a set of neighbors and then pick one based on position
+                        const ringSize = Math.max(Math.abs(relCol), Math.abs(relRow));
+                        if (ringSize > 0) {
+                            const neighbors = window.h3.kRing(this.state.activeTileId, ringSize);
+                            
+                            // Simple mapping from grid position to neighbor index
+                            // This is an approximation and won't perfectly match H3's actual layout
+                            const neighborIndex = ((relRow + ringSize) * (2 * ringSize + 1) + (relCol + ringSize)) % neighbors.length;
+                            h3Index = neighbors[neighborIndex];
+                        } else {
+                            h3Index = this.state.activeTileId;
+                        }
+                    } catch (error) {
+                        console.error("Error calculating H3 index:", error);
+                        h3Index = `error-${col}-${row}`;
+                    }
+                }
                 
                 // Create the tile object
                 const tile = {
-                    id: id,
+                    id: h3Index,
                     col: col,
                     row: row,
                     x: x,
                     y: y,
-                    isActive: false
+                    isActive: (col === centerCol && row === centerRow)
                 };
                 
                 // Add the tile to the array
@@ -175,14 +229,7 @@ window.hexGlobeApp = {
         }
         
         // Set the center tile as active
-        const centerCol = Math.floor(width / 2);
-        const centerRow = Math.floor(height / 2);
         this.state.activeTileCoords = { col: centerCol, row: centerRow };
-        
-        // Update the active state of all tiles
-        for (const tile of this.state.tiles) {
-            tile.isActive = (tile.col === centerCol && tile.row === centerRow);
-        }
         
         console.log(`Generated ${this.state.tiles.length} tiles`);
     },
@@ -194,13 +241,21 @@ window.hexGlobeApp = {
             if (tile.hexTile && tile.hexTile.containsPoint(x, y)) {
                 console.log(`Clicked on tile: ${tile.id} (${tile.col}, ${tile.row})`);
                 
-                // Update the active tile coordinates
-                this.state.activeTileCoords = { col: tile.col, row: tile.row };
-                
-                // Update the active state of all tiles
-                for (const t of this.state.tiles) {
-                    t.isActive = (t.col === tile.col && t.row === tile.row);
+                if (tile.isActive) {
+                    // Already the active tile, do nothing
+                    return;
                 }
+                
+                // Update the active tile ID
+                this.state.activeTileId = tile.id;
+                
+                // Update URL with the new H3 index without refreshing the page
+                const url = new URL(window.location);
+                url.searchParams.set('h3', tile.id);
+                window.history.pushState({}, '', url);
+                
+                // Regenerate the grid with the new center tile
+                this.generateGrid();
                 
                 // Re-render the canvas
                 this.render();
@@ -234,8 +289,8 @@ window.hexGlobeApp = {
             const hexTile = new HexTile(tile.id, visualProperties);
             hexTile.calculateVertices(tile.x, tile.y, hexSize);
             
-            // Note: We don't need to call setActive here since we're passing the visual properties
-            // that already contain the appropriate styling for active/inactive states
+            // Set the H3 index as content to display
+            hexTile.content = tile.id;
             
             // Draw the tile
             hexTile.draw(this.ctx);
