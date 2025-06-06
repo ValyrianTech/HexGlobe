@@ -185,12 +185,8 @@ const drawSingleHexagon = (ctx, center, size, fillColor, strokeColor, strokeWidt
   ctx.fillStyle = fillColor
   ctx.fill()
   
-  // Draw grid pattern if it's the main hexagon, otherwise draw simple grid
-  if (id === props.hexId) {
-    drawGridPattern(ctx, points)
-  } else {
-    drawSimpleGrid(ctx, points)
-  }
+  // Use the same grid pattern for all hexagons
+  drawGridPattern(ctx, points)
   
   // Draw content text if available
   if (content) {
@@ -268,22 +264,22 @@ const drawNeighbors = (ctx) => {
     const pos = neighborPositions.value[index]
     if (!pos || !pos.id) return // Skip if position or ID is missing
     
-    // Determine colors based on selection state
-    const fillColor = id === selectedNeighbor.value ? '#b3e5fc' : '#e0e0e0'
-    const strokeColor = id === selectedNeighbor.value ? '#0288d1' : '#999'
-    const strokeWidth = id === selectedNeighbor.value ? 2 : 1
+    // Use the same styling as the main hexagon, just highlight selected ones
+    const fillColor = id === selectedNeighbor.value ? '#b3e5fc' : props.fillColor
+    const strokeColor = id === selectedNeighbor.value ? '#0288d1' : props.strokeColor
+    const strokeWidth = id === selectedNeighbor.value ? props.strokeWidth : props.strokeWidth
     
     // Draw the neighbor hexagon using the reusable function
     drawSingleHexagon(
       ctx,
       { x: pos.x, y: pos.y },
-      hexSize.value * 0.8, // Slightly smaller than the main hexagon
+      hexSize.value, // Same size as the main hexagon
       fillColor,
       strokeColor,
       strokeWidth,
       '', // No content for neighbors
       id,
-      false
+      id === selectedNeighbor.value
     )
   })
 }
