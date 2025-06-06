@@ -32,7 +32,8 @@ window.hexGlobeApp = {
         debugMode: true, // Always show debug information
         tiles: [], // Array of tile objects
         zoomLevel: 5, // Default zoom level (1-10)
-        resolution: 7 // Default H3 resolution (0-15)
+        resolution: 7, // Default H3 resolution (0-15)
+        navigation: null // Will hold the HexNavigation instance
     },
     
     // Initialize the application
@@ -48,6 +49,9 @@ window.hexGlobeApp = {
             document.getElementById("resolution-value").textContent = this.state.resolution;
             document.getElementById("resolution-slider").value = this.state.resolution;
             
+            // Initialize the navigation system
+            this.initNavigation();
+            
             // Set up the canvas
             this.setupCanvas();
             
@@ -58,6 +62,26 @@ window.hexGlobeApp = {
             this.generateGrid();
             this.render();
             this.updateDebugPanel();
+        });
+    },
+    
+    // Initialize the navigation system
+    initNavigation: function() {
+        console.log("Initializing navigation system...");
+        
+        // Create a new HexNavigation instance with the active tile ID
+        this.state.navigation = new HexNavigation({
+            initialTileId: this.state.activeTileId,
+            apiBaseUrl: "http://localhost:8000/api"
+        });
+        
+        // Initialize the navigation system
+        this.state.navigation.initialize().then(success => {
+            if (success) {
+                console.log("Navigation system initialized successfully");
+            } else {
+                console.warn("Navigation system initialization failed, using fallback");
+            }
         });
     },
     
@@ -375,14 +399,26 @@ window.hexGlobeApp = {
                 url.searchParams.set('h3', tile.id);
                 window.history.pushState({}, '', url);
                 
-                // Regenerate the grid with the new center tile
-                this.generateGrid();
-                
-                // Re-render the canvas
-                this.render();
-                
-                // Update the debug panel
-                this.updateDebugPanel();
+                // Use the navigation system to navigate to the new tile
+                if (this.state.navigation) {
+                    console.log(`Navigating to tile: ${tile.id} via API`);
+                    this.state.navigation.navigateTo(tile.id).then(() => {
+                        // Regenerate the grid with the new center tile
+                        this.generateGrid();
+                        
+                        // Re-render the canvas
+                        this.render();
+                        
+                        // Update the debug panel
+                        this.updateDebugPanel();
+                    });
+                } else {
+                    console.warn("Navigation system not initialized, using fallback");
+                    // Fallback to the old method
+                    this.generateGrid();
+                    this.render();
+                    this.updateDebugPanel();
+                }
                 
                 return;
             }
@@ -423,35 +459,28 @@ window.hexGlobeApp = {
     
     // Update the tile information panel
     updateDebugPanel: function() {
-        if (!this.state.debugMode) return;
-        
-        const tileInfo = document.getElementById("tile-info");
-        
-        // Find the active tile
+        // Get the active tile
         const activeTile = this.state.tiles.find(tile => tile.isActive);
         
         if (!activeTile) {
-            tileInfo.innerHTML = "<p>No active tile selected</p>";
             return;
         }
         
-        // Get the H3 resolution from the active tile ID if possible
-        let detectedResolution = "Unknown";
-        if (window.h3 && typeof window.h3.h3GetResolution === 'function') {
-            try {
-                detectedResolution = window.h3.h3GetResolution(activeTile.id);
-            } catch (error) {
-                console.warn("Could not detect H3 resolution from index:", error);
-            }
+        // Update the tile information panel
+        const tileInfo = document.getElementById("tile-info");
+        
+        // Try to get tile data from the navigation system
+        let tileContent = "No content available";
+        if (this.state.navigation && this.state.navigation.activeTile) {
+            tileContent = this.state.navigation.activeTile.content || "No content available";
         }
         
-        // Display tile information
         tileInfo.innerHTML = `
             <p><strong>H3 Index:</strong> ${activeTile.id}</p>
-            <p><strong>Resolution:</strong> ${this.state.resolution} (detected: ${detectedResolution})</p>
+            <p><strong>Resolution:</strong> ${this.state.resolution}</p>
             <p><strong>Zoom Level:</strong> ${this.state.zoomLevel}</p>
-            <p><strong>Hex Size:</strong> ${Math.round(activeTile.size)} pixels</p>
-            <p><strong>Position:</strong> (${Math.round(activeTile.center.x)}, ${Math.round(activeTile.center.y)})</p>
+            <p><strong>Grid Position:</strong> (${activeTile.col}, ${activeTile.row})</p>
+            <p><strong>Content:</strong> ${tileContent}</p>
         `;
     }
 };
