@@ -14,6 +14,7 @@ HexGlobe provides a framework for visualizing and interacting with a hexagonal g
 - Neighbor visualization and highlighting
 - Customizable visual properties (border color, thickness, style)
 - Zoom control slider (1-10) to adjust visible hex tiles
+- H3 resolution slider (0-15) to adjust hexagon size on Earth's surface
 - Tile information display
 
 ## Technology Stack
@@ -122,6 +123,8 @@ Main application logic that:
 - Calculates grid dimensions to fill available space
 - Manages the active tile state
 - Handles rendering and updates
+- Controls zoom level and H3 resolution
+- Converts between different H3 resolutions
 
 ### navigation.js
 Manages tile navigation including:
@@ -129,6 +132,19 @@ Manages tile navigation including:
 - Managing neighbor relationships
 - Handling navigation between tiles
 - Providing fallback functionality for development
+
+## H3 Integration
+
+HexGlobe uses Uber's H3 library for hexagonal grid operations:
+
+- **H3 Indexes**: Each tile is identified by an H3 index (e.g., `87000000fffffff`)
+- **Resolution Levels**: H3 supports resolutions 0-15, where:
+  - Lower resolutions (0-2): Very large hexagons covering large areas
+  - Medium resolutions (3-9): Moderate-sized hexagons for regional analysis
+  - Higher resolutions (10-15): Small hexagons for detailed local analysis
+- **Zoom vs. Resolution**:
+  - Zoom level (1-10): Controls how many hexagons are visible on screen
+  - H3 Resolution (0-15): Controls the actual size of each hexagon on Earth's surface
 
 ## License
 

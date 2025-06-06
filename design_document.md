@@ -133,15 +133,17 @@ HexGlobe is a web application framework that implements a global hexagonal grid 
 - **HexTile Component**: Canvas-based hexagon rendering with grid pattern and tile info
 - **Navigation Controls**: Allows users to navigate between tiles and change resolution levels
 - **Zoom Control**: Slider to adjust the zoom level (1-10), controlling how many hex tiles are visible
+- **Resolution Control**: Slider to adjust the H3 resolution (0-15), controlling the size of hexagons on Earth's surface
 
 ### 5.2 Interaction Flow
 
 1. User loads the application, which displays the default active tile
 2. Neighboring tiles are visible around the active tile
 3. User can adjust the zoom level to see more or fewer tiles
-4. User clicks on a neighboring tile
-5. The clicked tile becomes the active tile with a smooth transition
-6. The view updates to show the new active tile and its neighbors
+4. User can adjust the resolution to change the size of hexagons on Earth's surface
+5. User clicks on a neighboring tile
+6. The clicked tile becomes the active tile with a smooth transition
+7. The view updates to show the new active tile and its neighbors
 
 ### 5.3 Visualization Approach
 
@@ -150,6 +152,7 @@ HexGlobe is a web application framework that implements a global hexagonal grid 
 - Grid pattern inside hexagons to simulate map data
 - Tile information panel showing active tile details
 - Zoom control to adjust visible hex tiles
+- Resolution control to adjust hexagon size on Earth's surface
 - Neighbor visualization with click navigation
 
 #### Future Map Integration
@@ -175,6 +178,7 @@ HexGlobe is a web application framework that implements a global hexagonal grid 
   - h3-js library used for frontend hexagonal grid calculations
   - Neighbor calculation and resolution management
   - Coordinate conversion for proper hexagon rendering
+  - Resolution conversion for adjusting hexagon size
 
 ## 6. Implementation Progress
 
@@ -185,6 +189,7 @@ HexGlobe is a web application framework that implements a global hexagonal grid 
 - Developed Canvas-based hexagon visualization
 - Implemented neighbor visualization
 - Added zoom control slider (1-10) for adjusting visible hex tiles
+- Added resolution control slider (0-15) for adjusting hexagon size on Earth's surface
 - Set up GitHub repository and version control
 
 ### 6.2 In Progress
@@ -199,9 +204,13 @@ HexGlobe is a web application framework that implements a global hexagonal grid 
 - Enhance the backend API for more complex tile operations
 
 ### 6.4 Future Enhancements
-- Implement map data rendering within hexagons
-- Add content editing and management features
-- Develop game mechanics or application-specific features
+- Implement real-time collaborative features
+- Add support for custom tile content
+- Develop advanced visualization options
+- Create a plugin system for extending functionality
+- Implement caching for improved performance
+- Add support for offline mode
+- Develop a mobile-friendly interface
 
 ## 7. Technology Stack
 
