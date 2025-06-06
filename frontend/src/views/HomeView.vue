@@ -1,6 +1,5 @@
 <template>
   <div class="home">
-    <h1>HexGlobe</h1>
     <div class="hex-container">
       <HexTile 
         :hexId="currentHexId" 
