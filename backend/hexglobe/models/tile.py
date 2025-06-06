@@ -4,6 +4,7 @@ import os
 import logging
 from typing import Dict, List, Optional, Union
 import h3
+import math
 from pydantic import BaseModel
 
 # Set up logging
@@ -46,10 +47,8 @@ class Tile(ABC):
             self.parent_id = h3.h3_to_parent(id, h3.h3_get_resolution(id) - 1) if h3.h3_get_resolution(id) > 0 else None
             self.children_ids = h3.h3_to_children(id, h3.h3_get_resolution(id) + 1)
             
-            # Get neighbor IDs
-            self.neighbor_ids = h3.k_ring(id, 1)
-            # Remove self from neighbors
-            self.neighbor_ids = [idx for idx in self.neighbor_ids if idx != id]
+            # Get neighbor IDs in clockwise order
+            self.neighbor_ids = self._get_ordered_neighbors(id)
             
             # Get different resolution IDs
             self.resolution_ids = {}
@@ -73,15 +72,100 @@ class Tile(ABC):
             self.neighbor_ids = []
             self.resolution_ids = {}
     
+    def _get_ordered_neighbors(self, tile_id: str) -> List[str]:
+        """
+        Get neighbor IDs in a consistent clockwise order.
+        
+        For hexagons:
+        - Determine which edge is closest to the equator
+        - Use that as reference for ordering (bottom edge for northern hemisphere, top edge for southern)
+        - Order neighbors clockwise starting from a consistent position
+        
+        For pentagons:
+        - Similar approach but with 5 neighbors
+        """
+        # Get all neighbors
+        neighbors = h3.k_ring(tile_id, 1)
+        neighbors = [idx for idx in neighbors if idx != tile_id]
+        
+        # Get center coordinates of the tile
+        center_lat, center_lng = h3.h3_to_geo(tile_id)
+        
+        # Get boundary vertices
+        boundary = h3.h3_to_geo_boundary(tile_id)
+        
+        # Determine if we're in northern or southern hemisphere
+        in_northern_hemisphere = center_lat > 0
+        
+        # Find the edge closest to the equator
+        min_lat_diff = float('inf')
+        equator_edge_idx = 0
+        
+        for i in range(len(boundary)):
+            next_i = (i + 1) % len(boundary)
+            edge_lat = (boundary[i][0] + boundary[next_i][0]) / 2  # Average latitude of the edge
+            lat_diff = abs(edge_lat)  # Distance from equator
+            
+            if lat_diff < min_lat_diff:
+                min_lat_diff = lat_diff
+                equator_edge_idx = i
+        
+        # Determine reference vertex based on hemisphere
+        if in_northern_hemisphere:
+            # For northern hemisphere, use the right vertex of bottom edge as reference
+            ref_vertex_idx = (equator_edge_idx + 1) % len(boundary)
+        else:
+            # For southern hemisphere, use the right vertex of top edge as reference
+            ref_vertex_idx = equator_edge_idx
+        
+        # Get reference vertex coordinates
+        ref_lat, ref_lng = boundary[ref_vertex_idx]
+        
+        # Calculate bearing from center to reference vertex
+        ref_bearing = self._calculate_bearing(center_lat, center_lng, ref_lat, ref_lng)
+        
+        # Get center coordinates of each neighbor
+        neighbor_coords = []
+        for n_id in neighbors:
+            n_lat, n_lng = h3.h3_to_geo(n_id)
+            bearing = self._calculate_bearing(center_lat, center_lng, n_lat, n_lng)
+            
+            # Adjust bearing relative to reference bearing
+            rel_bearing = (bearing - ref_bearing) % 360
+            neighbor_coords.append((n_id, rel_bearing))
+        
+        # Sort neighbors by relative bearing (clockwise)
+        neighbor_coords.sort(key=lambda x: x[1])
+        
+        # Extract just the IDs in clockwise order
+        return [n[0] for n in neighbor_coords]
+    
+    def _calculate_bearing(self, lat1, lng1, lat2, lng2):
+        """
+        Calculate the bearing from point 1 to point 2.
+        All angles in radians.
+        """
+        # Convert to radians
+        lat1, lng1, lat2, lng2 = map(math.radians, [lat1, lng1, lat2, lng2])
+        
+        # Calculate bearing
+        y = math.sin(lng2 - lng1) * math.cos(lat2)
+        x = math.cos(lat1) * math.sin(lat2) - math.sin(lat1) * math.cos(lat2) * math.cos(lng2 - lng1)
+        bearing = math.atan2(y, x)
+        
+        # Convert to degrees
+        bearing = math.degrees(bearing)
+        
+        # Normalize to 0-360
+        bearing = (bearing + 360) % 360
+        
+        return bearing
+    
     def get_neighbors(self) -> List["Tile"]:
         """Returns neighboring tiles."""
-        neighbor_indices = h3.k_ring(self.id, 1)
-        # Remove self from neighbors
-        neighbor_indices = [idx for idx in neighbor_indices if idx != self.id]
-        
         # Create appropriate tile objects based on the type
         neighbors = []
-        for idx in neighbor_indices:
+        for idx in self.neighbor_ids:
             if h3.h3_is_pentagon(idx):
                 neighbors.append(PentagonTile(idx))
             else:
@@ -91,7 +175,7 @@ class Tile(ABC):
     
     def move_content_to(self, target_tile: "Tile") -> bool:
         """Moves content to a neighboring tile."""
-        if target_tile.id not in [n.id for n in self.get_neighbors()]:
+        if target_tile.id not in self.neighbor_ids:
             return False
         
         target_tile.content = self.content
