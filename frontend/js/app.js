@@ -10,7 +10,17 @@ window.hexGlobeApp = {
     // Configuration
     config: {
         padding: 10, // Reduced padding around the grid
-        hexSize: 30  // Default hex size that will be adjusted based on canvas size
+        hexSize: 30,  // Default hex size that will be adjusted based on canvas size
+        activeTileStyles: {
+            borderColor: "#FF5722",  // Orange border for active tile
+            borderThickness: 3,      // Thicker border for active tile
+            fillColor: "#3498db"     // Blue fill color for active tile
+        },
+        normalTileStyles: {
+            borderColor: "#000000",  // Black border for normal tiles
+            borderThickness: 1,      // Normal border thickness
+            fillColor: "#a3c9e9"     // Light blue fill color for normal tiles
+        }
     },
     
     // State
@@ -216,10 +226,16 @@ window.hexGlobeApp = {
         
         // Draw each tile
         for (const tile of this.state.tiles) {
-            // Create a HexTile object
-            const hexTile = new HexTile(tile.id);
+            // Create a HexTile object with appropriate visual properties
+            const visualProperties = tile.isActive ? 
+                this.config.activeTileStyles : 
+                this.config.normalTileStyles;
+                
+            const hexTile = new HexTile(tile.id, visualProperties);
             hexTile.calculateVertices(tile.x, tile.y, hexSize);
-            hexTile.setActive(tile.isActive);
+            
+            // Note: We don't need to call setActive here since we're passing the visual properties
+            // that already contain the appropriate styling for active/inactive states
             
             // Draw the tile
             hexTile.draw(this.ctx);
@@ -248,6 +264,8 @@ window.hexGlobeApp = {
             infoHTML += `<h4>Active Tile</h4>`;
             infoHTML += `<p>ID: ${activeTile.id}</p>`;
             infoHTML += `<p>Position: (${activeTile.col}, ${activeTile.row})</p>`;
+            infoHTML += `<p>Border Color: ${this.config.activeTileStyles.borderColor}</p>`;
+            infoHTML += `<p>Border Thickness: ${this.config.activeTileStyles.borderThickness}px</p>`;
         }
         
         // Grid information

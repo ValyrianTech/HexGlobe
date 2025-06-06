@@ -17,7 +17,8 @@ class HexTile {
             borderColor: "#000000",
             borderThickness: 2,
             borderStyle: "solid",
-            fillColor: "#FFFFFF",
+            fillColor: "#a3c9e9",
+            activeFillColor: "#3498db",
             ...visualProperties
         };
         
@@ -62,8 +63,10 @@ class HexTile {
         
         ctx.closePath();
         
-        // Fill the hexagon
-        ctx.fillStyle = this.isActive ? "#3498db" : "#a3c9e9";
+        // Fill the hexagon using the visual properties
+        ctx.fillStyle = this.isActive ? 
+            (this.visualProperties.activeFillColor || this.visualProperties.fillColor) : 
+            this.visualProperties.fillColor;
         ctx.fill();
         
         // Draw the border
