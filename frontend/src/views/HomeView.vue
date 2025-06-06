@@ -73,8 +73,8 @@ const strokeColor = ref('#ff0000');
 const navigationHistory = ref([DEFAULT_HEX_ID]);
 
 // Responsive dimensions for the hexagon
-const hexWidth = ref(window.innerWidth * 0.95);
-const hexHeight = ref(window.innerHeight * 0.85);
+const hexWidth = ref(window.innerWidth - 160); // Full width minus sidebar width
+const hexHeight = ref(window.innerHeight - 35); // Full height minus navigation history height
 
 // Reference to the HexTile component
 const hexTileRef = ref(null);
@@ -93,8 +93,8 @@ const selectedNeighborId = ref(null);
 
 // Handle window resize
 const handleResize = () => {
-  hexWidth.value = window.innerWidth * 0.95;
-  hexHeight.value = window.innerHeight * 0.85;
+  hexWidth.value = window.innerWidth - 160; // Full width minus sidebar width
+  hexHeight.value = window.innerHeight - 35; // Full height minus navigation history height
 };
 
 // Add resize event listener
