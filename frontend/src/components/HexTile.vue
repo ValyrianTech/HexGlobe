@@ -84,17 +84,26 @@ const getNeighbors = () => {
     const neighborIndices = allCells.filter(id => id !== props.hexId)
     neighbors.value = neighborIndices
     
-    // Calculate positions for neighbors using a simpler approach
+    // Calculate positions for all neighbors
     neighborPositions.value = []
     
-    // Use a fixed distance and angles for neighbor positions
-    // This is a simplified approach that ensures neighbors are visible
-    const neighborCount = neighborIndices.length
+    // Define the angles for the six directions (in radians)
+    // Starting from the east (0) and going counterclockwise
+    const angles = [
+      0,                // East (right)
+      Math.PI/3,        // Northeast
+      2*Math.PI/3,      // Northwest
+      Math.PI,          // West (left)
+      4*Math.PI/3,      // Southwest
+      5*Math.PI/3       // Southeast
+    ]
     
-    for (let i = 0; i < neighborCount; i++) {
-      // Calculate position in a hexagonal pattern around the center
-      const angle = (Math.PI * 2 * i) / neighborCount
-      const distance = hexSize.value * 1.7
+    // The perfect distance for hexagons to touch edge-to-edge
+    const distance = hexSize.value * 1.73 // √3 ≈ 1.73
+    
+    // Position each neighbor
+    for (let i = 0; i < Math.min(neighborIndices.length, angles.length); i++) {
+      const angle = angles[i]
       
       const x = centerX.value + Math.cos(angle) * distance
       const y = centerY.value + Math.sin(angle) * distance
@@ -106,7 +115,7 @@ const getNeighbors = () => {
       })
     }
     
-    console.log(`Found ${neighborIndices.length} neighbors, created ${neighborPositions.value.length} positions`)
+    console.log(`Displaying ${neighborPositions.value.length} neighbors`)
     
     return neighborIndices
   } catch (e) {
