@@ -175,12 +175,8 @@ class HexNavigation {
         });
         window.dispatchEvent(startEvent);
         
-        // Load the new active tile and its neighbors
+        // Load the new active tile
         await this.loadActiveTile();
-        
-        if (this.showNeighbors) {
-            await this.loadNeighbors();
-        }
         
         // Dispatch an event to notify that navigation has completed
         const completeEvent = new CustomEvent('navigationCompleted', { 
