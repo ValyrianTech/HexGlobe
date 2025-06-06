@@ -107,7 +107,9 @@ const calculateHexPoints = (center = { x: centerX.value, y: centerY.value }, siz
 const getNeighbors = () => {
   errorMessage.value = '' // Clear previous errors
   try {
-    const neighborIndices = h3.kRing(props.hexId, 1).filter(id => id !== props.hexId)
+    // Get the neighbors using gridDisk with ringSize 1, then filter out the center cell
+    const allCells = h3.gridDisk(props.hexId, 1)
+    const neighborIndices = allCells.filter(id => id !== props.hexId)
     neighbors.value = neighborIndices
     
     // Calculate positions for neighbors
@@ -124,7 +126,7 @@ const getNeighbors = () => {
     return neighborIndices
   } catch (e) {
     console.error('Error getting neighbors:', e)
-    errorMessage.value = `Failed to get neighbors: ${e.message}`
+    errorMessage.value = `Error getting neighbors: ${e.message}`
     neighbors.value = []
     neighborPositions.value = []
     return []
