@@ -514,3 +514,36 @@ async def get_tile_grid(
     except Exception as e:
         logger.error(f"[{datetime.now()}] Error creating grid for tile {tile_id}: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/{tile_id}/resolutions")
+async def get_resolutions(tile_id: str = Path(..., description="H3 index of the tile")):
+    """Get all resolution IDs for a specific tile."""
+    logger.info(f"[{datetime.now()}] GET request received for resolutions of tile: {tile_id}")
+    try:
+        # Validate the H3 index
+        if not h3.h3_is_valid(tile_id):
+            logger.warning(f"[{datetime.now()}] Invalid H3 index: {tile_id}")
+            raise HTTPException(status_code=400, detail="Invalid H3 index")
+        
+        # Load or create the tile
+        tile = Tile.load(tile_id)
+        if tile is None:
+            logger.info(f"[{datetime.now()}] Tile {tile_id} not found in storage, creating new one")
+            if h3.h3_is_pentagon(tile_id):
+                tile = PentagonTile(tile_id)
+            else:
+                tile = HexagonTile(tile_id)
+            
+            # Save the newly created tile
+            tile.save()
+            logger.info(f"[{datetime.now()}] New tile {tile_id} saved to storage")
+        
+        # Return resolution IDs
+        logger.info(f"[{datetime.now()}] Returning {len(tile.resolution_ids)} resolution IDs for tile {tile_id}")
+        return {
+            "tile_id": tile_id,
+            "resolution_ids": tile.resolution_ids
+        }
+    except Exception as e:
+        logger.error(f"[{datetime.now()}] Error getting resolutions for tile {tile_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))

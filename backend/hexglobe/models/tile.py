@@ -29,6 +29,8 @@ class TileData(BaseModel):
     visual_properties: VisualProperties = VisualProperties()
     parent_id: Optional[str] = None
     children_ids: List[str] = []
+    neighbor_ids: List[str] = []  # New field for neighbor IDs
+    resolution_ids: Dict[str, str] = {}  # New field for different resolution IDs (resolution -> h3 index)
 
 class Tile(ABC):
     """Base class for all tiles."""
@@ -43,9 +45,33 @@ class Tile(ABC):
         try:
             self.parent_id = h3.h3_to_parent(id, h3.h3_get_resolution(id) - 1) if h3.h3_get_resolution(id) > 0 else None
             self.children_ids = h3.h3_to_children(id, h3.h3_get_resolution(id) + 1)
-        except ValueError:
+            
+            # Get neighbor IDs
+            self.neighbor_ids = h3.k_ring(id, 1)
+            # Remove self from neighbors
+            self.neighbor_ids = [idx for idx in self.neighbor_ids if idx != id]
+            
+            # Get different resolution IDs
+            self.resolution_ids = {}
+            current_res = h3.h3_get_resolution(id)
+            
+            # Get IDs for lower resolutions (parent hierarchy)
+            temp_id = id
+            for res in range(current_res - 1, -1, -1):
+                temp_id = h3.h3_to_parent(temp_id, res)
+                self.resolution_ids[str(res)] = temp_id
+            
+            # Get IDs for higher resolutions (child at center)
+            lat, lng = h3.h3_to_geo(id)
+            for res in range(current_res + 1, 16):  # H3 supports resolutions 0-15
+                self.resolution_ids[str(res)] = h3.geo_to_h3(lat, lng, res)
+                
+        except ValueError as e:
+            logger.error(f"Error initializing tile {id}: {str(e)}")
             self.parent_id = None
             self.children_ids = []
+            self.neighbor_ids = []
+            self.resolution_ids = {}
     
     def get_neighbors(self) -> List["Tile"]:
         """Returns neighboring tiles."""
@@ -113,7 +139,9 @@ class Tile(ABC):
             "content": self.content,
             "visual_properties": self.visual_properties.dict(),
             "parent_id": self.parent_id,
-            "children_ids": list(self.children_ids)  # Convert set to list for JSON serialization
+            "children_ids": list(self.children_ids),  # Convert set to list for JSON serialization
+            "neighbor_ids": list(self.neighbor_ids),  # Convert set to list for JSON serialization
+            "resolution_ids": self.resolution_ids  # Add resolution IDs to the dictionary
         }
     
     def save(self) -> None:
@@ -173,6 +201,13 @@ class Tile(ABC):
             for key, value in visual_props.items():
                 if hasattr(tile.visual_properties, key):
                     setattr(tile.visual_properties, key, value)
+            
+            # Load neighbor_ids and resolution_ids if they exist in the data
+            if "neighbor_ids" in data:
+                tile.neighbor_ids = data.get("neighbor_ids", [])
+            
+            if "resolution_ids" in data:
+                tile.resolution_ids = data.get("resolution_ids", {})
             
             return tile
         except Exception as e:
