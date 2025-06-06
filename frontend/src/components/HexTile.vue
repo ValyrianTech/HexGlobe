@@ -425,9 +425,20 @@ onMounted(() => {
   // Handle window resize
   const handleResize = () => {
     if (hexCanvas.value) {
-      centerX.value = hexCanvas.value.width / 2
-      centerY.value = hexCanvas.value.height / 2
-      hexSize.value = Math.min(hexCanvas.value.width, hexCanvas.value.height) * 0.45
+      const canvasWidth = props.width
+      const canvasHeight = props.height
+      
+      hexCanvas.value.width = canvasWidth
+      hexCanvas.value.height = canvasHeight
+      
+      centerX.value = canvasWidth / 2
+      centerY.value = canvasHeight / 2
+      hexSize.value = Math.min(canvasWidth, canvasHeight) * 0.45
+      
+      if (showNeighbors.value) {
+        getNeighbors()
+      }
+      
       drawHexagon()
     }
   }

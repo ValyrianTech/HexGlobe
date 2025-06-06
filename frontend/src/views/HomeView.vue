@@ -112,9 +112,9 @@ const resetToDefaultTile = () => {
   grid-template-areas: "main sidebar";
   gap: 0;
   padding: 0;
-  height: calc(100vh - 60px);
+  height: calc(100vh - 35px);
   margin: 0;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .hex-container {
@@ -129,17 +129,18 @@ const resetToDefaultTile = () => {
   justify-content: center;
   align-items: center;
   padding: 0;
+  margin: 0;
 }
 
 .controls {
   grid-area: sidebar;
   padding: 10px;
   background-color: #fff;
-  border-radius: 8px;
+  border-radius: 0;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  margin-right: 5px;
-  margin-top: 5px;
-  height: calc(100% - 10px);
+  margin: 0;
+  height: 100%;
+  width: 160px;
   overflow-y: auto;
 }
 
@@ -177,20 +178,21 @@ button:hover {
   bottom: 0;
   left: 0;
   right: 0;
-  padding: 5px 10px;
+  padding: 0;
   background-color: #f5f5f5;
   border-top: 1px solid #ddd;
   box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
   z-index: 100;
   height: 35px;
+  overflow: hidden;
 }
 
 .navigation-history h3 {
   margin-top: 0;
-  margin-bottom: 10px;
+  margin-bottom: 0;
   font-size: 16px;
   float: left;
-  padding-right: 15px;
+  padding: 5px 15px 0 10px;
 }
 
 .navigation-history ul {
@@ -198,29 +200,27 @@ button:hover {
   padding: 0;
   margin: 0;
   display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
+  flex-wrap: nowrap;
   overflow-x: auto;
-  white-space: nowrap;
-  padding-bottom: 5px;
+  height: 35px;
+  align-items: center;
 }
 
 .navigation-history li {
-  padding: 5px 10px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
+  padding: 0 10px;
   cursor: pointer;
-  font-family: monospace;
-  background-color: #fff;
-  display: inline-block;
+  white-space: nowrap;
+  font-size: 14px;
+  height: 35px;
+  line-height: 35px;
 }
 
 .navigation-history li:hover {
-  background-color: #f0f0f0;
+  background-color: #e0e0e0;
 }
 
 .navigation-history li span {
-  color: #4CAF50;
   font-weight: bold;
+  color: #4CAF50;
 }
 </style>
