@@ -21,8 +21,8 @@ window.hexGlobeApp = {
             borderThickness: 1,      // Normal border thickness
             fillColor: "#a3c9e9"     // Light blue fill color for normal tiles
         },
-        h3LibraryCheckMaxRetries: 10, // Maximum number of retries for H3 library check
-        h3LibraryCheckInterval: 100   // Interval in ms between H3 library checks
+        h3LibraryCheckMaxRetries: 20, // Increased maximum number of retries for H3 library check
+        h3LibraryCheckInterval: 200   // Increased interval in ms between H3 library checks
     },
     
     // State
@@ -44,6 +44,8 @@ window.hexGlobeApp = {
         this.ensureH3LibraryLoaded(() => {
             // Get H3 index from URL query parameter or set default based on resolution
             this.getH3IndexFromUrl();
+            
+            console.log(`After URL parsing, active tile ID is: ${this.state.activeTileId}`);
             
             // Initialize resolution slider with current resolution
             document.getElementById("resolution-value").textContent = this.state.resolution;
@@ -76,6 +78,8 @@ window.hexGlobeApp = {
             apiBaseUrl: "http://localhost:8000/api"
         });
         
+        console.log(`Navigation system initialized with tile ID: ${this.state.activeTileId}`);
+        
         // Initialize the navigation system
         this.state.navigation.initialize().then(success => {
             if (success) {
@@ -88,26 +92,10 @@ window.hexGlobeApp = {
     
     // Ensure the H3 library is loaded before proceeding
     ensureH3LibraryLoaded: function(callback, retryCount = 0) {
-        // Check if H3 library is fully loaded and functional
-        if (window.h3 && typeof window.h3.isValid === 'function') {
-            console.log("H3 library loaded successfully");
-            callback();
-            return;
-        }
-        
-        // If we've exceeded the maximum retries, use default H3 index
-        if (retryCount >= this.config.h3LibraryCheckMaxRetries) {
-            console.warn("H3 library not loaded after maximum retries, proceeding with default H3 index");
-            this.state.activeTileId = "872830828ffffff";
-            callback();
-            return;
-        }
-        
-        // Retry after a short delay
-        console.log(`Waiting for H3 library to load (attempt ${retryCount + 1}/${this.config.h3LibraryCheckMaxRetries})...`);
-        setTimeout(() => {
-            this.ensureH3LibraryLoaded(callback, retryCount + 1);
-        }, this.config.h3LibraryCheckInterval);
+        // H3 library is disabled, so we'll proceed without it
+        console.log("H3 library is disabled. Proceeding with backend-only functionality.");
+        callback();
+        return;
     },
     
     // Get H3 index from URL query parameter
@@ -115,23 +103,26 @@ window.hexGlobeApp = {
         const urlParams = new URLSearchParams(window.location.search);
         const h3Index = urlParams.get('h3');
         
-        // Default H3 index to use if none is provided or if the provided one is invalid
-        // Use a resolution-specific default index
+        // Default H3 index to use if none is provided
         const defaultH3Index = this.getDefaultH3IndexForResolution(this.state.resolution);
         
-        // Validate the H3 index if provided
-        if (h3Index && window.h3 && typeof window.h3.isValid === 'function' && window.h3.isValid(h3Index)) {
+        if (h3Index) {
+            // Since we've disabled H3 library, we'll use the URL parameter directly
             this.state.activeTileId = h3Index;
-            // Extract resolution from the provided H3 index
-            if (typeof window.h3.h3GetResolution === 'function') {
-                this.state.resolution = window.h3.h3GetResolution(h3Index);
-            }
-            console.log(`Using H3 index from URL: ${h3Index} (resolution: ${this.state.resolution})`);
+            console.log(`Using H3 index from URL: ${h3Index}`);
+            
+            // We can't validate the resolution without H3 library, so we'll keep the default
+            console.log(`Using default resolution: ${this.state.resolution}`);
         } else {
             // Use default H3 index
             this.state.activeTileId = defaultH3Index;
             console.log(`Using default H3 index: ${this.state.activeTileId} (resolution: ${this.state.resolution})`);
         }
+        
+        // Ensure URL reflects the actual H3 index being used
+        const url = new URL(window.location);
+        url.searchParams.set('h3', this.state.activeTileId);
+        window.history.replaceState({}, '', url);
     },
     
     // Get a default H3 index for a specific resolution
