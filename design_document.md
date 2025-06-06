@@ -58,7 +58,7 @@ HexGlobe is a web application framework that implements a global hexagonal grid 
   - `visual_properties`: Dictionary of visual settings (border color, thickness, etc.)
   - `parent_id`: ID of the parent tile in the H3 hierarchy
   - `children_ids`: List of IDs of child tiles in the H3 hierarchy
-  - `neighbor_ids`: List of IDs of neighboring tiles, ordered clockwise
+  - `neighbor_ids`: Dictionary of neighboring tile IDs with position keys (top_left, top_middle, top_right, bottom_left, bottom_middle, bottom_right)
   - `resolution_ids`: Dictionary mapping resolution levels (0-15) to corresponding H3 indexes for the same geographic location
 
 - **Methods**:
@@ -69,8 +69,8 @@ HexGlobe is a web application framework that implements a global hexagonal grid 
   - `set_visual_property(property, value)`: Sets a visual property
   - `save()`: Persists tile data to storage
   - `load()`: Loads tile data from storage
-  - `_get_ordered_neighbors()`: Internal method to order neighbors in a consistent clockwise manner
-  - `_calculate_bearing()`: Internal method to calculate bearing between points for neighbor ordering
+  - `_get_positioned_neighbors()`: Internal method to assign position keys to neighbors based on geographic orientation
+  - `_calculate_bearing()`: Internal method to calculate bearing between points for neighbor positioning
 
 #### 3.1.2 HexagonTile (Child Class)
 - Inherits from Tile
@@ -108,14 +108,14 @@ HexGlobe is a web application framework that implements a global hexagonal grid 
     "8a28308283bffff",
     "8a28308284bffff"
   ],
-  "neighbor_ids": [
-    "8928308280effff",
-    "8928308280dffff",
-    "8928308280cffff",
-    "8928308280bffff",
-    "8928308280affff",
-    "89283082809ffff"
-  ],
+  "neighbor_ids": {
+    "bottom_middle": "8928308280effff",
+    "bottom_left": "8928308280dffff",
+    "top_left": "8928308280cffff",
+    "top_middle": "8928308280bffff",
+    "top_right": "8928308280affff",
+    "bottom_right": "89283082809ffff"
+  },
   "resolution_ids": {
     "0": "8000000000000",
     "1": "8100000000000",
@@ -144,7 +144,7 @@ HexGlobe is a web application framework that implements a global hexagonal grid 
 #### Tile Operations
 - `GET /api/tiles/{tile_id}`: Get tile information
 - `PUT /api/tiles/{tile_id}`: Update tile information
-- `GET /api/tiles/{tile_id}/neighbors`: Get neighboring tiles
+- `GET /api/tiles/{tile_id}/neighbors`: Get neighboring tiles with their position information
 - `GET /api/tiles/{tile_id}/parent`: Get parent tile
 - `GET /api/tiles/{tile_id}/children`: Get child tiles
 - `GET /api/tiles/{tile_id}/resolutions`: Get resolution IDs for the tile

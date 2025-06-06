@@ -19,6 +19,7 @@ HexGlobe provides a framework for visualizing and interacting with a hexagonal g
 - Backend API integration for tile data persistence
 - Comprehensive logging for debugging
 - Automatic tile creation and storage
+- Position-based neighbor references with descriptive keys (top_left, top_middle, etc.)
 - Consistent clockwise ordering of neighbor tiles
 - Multi-resolution tile mapping (same location at different H3 resolutions)
 
@@ -161,9 +162,11 @@ HexGlobe uses Uber's H3 library for hexagonal grid operations:
   - Zoom level (1-10): Controls how many hexagons are visible on screen
   - H3 Resolution (0-15): Controls the actual size of each hexagon on Earth's surface
 - **Neighbor Ordering**:
-  - Neighbors are stored in a consistent clockwise order
-  - The ordering is based on geographic orientation relative to the equator
-  - This provides a consistent navigation experience regardless of location
+  - Neighbors are stored in a dictionary with descriptive position keys
+  - Position keys follow a flat-bottom hexagon orientation (bottom_middle, bottom_left, top_left, etc.)
+  - Positions are determined based on geographic orientation relative to the equator
+  - For pentagons, the missing position is marked with "pentagon"
+  - This provides a consistent and intuitive way to access specific neighbors by their relative position
 - **Resolution Mapping**:
   - Each tile stores IDs for the same geographic location at all H3 resolutions (0-15)
   - Lower resolutions are computed by walking up the parent hierarchy
@@ -200,7 +203,14 @@ Each tile is stored as a JSON file with the following structure:
   },
   "parent_id": "8828308280fffff",
   "children_ids": ["...array of child IDs..."],
-  "neighbor_ids": ["...array of neighbor IDs in clockwise order..."],
+  "neighbors": {
+    "bottom_middle": "...neighbor ID...",
+    "bottom_left": "...neighbor ID...",
+    "bottom_right": "...neighbor ID...",
+    "top_left": "...neighbor ID...",
+    "top_middle": "...neighbor ID...",
+    "top_right": "...neighbor ID..."
+  },
   "resolution_ids": {
     "0": "8000000000000",
     "1": "8100000000000",
