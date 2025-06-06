@@ -19,6 +19,8 @@ HexGlobe provides a framework for visualizing and interacting with a hexagonal g
 - Backend API integration for tile data persistence
 - Comprehensive logging for debugging
 - Automatic tile creation and storage
+- Consistent clockwise ordering of neighbor tiles
+- Multi-resolution tile mapping (same location at different H3 resolutions)
 
 ## Technology Stack
 
@@ -158,6 +160,14 @@ HexGlobe uses Uber's H3 library for hexagonal grid operations:
 - **Zoom vs. Resolution**:
   - Zoom level (1-10): Controls how many hexagons are visible on screen
   - H3 Resolution (0-15): Controls the actual size of each hexagon on Earth's surface
+- **Neighbor Ordering**:
+  - Neighbors are stored in a consistent clockwise order
+  - The ordering is based on geographic orientation relative to the equator
+  - This provides a consistent navigation experience regardless of location
+- **Resolution Mapping**:
+  - Each tile stores IDs for the same geographic location at all H3 resolutions (0-15)
+  - Lower resolutions are computed by walking up the parent hierarchy
+  - Higher resolutions are computed by converting geographic coordinates to H3 indexes
 
 ## API Endpoints
 
@@ -168,9 +178,37 @@ The backend provides the following RESTful API endpoints:
 - `GET /api/tiles/{tile_id}/neighbors`: Get neighboring tiles
 - `GET /api/tiles/{tile_id}/parent`: Get parent tile
 - `GET /api/tiles/{tile_id}/children`: Get child tiles
+- `GET /api/tiles/{tile_id}/resolutions`: Get resolution IDs for the tile
 - `POST /api/tiles/{tile_id}/move-content/{target_id}`: Move content to target tile
 - `PUT /api/tiles/{tile_id}/visual`: Update visual properties
 - `GET /api/tiles/{tile_id}/grid`: Get a 2D grid of H3 indexes centered around the specified tile
+
+## Tile Data Structure
+
+Each tile is stored as a JSON file with the following structure:
+
+```json
+{
+  "id": "8928308280fffff",
+  "content": "Sample content",
+  "visual_properties": {
+    "border_color": "#FF0000",
+    "border_thickness": 2,
+    "border_style": "solid",
+    "fill_color": "#FFFFFF",
+    "fill_opacity": 0.5
+  },
+  "parent_id": "8828308280fffff",
+  "children_ids": ["...array of child IDs..."],
+  "neighbor_ids": ["...array of neighbor IDs in clockwise order..."],
+  "resolution_ids": {
+    "0": "8000000000000",
+    "1": "8100000000000",
+    "...": "...",
+    "15": "8f00000000000"
+  }
+}
+```
 
 ## License
 

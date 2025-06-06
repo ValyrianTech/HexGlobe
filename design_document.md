@@ -58,6 +58,8 @@ HexGlobe is a web application framework that implements a global hexagonal grid 
   - `visual_properties`: Dictionary of visual settings (border color, thickness, etc.)
   - `parent_id`: ID of the parent tile in the H3 hierarchy
   - `children_ids`: List of IDs of child tiles in the H3 hierarchy
+  - `neighbor_ids`: List of IDs of neighboring tiles, ordered clockwise
+  - `resolution_ids`: Dictionary mapping resolution levels (0-15) to corresponding H3 indexes for the same geographic location
 
 - **Methods**:
   - `get_neighbors()`: Returns neighboring tiles
@@ -67,6 +69,8 @@ HexGlobe is a web application framework that implements a global hexagonal grid 
   - `set_visual_property(property, value)`: Sets a visual property
   - `save()`: Persists tile data to storage
   - `load()`: Loads tile data from storage
+  - `_get_ordered_neighbors()`: Internal method to order neighbors in a consistent clockwise manner
+  - `_calculate_bearing()`: Internal method to calculate bearing between points for neighbor ordering
 
 #### 3.1.2 HexagonTile (Child Class)
 - Inherits from Tile
@@ -103,7 +107,33 @@ HexGlobe is a web application framework that implements a global hexagonal grid 
     "8a28308282bffff",
     "8a28308283bffff",
     "8a28308284bffff"
-  ]
+  ],
+  "neighbor_ids": [
+    "8928308280effff",
+    "8928308280dffff",
+    "8928308280cffff",
+    "8928308280bffff",
+    "8928308280affff",
+    "89283082809ffff"
+  ],
+  "resolution_ids": {
+    "0": "8000000000000",
+    "1": "8100000000000",
+    "2": "8200000000000",
+    "3": "8300000000000",
+    "4": "8400000000000",
+    "5": "8500000000000",
+    "6": "8600000000000",
+    "7": "8700000000000",
+    "8": "8800000000000",
+    "9": "8900000000000",
+    "10": "8a00000000000",
+    "11": "8b00000000000",
+    "12": "8c00000000000",
+    "13": "8d00000000000",
+    "14": "8e00000000000",
+    "15": "8f00000000000"
+  }
 }
 ```
 
@@ -117,6 +147,7 @@ HexGlobe is a web application framework that implements a global hexagonal grid 
 - `GET /api/tiles/{tile_id}/neighbors`: Get neighboring tiles
 - `GET /api/tiles/{tile_id}/parent`: Get parent tile
 - `GET /api/tiles/{tile_id}/children`: Get child tiles
+- `GET /api/tiles/{tile_id}/resolutions`: Get resolution IDs for the tile
 - `POST /api/tiles/{tile_id}/move-content/{target_id}`: Move content to target tile
 - `GET /api/tiles/{tile_id}/grid`: Get a 2D grid of H3 indexes centered around the specified tile
 
@@ -198,17 +229,22 @@ HexGlobe is a web application framework that implements a global hexagonal grid 
 - Implemented click navigation between hexagons
 - Added grid endpoint to return a 2D grid of H3 indexes centered around a specified tile
 - Updated frontend to use the grid endpoint for accurate hexagon positioning
+- Added neighbor_ids to tile data, ordered in a consistent clockwise manner
+- Added resolution_ids to tile data, mapping resolution levels to corresponding H3 indexes
+- Added API endpoint for retrieving resolution IDs for a tile
 
 ### 6.2 In Progress
-- Enhancing error handling for API failures
-- Improving debug information display
-- Adding visual feedback for API operations
+- Enhancing frontend to utilize the ordered neighbor_ids for more intuitive navigation
+- Implementing UI for displaying and navigating between different resolution levels
 
-### 6.3 Next Steps
-- Implement WebSocket for real-time updates
-- Add user authentication and authorization
-- Enhance visualization with map data integration
-- Implement custom content editors for tiles
+### 6.3 Future Enhancements
+- WebSocket integration for real-time updates
+- Map data integration within hexagons
+- User authentication and authorization
+- Custom content editors for tiles
+- Mobile-responsive design
+- Performance optimizations for large grids
+- Advanced visualization options
 
 ## 7. Technology Stack
 
