@@ -369,7 +369,6 @@ async def get_tile_grid(
         tile_id: H3 index of the center tile
         width: Number of columns in the grid (used for bounds calculation)
         height: Number of rows in the grid (used for bounds calculation)
-        debug: If True, will stop on the first position conflict and return debug information
         
     Returns:
         A dictionary grid of H3 indexes with the center tile at (0,0)
