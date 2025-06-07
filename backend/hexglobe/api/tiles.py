@@ -421,12 +421,12 @@ async def get_tile_grid(
         # Track which tiles we've visited (processed all neighbors)
         visited = set()
         
-        # Queue for BFS traversal
-        queue = [tile_id]
+        # Queue for BFS traversal - store (tile_id, row, col) tuples
+        queue = [(tile_id, center_row, center_col)]
         
         # BFS to fill the grid
         while queue:
-            current_id = queue.pop(0)
+            current_id, current_row, current_col = queue.pop(0)
             
             # Skip if we've already processed this tile
             if current_id in visited:
@@ -434,9 +434,6 @@ async def get_tile_grid(
                 
             # Mark as visited
             visited.add(current_id)
-            
-            # Get the current tile's position in the grid
-            current_row, current_col = position_map[current_id]
             
             # Load the current tile
             current_tile = Tile.load(current_id)
@@ -471,9 +468,10 @@ async def get_tile_grid(
                             grid_dict[(neighbor_row, neighbor_col)] = neighbor_id
                             position_map[neighbor_id] = (neighbor_row, neighbor_col)
                             
-                            # Add to queue for further processing if not already visited
+                            # Add to queue for further processing if not already visited or in queue
+                            # Include the position information in the queue
                             if neighbor_id not in visited:
-                                queue.append(neighbor_id)
+                                queue.append((neighbor_id, neighbor_row, neighbor_col))
         
         # Check for any empty cells that need to be filled
         empty_cells = []
