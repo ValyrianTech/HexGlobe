@@ -39,8 +39,10 @@ class HexTile {
         this.size = size;
         this.vertices = [];
 
+        // Use flat-bottom orientation (like in the test script)
+        // Starting from bottom-right and going counter-clockwise
         for (let i = 0; i < 6; i++) {
-            const angle = (Math.PI / 3) * i;
+            const angle = (Math.PI / 3) * i + (Math.PI / 6); // Add PI/6 for flat-bottom orientation
             const x = centerX + size * Math.cos(angle);
             const y = centerY + size * Math.sin(angle);
             this.vertices.push({ x, y });

@@ -351,8 +351,13 @@ window.hexGlobeApp = {
         const width = dimensions.gridWidth;
         const height = dimensions.gridHeight;
         
+        // Calculate hex dimensions based on flat-bottom orientation
         const hexWidth = size * 2;
         const hexHeight = Math.sqrt(3) * size;
+        
+        // Match the spacing used in the test script
+        const horizSpacing = 1.5 * size;
+        const vertSpacing = hexHeight;
         
         // Fetch grid data from the API
         try {
@@ -384,18 +389,21 @@ window.hexGlobeApp = {
             console.log(`Active tile coordinates: (${activeTileCol}, ${activeTileRow})`);
             
             // Calculate the total grid dimensions in pixels
-            const gridWidthPx = (bounds.max_col - bounds.min_col + 1) * (hexWidth * 0.75) + (hexWidth * 0.25);
-            const gridHeightPx = (bounds.max_row - bounds.min_row + 1) * hexHeight + (hexHeight * 0.5);
+            const gridWidthPx = (bounds.max_col - bounds.min_col + 1) * horizSpacing + (horizSpacing * 0.25);
+            const gridHeightPx = (bounds.max_row - bounds.min_row + 1) * vertSpacing + (vertSpacing * 0.5);
             
             // Calculate offsets to center the active tile in the canvas
             // First, calculate the position of the active tile in pixels
-            const activeTileX = (activeTileCol - bounds.min_col) * (hexWidth * 0.75) + (hexWidth / 2);
-            const activeTileY = (activeTileRow - bounds.min_row) * hexHeight + (hexHeight / 2) + 
-                               ((activeTileCol - bounds.min_col) % 2 === 0 ? 0 : hexHeight / 2);
+            const activeTileX = (activeTileCol - bounds.min_col) * horizSpacing;
+            const activeTileY = (activeTileRow - bounds.min_row) * vertSpacing;
+            
+            // Apply the offset for odd columns (matching the test script)
+            const activeColOffset = (activeTileCol % 2 === 1) ? vertSpacing / 2 : 0;
+            const activeTileYWithOffset = activeTileY + activeColOffset;
             
             // Then, calculate the offsets needed to center this tile in the canvas
             const offsetX = this.centerX - activeTileX;
-            const offsetY = this.centerY - activeTileY;
+            const offsetY = this.centerY - activeTileYWithOffset;
             
             console.log(`Grid size in pixels: ${gridWidthPx}x${gridHeightPx}`);
             console.log(`Grid offset: ${offsetX},${offsetY}`);
@@ -410,8 +418,14 @@ window.hexGlobeApp = {
                 const gridRow = row - bounds.min_row;
                 const gridCol = col - bounds.min_col;
                 
-                const x = offsetX + gridCol * (hexWidth * 0.75) + (hexWidth / 2);
-                const y = offsetY + gridRow * hexHeight + (hexHeight / 2) + (gridCol % 2 === 0 ? 0 : hexHeight / 2);
+                // Calculate position using the same logic as the test script
+                let x = offsetX + gridCol * horizSpacing;
+                let y = offsetY + gridRow * vertSpacing;
+                
+                // Apply offset for odd columns (matching the test script)
+                if (col % 2 === 1) {
+                    y += vertSpacing / 2;
+                }
                 
                 // Check if this is a pentagon
                 const isPentagon = gridData.pentagon_positions && 
@@ -587,7 +601,7 @@ window.hexGlobeApp = {
             // Check if this is the center tile or an immediate neighbor
             const isCenter = tile.isActive;
             
-            // Improved neighbor detection for hexagonal grid
+            // Improved neighbor detection for hexagonal grid with flat-bottom orientation
             // In a hex grid, neighbors depend on whether the column is even or odd
             let isNeighbor = false;
             
@@ -598,21 +612,25 @@ window.hexGlobeApp = {
                 const colDiff = Math.abs(tile.col - activeTileCoords.col);
                 const rowDiff = Math.abs(tile.row - activeTileCoords.row);
                 
-                // For hex grids, the definition of neighbors is more complex
+                // For hex grids with flat-bottom orientation, the definition of neighbors is:
                 // If we're in the same column, only adjacent rows are neighbors
                 if (colDiff === 0 && rowDiff === 1) {
                     isNeighbor = true;
                 }
                 // If we're in adjacent columns, it depends on whether the column is even or odd
                 else if (colDiff === 1) {
-                    const activeColIsEven = activeTileCoords.col % 2 === 0;
+                    const tileColIsOdd = tile.col % 2 === 1;
+                    const activeColIsOdd = activeTileCoords.col % 2 === 1;
                     
-                    if (activeColIsEven) {
-                        // If active column is even, neighbors in adjacent columns are in same row or one row up
+                    if (tileColIsOdd && !activeColIsOdd) {
+                        // If tile column is odd and active column is even
+                        isNeighbor = (rowDiff === 0) || (tile.row === activeTileCoords.row + 1);
+                    } else if (!tileColIsOdd && activeColIsOdd) {
+                        // If tile column is even and active column is odd
                         isNeighbor = (rowDiff === 0) || (tile.row === activeTileCoords.row - 1);
                     } else {
-                        // If active column is odd, neighbors in adjacent columns are in same row or one row down
-                        isNeighbor = (rowDiff === 0) || (tile.row === activeTileCoords.row + 1);
+                        // If both columns are even or both are odd
+                        isNeighbor = (rowDiff === 0);
                     }
                 }
             }
@@ -622,7 +640,7 @@ window.hexGlobeApp = {
                 const visualProperties = tile.isActive ? 
                     this.config.activeTileStyles : 
                     this.config.normalTileStyles;
-                    
+                
                 const hexTile = new HexTile(tile.id, visualProperties);
                 hexTile.calculateVertices(tile.x, tile.y, hexSize);
                 
