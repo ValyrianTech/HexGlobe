@@ -31,7 +31,7 @@ async def get_tile(tile_id: str = Path(..., description="H3 index of the tile"))
         
         # If not found in storage, create a new one
         if tile is None:
-            logger.info(f"[{datetime.now()}] Tile {tile_id} not found in storage, creating new one")
+            logger.info(f"[{datetime.now()}] Tile {tile_id} not found in storage, creating new tile")
             if h3.h3_is_pentagon(tile_id):
                 tile = PentagonTile(tile_id)
             else:
@@ -40,6 +40,27 @@ async def get_tile(tile_id: str = Path(..., description="H3 index of the tile"))
             # Save the newly created tile
             tile.save()
             logger.info(f"[{datetime.now()}] New tile {tile_id} saved to storage")
+            
+            # Create all tiles within a distance of 5 to ensure grid is populated
+            logger.info(f"[{datetime.now()}] Creating neighbor tiles within distance 5 of {tile_id}")
+            neighbor_tiles = h3.k_ring(tile_id, 5)
+            created_count = 0
+            
+            for neighbor_id in neighbor_tiles:
+                if neighbor_id == tile_id:
+                    continue  # Skip the center tile
+                    
+                # Check if neighbor already exists
+                if Tile.load(neighbor_id) is None:
+                    # Create and save the neighbor tile
+                    if h3.h3_is_pentagon(neighbor_id):
+                        neighbor_tile = PentagonTile(neighbor_id)
+                    else:
+                        neighbor_tile = HexagonTile(neighbor_id)
+                    neighbor_tile.save()
+                    created_count += 1
+            
+            logger.info(f"[{datetime.now()}] Created {created_count} new neighbor tiles for {tile_id}")
         else:
             logger.info(f"[{datetime.now()}] Tile {tile_id} loaded from storage")
         
