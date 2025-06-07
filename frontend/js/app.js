@@ -350,15 +350,6 @@ window.hexGlobeApp = {
         const hexWidth = size * 2;
         const hexHeight = Math.sqrt(3) * size;
         
-        // Calculate offsets to center the grid
-        const gridWidthPx = width * (hexWidth * 0.75) + (hexWidth * 0.25);
-        const gridHeightPx = height * hexHeight + (hexHeight * 0.5);
-        const offsetX = this.centerX - gridWidthPx / 2;
-        const offsetY = this.centerY - gridHeightPx / 2;
-        
-        console.log(`Grid size in pixels: ${gridWidthPx}x${gridHeightPx}`);
-        console.log(`Grid offset: ${offsetX},${offsetY}`);
-        
         // Fetch grid data from the API
         try {
             console.log(`Fetching grid data for dimensions: ${width}x${height}`);
@@ -373,6 +364,38 @@ window.hexGlobeApp = {
                 max_col: Math.floor(width/2)
             };
             
+            // Find the active tile's coordinates in the grid
+            let activeTileRow = 0;
+            let activeTileCol = 0;
+            
+            // Look for the active tile in the grid
+            Object.entries(gridData.grid).forEach(([coordKey, h3Index]) => {
+                if (h3Index === gridData.center_tile_id) {
+                    const [col, row] = coordKey.split(',').map(Number);
+                    activeTileRow = row;
+                    activeTileCol = col;
+                }
+            });
+            
+            console.log(`Active tile coordinates: (${activeTileCol}, ${activeTileRow})`);
+            
+            // Calculate the total grid dimensions in pixels
+            const gridWidthPx = (bounds.max_col - bounds.min_col + 1) * (hexWidth * 0.75) + (hexWidth * 0.25);
+            const gridHeightPx = (bounds.max_row - bounds.min_row + 1) * hexHeight + (hexHeight * 0.5);
+            
+            // Calculate offsets to center the active tile in the canvas
+            // First, calculate the position of the active tile in pixels
+            const activeTileX = (activeTileCol - bounds.min_col) * (hexWidth * 0.75) + (hexWidth / 2);
+            const activeTileY = (activeTileRow - bounds.min_row) * hexHeight + (hexHeight / 2) + 
+                               ((activeTileCol - bounds.min_col) % 2 === 0 ? 0 : hexHeight / 2);
+            
+            // Then, calculate the offsets needed to center this tile in the canvas
+            const offsetX = this.centerX - activeTileX;
+            const offsetY = this.centerY - activeTileY;
+            
+            console.log(`Grid size in pixels: ${gridWidthPx}x${gridHeightPx}`);
+            console.log(`Grid offset: ${offsetX},${offsetY}`);
+            
             // Process each coordinate in the grid object
             Object.entries(gridData.grid).forEach(([coordKey, h3Index]) => {
                 // Parse the coordinate key (format: "col,row")
@@ -380,7 +403,6 @@ window.hexGlobeApp = {
                 
                 // Calculate the visual position on the canvas
                 // Convert from relative grid coordinates to absolute screen coordinates
-                // We need to map from the bounds coordinate system to the screen coordinate system
                 const gridRow = row - bounds.min_row;
                 const gridCol = col - bounds.min_col;
                 
@@ -419,7 +441,7 @@ window.hexGlobeApp = {
             console.error("Error generating grid:", error);
             
             // Fallback to the old method if the API fails
-            this.generateGridFallback(width, height, size, offsetX, offsetY);
+            this.generateGridFallback(width, height, size, this.centerX - (width * hexWidth * 0.75) / 2, this.centerY - (height * hexHeight) / 2);
         }
     },
     
