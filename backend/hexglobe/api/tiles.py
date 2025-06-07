@@ -451,25 +451,25 @@ async def get_tile_grid(
         # Step 5: Process neighbors
         for i in range(n_rings):
             # Go over all placed tiles but skip the onces that are done
-            for coords, tile_id in list(grid_dict.items()):
+            for coords, current_id in list(grid_dict.items()):
 
                 if coords in done_tiles:
                     # Skip already processed tiles
                     continue
 
                 # Load the current tile
-                current_tile = Tile.load(tile_id)
+                current_tile = Tile.load(current_id)
 
                 if current_tile is None:
-                    logger.info(f"[{datetime.now()}] Tile {tile_id} not found in storage, creating new one")
-                    if h3.h3_is_pentagon(tile_id):
-                        current_tile = PentagonTile(tile_id)
+                    logger.info(f"[{datetime.now()}] Tile {current_id} not found in storage, creating new one")
+                    if h3.h3_is_pentagon(current_id):
+                        current_tile = PentagonTile(current_id)
                     else:
-                        current_tile = HexagonTile(tile_id)
+                        current_tile = HexagonTile(current_id)
 
                     # Save the newly created tile
                     current_tile.save()
-                    logger.info(f"[{datetime.now()}] New tile {tile_id} saved to storage")
+                    logger.info(f"[{datetime.now()}] New tile {current_id} saved to storage")
 
                 # Process each neighbor
                 error=False
@@ -502,8 +502,8 @@ async def get_tile_grid(
 
         # Identify pentagon positions
         pentagon_positions = []
-        for coords, tile_id_value in grid_dict.items():
-            if tile_id_value is not None and h3.h3_is_pentagon(tile_id_value):
+        for coords, grid_tile_id in grid_dict.items():
+            if grid_tile_id is not None and h3.h3_is_pentagon(grid_tile_id):
                 pentagon_positions.append(list(coords))
         
         logger.info(f"Grid created successfully with center tile and immediate neighbors only")
@@ -515,10 +515,10 @@ async def get_tile_grid(
         
         # Convert dictionary keys from tuples to strings for JSON serialization
         serializable_grid = {}
-        for coords, tile_id_value in grid_dict.items():
+        for coords, grid_tile_id in grid_dict.items():
             # Convert tuple key to string key "row,col"
             key = f"{coords[0]},{coords[1]}"
-            serializable_grid[key] = tile_id_value
+            serializable_grid[key] = grid_tile_id
         
         # Calculate the bounds of the grid
         min_row = min(coords[0] for coords in grid_dict.keys())
