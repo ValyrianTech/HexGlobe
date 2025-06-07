@@ -143,8 +143,21 @@ class HexTile {
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
         
-        // Display the full H3 index without truncation
-        ctx.fillText(this.content, this.center.x, this.center.y);
+        // Handle multi-line content (coordinates and ID)
+        if (this.content.includes('\n')) {
+            const lines = this.content.split('\n');
+            const lineHeight = fontSize * 1.2;
+            
+            // Draw coordinates on first line
+            ctx.fillText(lines[0], this.center.x, this.center.y - lineHeight/2);
+            
+            // Draw ID on second line
+            ctx.fillText(lines[1], this.center.x, this.center.y + lineHeight/2);
+        } else {
+            // Fallback for single line content
+            ctx.fillText(this.content, this.center.x, this.center.y);
+        }
+        
         ctx.restore();
     }
     

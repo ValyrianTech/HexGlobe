@@ -579,24 +579,65 @@ window.hexGlobeApp = {
         
         console.log(`Rendering with hex size: ${hexSize}`);
         
+        // Find the active tile coordinates
+        const activeTileCoords = this.state.activeTileCoords;
+        
         // Draw each tile
         for (const tile of this.state.tiles) {
-            // Create a HexTile object with appropriate visual properties
-            const visualProperties = tile.isActive ? 
-                this.config.activeTileStyles : 
-                this.config.normalTileStyles;
+            // Check if this is the center tile or an immediate neighbor
+            const isCenter = tile.isActive;
+            
+            // Improved neighbor detection for hexagonal grid
+            // In a hex grid, neighbors depend on whether the column is even or odd
+            let isNeighbor = false;
+            
+            if (isCenter) {
+                // Center tile is always drawn
+                isNeighbor = false; // Not needed, but for clarity
+            } else {
+                const colDiff = Math.abs(tile.col - activeTileCoords.col);
+                const rowDiff = Math.abs(tile.row - activeTileCoords.row);
                 
-            const hexTile = new HexTile(tile.id, visualProperties);
-            hexTile.calculateVertices(tile.x, tile.y, hexSize);
+                // For hex grids, the definition of neighbors is more complex
+                // If we're in the same column, only adjacent rows are neighbors
+                if (colDiff === 0 && rowDiff === 1) {
+                    isNeighbor = true;
+                }
+                // If we're in adjacent columns, it depends on whether the column is even or odd
+                else if (colDiff === 1) {
+                    const activeColIsEven = activeTileCoords.col % 2 === 0;
+                    
+                    if (activeColIsEven) {
+                        // If active column is even, neighbors in adjacent columns are in same row or one row up
+                        isNeighbor = (rowDiff === 0) || (tile.row === activeTileCoords.row - 1);
+                    } else {
+                        // If active column is odd, neighbors in adjacent columns are in same row or one row down
+                        isNeighbor = (rowDiff === 0) || (tile.row === activeTileCoords.row + 1);
+                    }
+                }
+            }
             
-            // Set the H3 index as content to display
-            hexTile.content = tile.id;
-            
-            // Draw the tile
-            hexTile.draw(this.ctx);
-            
-            // Store the HexTile object for later reference (e.g., for hit detection)
-            tile.hexTile = hexTile;
+            if (isCenter || isNeighbor) {
+                // Create a HexTile object with appropriate visual properties
+                const visualProperties = tile.isActive ? 
+                    this.config.activeTileStyles : 
+                    this.config.normalTileStyles;
+                    
+                const hexTile = new HexTile(tile.id, visualProperties);
+                hexTile.calculateVertices(tile.x, tile.y, hexSize);
+                
+                // Set the H3 index as content to display
+                // Include the coordinates in the displayed content
+                hexTile.content = `(${tile.col},${tile.row})\n${tile.id}`;
+                
+                // Draw the tile
+                hexTile.draw(this.ctx);
+                
+                // Store the HexTile object for later reference (e.g., for hit detection)
+                tile.hexTile = hexTile;
+                
+                console.log(`Drawing tile at (${tile.col}, ${tile.row}) with ID ${tile.id}`);
+            }
         }
     },
     
