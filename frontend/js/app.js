@@ -395,7 +395,7 @@ window.hexGlobeApp = {
             // Calculate offsets to center the active tile in the canvas
             // First, calculate the position of the active tile in pixels
             const activeTileX = (activeTileCol - bounds.min_col) * horizSpacing;
-            const activeTileY = (bounds.max_row - activeTileRow) * vertSpacing;
+            const activeTileY = (activeTileRow - bounds.min_row) * vertSpacing;
             
             // Apply the offset for odd columns (matching the test script)
             const activeColOffset = (activeTileCol % 2 === 1) ? vertSpacing / 2 : 0;
@@ -416,7 +416,7 @@ window.hexGlobeApp = {
                 // Calculate the visual position on the canvas
                 // Convert from relative grid coordinates to absolute screen coordinates
                 const gridCol = col - bounds.min_col;
-                const gridRow = bounds.max_row - row;
+                const gridRow = row - bounds.min_row;
                 
                 // Calculate position using the same logic as the test script
                 let x = offsetX + gridCol * horizSpacing;
