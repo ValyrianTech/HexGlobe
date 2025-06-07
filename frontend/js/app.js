@@ -340,18 +340,29 @@ window.hexGlobeApp = {
             const gridData = await this.state.navigation.fetchTileGrid(width, height);
             console.log("Grid data received:", gridData);
             
+            // Get the bounds from the grid data
+            const bounds = gridData.bounds || {
+                min_row: -Math.floor(height/2),
+                max_row: Math.floor(height/2),
+                min_col: -Math.floor(width/2),
+                max_col: Math.floor(width/2)
+            };
+            
             // Create the grid
-            for (let row = 0; row < height; row++) {
-                for (let col = 0; col < width; col++) {
+            for (let row = bounds.min_row; row <= bounds.max_row; row++) {
+                for (let col = bounds.min_col; col <= bounds.max_col; col++) {
                     // Calculate the center position of this hexagon
-                    const x = offsetX + col * (hexWidth * 0.75) + (hexWidth / 2);
-                    const y = offsetY + row * hexHeight + (hexHeight / 2) + (col % 2 === 0 ? 0 : hexHeight / 2);
+                    // Adjust the position calculation to account for the new coordinate system
+                    // We need to convert from grid coordinates to screen coordinates
+                    const gridRow = row - bounds.min_row;
+                    const gridCol = col - bounds.min_col;
                     
-                    // Get H3 index from the grid data
-                    let h3Index = null;
-                    if (gridData && gridData.grid && gridData.grid[row] && gridData.grid[row][col]) {
-                        h3Index = gridData.grid[row][col];
-                    }
+                    const x = offsetX + gridCol * (hexWidth * 0.75) + (hexWidth / 2);
+                    const y = offsetY + gridRow * hexHeight + (hexHeight / 2) + (gridCol % 2 === 0 ? 0 : hexHeight / 2);
+                    
+                    // Get H3 index from the grid data using the new format
+                    const coordKey = `${col},${row}`;
+                    const h3Index = gridData.grid[coordKey];
                     
                     // Skip if we don't have a valid H3 index (empty cell)
                     if (!h3Index) continue;

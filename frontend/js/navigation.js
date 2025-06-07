@@ -256,11 +256,22 @@ class HexNavigation {
             // If the API fails, create a fallback grid for development
             const fallbackGrid = {
                 center_tile_id: this.activeTileId,
-                width: width,
-                height: height,
-                grid: Array(height).fill().map(() => Array(width).fill(this.activeTileId)),
-                pentagon_positions: []
+                grid: {},
+                pentagon_positions: [],
+                bounds: {
+                    min_row: -Math.floor(height/2),
+                    max_row: Math.floor(height/2),
+                    min_col: -Math.floor(width/2),
+                    max_col: Math.floor(width/2)
+                }
             };
+            
+            // Create a grid with coordinates as keys
+            for (let row = fallbackGrid.bounds.min_row; row <= fallbackGrid.bounds.max_row; row++) {
+                for (let col = fallbackGrid.bounds.min_col; col <= fallbackGrid.bounds.max_col; col++) {
+                    fallbackGrid.grid[`${col},${row}`] = this.activeTileId;
+                }
+            }
             
             // Dispatch an event with the fallback grid
             const event = new CustomEvent('gridDataLoaded', { detail: fallbackGrid });
