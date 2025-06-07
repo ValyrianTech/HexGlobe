@@ -32,6 +32,7 @@ class TileData(BaseModel):
     children_ids: List[str] = []
     neighbor_ids: Dict[str, str] = {}  # Changed from List to Dict for position-based neighbors
     resolution_ids: Dict[str, str] = {}  # New field for different resolution IDs (resolution -> h3 index)
+    resolution: int = 0  # Current resolution level of the tile
 
 class Tile(ABC):
     """Base class for all tiles."""
@@ -44,15 +45,18 @@ class Tile(ABC):
         
         # Get parent and children from H3
         try:
-            self.parent_id = h3.h3_to_parent(id, h3.h3_get_resolution(id) - 1) if h3.h3_get_resolution(id) > 0 else None
-            self.children_ids = list(h3.h3_to_children(id, h3.h3_get_resolution(id) + 1))
+            # Get the resolution of the current tile
+            self.resolution = h3.h3_get_resolution(id)
+            
+            self.parent_id = h3.h3_to_parent(id, self.resolution - 1) if self.resolution > 0 else None
+            self.children_ids = list(h3.h3_to_children(id, self.resolution + 1))
             
             # Get neighbor IDs with position labels
             self.neighbor_ids = self._get_positioned_neighbors(id)
             
             # Get different resolution IDs
             self.resolution_ids = {}
-            current_res = h3.h3_get_resolution(id)
+            current_res = self.resolution
             
             # Get IDs for lower resolutions (parent hierarchy)
             temp_id = id
@@ -264,7 +268,8 @@ class Tile(ABC):
             "parent_id": self.parent_id,
             "children_ids": list(self.children_ids) if isinstance(self.children_ids, set) else self.children_ids,
             "neighbor_ids": self.neighbor_ids,  # Now a dictionary with position keys
-            "resolution_ids": self.resolution_ids
+            "resolution_ids": self.resolution_ids,
+            "resolution": self.resolution
         }
     
     def save(self) -> None:
@@ -332,6 +337,13 @@ class Tile(ABC):
                 tile.neighbor_ids = neighbor_ids
             
             tile.resolution_ids = data.get("resolution_ids", {})
+            
+            # Load resolution or calculate it if not present in the data
+            if "resolution" in data:
+                tile.resolution = data["resolution"]
+            else:
+                # For backward compatibility with existing tiles
+                tile.resolution = h3.h3_get_resolution(tile_id)
             
             return tile
         except Exception as e:
