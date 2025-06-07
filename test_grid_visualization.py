@@ -27,9 +27,13 @@ def fetch_grid_data(tile_id, width=5, height=5):
 
 def verify_grid_positions(grid_data):
     """Verify if specific grid positions have the expected tile IDs."""
-    grid = grid_data["grid"]
-    height = len(grid)
-    width = len(grid[0]) if height > 0 else 0
+    grid_dict = grid_data["grid"]
+    
+    # Convert string keys back to tuple coordinates
+    grid = {}
+    for key, value in grid_dict.items():
+        row, col = map(int, key.split(','))
+        grid[(row, col)] = value
     
     # Expected neighbors at specific positions as provided by the user
     expected_positions = {
@@ -73,36 +77,30 @@ def verify_grid_positions(grid_data):
     
     all_match = True
     
-    # Transform the grid from array-based to center-based coordinates
-    center_row = height // 2
-    center_col = width // 2
-    
-    # Create a center-based grid dictionary
-    center_grid = {}
-    for row in range(height):
-        for col in range(width):
-            if grid[row][col]:
-                # Convert from array-based to center-based coordinates
-                center_row_pos = row - center_row
-                center_col_pos = col - center_col
-                center_grid[(center_row_pos, center_col_pos)] = grid[row][col]
-    
     # First, print the actual grid for reference using center-based coordinates
     print("\nActual grid contents (center-based coordinates):")
     print("-------------------------------------------")
-    for row in range(-center_row, height - center_row):
+    
+    # Get the bounds of the grid
+    bounds = grid_data.get("bounds", {})
+    min_row = bounds.get("min_row", -2)
+    max_row = bounds.get("max_row", 2)
+    min_col = bounds.get("min_col", -2)
+    max_col = bounds.get("max_col", 2)
+    
+    for row in range(min_row, max_row + 1):
         row_values = []
-        for col in range(-center_col, width - center_col):
-            if (row, col) in center_grid:
-                row_values.append(f"({row},{col}): {center_grid[(row, col)]}")
+        for col in range(min_col, max_col + 1):
+            if (row, col) in grid:
+                row_values.append(f"({row},{col}): {grid[(row, col)]}")
         if row_values:
             print(", ".join(row_values))
     
     print("\nPosition verification:")
     print("--------------------")
     for (row, col), expected_id in expected_positions.items():
-        if (row, col) in center_grid:
-            actual_id = center_grid[(row, col)]
+        if (row, col) in grid:
+            actual_id = grid[(row, col)]
             
             # Skip empty expected IDs (to be filled in manually)
             if not expected_id:
@@ -118,15 +116,58 @@ def verify_grid_positions(grid_data):
             print(f"✗ Position ({row}, {col}) is out of grid bounds or empty")
             all_match = False
     
+    # Also print the grid in a structured format for easier visualization
+    print("\nGrid Contents (Visual Format):")
+    print("-----------------------------")
+    
+    # Print the grid in a structured format
+    for row in range(max_row, min_row - 1, -1):  # Print top to bottom
+        # Add indentation for odd rows to represent hexagonal grid
+        indent = "  " if row % 2 == 0 else ""
+        row_str = f"{row:2d} | {indent}"
+        
+        for col in range(min_col, max_col + 1):
+            pos = (row, col)
+            tile_id = grid.get(pos)
+            if tile_id:
+                # Show abbreviated ID for readability
+                short_id = tile_id[-7:-3]
+                row_str += f"{short_id} "
+            else:
+                row_str += ".... "
+        
+        print(row_str)
+    
+    # Print column headers
+    col_header = "   |  "
+    for col in range(min_col, max_col + 1):
+        col_header += f"{col:2d}   "
+    print(col_header)
+    
     print("\nGrid position check:", "PASSED" if all_match else "FAILED")
     return all_match
 
 def draw_hexagon_grid(grid_data):
     """Draw a hexagon grid with IDs in the center of each tile."""
-    grid = grid_data["grid"]
-    height = len(grid)
-    width = len(grid[0]) if height > 0 else 0
+    grid_dict = grid_data["grid"]
     pentagon_positions = grid_data.get("pentagon_positions", [])
+    
+    # Convert string keys back to tuple coordinates
+    grid = {}
+    for key, value in grid_dict.items():
+        row, col = map(int, key.split(','))
+        grid[(row, col)] = value
+    
+    # Get the bounds of the grid
+    bounds = grid_data.get("bounds", {})
+    min_row = bounds.get("min_row", -2)
+    max_row = bounds.get("max_row", 2)
+    min_col = bounds.get("min_col", -2)
+    max_col = bounds.get("max_col", 2)
+    
+    # Calculate grid dimensions
+    height = max_row - min_row + 1
+    width = max_col - min_col + 1
     
     # Create a figure and axis
     fig, ax = plt.subplots(figsize=(15, 12))
@@ -147,40 +188,26 @@ def draw_hexagon_grid(grid_data):
     # Track which positions have pentagons
     pentagon_coords = {tuple(pos) for pos in pentagon_positions}
     
-    # Calculate center position in array coordinates
-    center_row = height // 2
-    center_col = width // 2
-    
-    # Create a center-based grid dictionary for easier access
-    center_grid = {}
-    for row in range(height):
-        for col in range(width):
-            if grid[row][col]:
-                # Convert from array-based to center-based coordinates
-                center_row_pos = row - center_row
-                center_col_pos = col - center_col
-                center_grid[(center_row_pos, center_col_pos)] = grid[row][col]
-    
     # Draw hexagons
-    for row in range(height):
-        for col in range(width):
-            if grid[row][col] is None:
+    for row in range(min_row, max_row + 1):
+        for col in range(min_col, max_col + 1):
+            pos = (row, col)
+            tile_id = grid.get(pos)
+            
+            if tile_id is None:
                 continue
                 
-            # Calculate position (offset every other row)
-            x = col * horiz_spacing
-            y = row * vert_spacing
+            # Calculate position (offset every other row for flat-bottom hexagons)
+            # Convert from logical coordinates to screen coordinates
+            x = (col - min_col) * horiz_spacing
+            y = (row - min_row) * vert_spacing
             if col % 2 == 1:
                 y += vert_spacing / 2
                 
-            # Convert to center-based coordinates for coloring and labeling
-            center_row_pos = row - center_row
-            center_col_pos = col - center_col
-                
             # Determine color based on type
-            if center_row_pos == 0 and center_col_pos == 0:  # Center tile at (0,0)
+            if row == 0 and col == 0:  # Center tile at (0,0)
                 color = center_color
-            elif (row, col) in pentagon_coords:
+            elif pos in pentagon_coords:
                 color = pentagon_color
             else:
                 color = normal_color
@@ -192,12 +219,11 @@ def draw_hexagon_grid(grid_data):
             ax.add_patch(hexagon)
             
             # Add the full ID text
-            tile_id = grid[row][col]
             # Use smaller font and full ID
             ax.text(x, y, tile_id, ha='center', va='center', fontsize=6)
             
-            # Add center-based coordinates for debugging
-            ax.text(x, y + 0.3, f"({center_row_pos},{center_col_pos})", ha='center', va='center', fontsize=6, color='red')
+            # Add logical coordinates for debugging
+            ax.text(x, y + 0.3, f"({row},{col})", ha='center', va='center', fontsize=6, color='red')
     
     # Set axis limits with some padding
     ax.set_xlim(-1, width * horiz_spacing + 1)
