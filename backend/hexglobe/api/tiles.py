@@ -461,6 +461,17 @@ async def get_tile_grid(
                 # Load the current tile
                 current_tile = Tile.load(tile_id)
 
+                if current_tile is None:
+                    logger.info(f"[{datetime.now()}] Tile {tile_id} not found in storage, creating new one")
+                    if h3.h3_is_pentagon(tile_id):
+                        current_tile = PentagonTile(tile_id)
+                    else:
+                        current_tile = HexagonTile(tile_id)
+
+                    # Save the newly created tile
+                    current_tile.save()
+                    logger.info(f"[{datetime.now()}] New tile {tile_id} saved to storage")
+
                 # Process each neighbor
                 error=False
                 for position, neighbor_id in current_tile.neighbor_ids.items():
