@@ -598,48 +598,10 @@ window.hexGlobeApp = {
         
         // Draw each tile
         for (const tile of this.state.tiles) {
-            // Check if this is the center tile or an immediate neighbor
-            const isCenter = tile.isActive;
-            
-            // Improved neighbor detection for hexagonal grid with flat-bottom orientation
-            // In a hex grid, neighbors depend on whether the column is even or odd
-            let isNeighbor = false;
-            
-            if (isCenter) {
-                // Center tile is always drawn
-                isNeighbor = false; // Not needed, but for clarity
-            } else {
-                const colDiff = Math.abs(tile.col - activeTileCoords.col);
-                const rowDiff = Math.abs(tile.row - activeTileCoords.row);
-                
-                // For hex grids with flat-bottom orientation, the definition of neighbors is:
-                // If we're in the same column, only adjacent rows are neighbors
-                if (colDiff === 0 && rowDiff === 1) {
-                    isNeighbor = true;
-                }
-                // If we're in adjacent columns, it depends on whether the column is even or odd
-                else if (colDiff === 1) {
-                    const tileColIsOdd = tile.col % 2 === 1;
-                    const activeColIsOdd = activeTileCoords.col % 2 === 1;
-                    
-                    if (tileColIsOdd && !activeColIsOdd) {
-                        // If tile column is odd and active column is even
-                        isNeighbor = (rowDiff === 0) || (tile.row === activeTileCoords.row + 1);
-                    } else if (!tileColIsOdd && activeColIsOdd) {
-                        // If tile column is even and active column is odd
-                        isNeighbor = (rowDiff === 0) || (tile.row === activeTileCoords.row - 1);
-                    } else {
-                        // If both columns are even or both are odd
-                        isNeighbor = (rowDiff === 0);
-                    }
-                }
-            }
-            
-            if (isCenter || isNeighbor) {
+            // Only draw the active tile
+            if (tile.isActive) {
                 // Create a HexTile object with appropriate visual properties
-                const visualProperties = tile.isActive ? 
-                    this.config.activeTileStyles : 
-                    this.config.normalTileStyles;
+                const visualProperties = this.config.activeTileStyles;
                 
                 const hexTile = new HexTile(tile.id, visualProperties);
                 hexTile.calculateVertices(tile.x, tile.y, hexSize);
@@ -654,7 +616,8 @@ window.hexGlobeApp = {
                 // Store the HexTile object for later reference (e.g., for hit detection)
                 tile.hexTile = hexTile;
                 
-                console.log(`Drawing tile at (${tile.col}, ${tile.row}) with ID ${tile.id}`);
+                console.log(`Drawing active tile at (${tile.col}, ${tile.row}) with ID ${tile.id}`);
+                console.log(`Tile position: x=${tile.x}, y=${tile.y}`);
             }
         }
     },
