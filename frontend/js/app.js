@@ -107,12 +107,12 @@ window.hexGlobeApp = {
         const defaultH3Index = this.getDefaultH3IndexForResolution(this.state.resolution);
         
         if (h3Index) {
-            // Since we've disabled H3 library, we'll use the URL parameter directly
+            // Use the H3 index from URL
             this.state.activeTileId = h3Index;
             console.log(`Using H3 index from URL: ${h3Index}`);
             
-            // We can't validate the resolution without H3 library, so we'll keep the default
-            console.log(`Using default resolution: ${this.state.resolution}`);
+            // We'll get the resolution from the backend when the tile loads
+            console.log(`Resolution will be set from backend data when tile loads`);
         } else {
             // Use default H3 index
             this.state.activeTileId = defaultH3Index;
@@ -189,6 +189,31 @@ window.hexGlobeApp = {
             const y = event.clientY - rect.top;
             
             this.handleCanvasClick(x, y);
+        });
+
+        // Listen for active tile changes from the navigation system
+        window.addEventListener("activeTileChanged", (event) => {
+            const tileData = event.detail;
+            
+            // Update resolution from backend data if available
+            if (tileData.resolution !== undefined && tileData.resolution !== null) {
+                const newResolution = parseInt(tileData.resolution);
+                
+                if (newResolution !== this.state.resolution) {
+                    console.log(`Updating resolution from backend: ${newResolution}`);
+                    this.state.resolution = newResolution;
+                    
+                    // Update UI to reflect the new resolution
+                    const resolutionSlider = document.getElementById("resolution-slider");
+                    if (resolutionSlider) {
+                        resolutionSlider.value = newResolution;
+                        document.getElementById("resolution-value").textContent = newResolution;
+                    }
+                }
+            }
+            
+            // Update debug panel with the new tile data
+            this.updateDebugPanel();
         });
 
         // Handle zoom slider changes
@@ -563,13 +588,18 @@ window.hexGlobeApp = {
         
         // Try to get tile data from the navigation system
         let tileContent = "No content available";
+        let backendResolution = "N/A";
+        
         if (this.state.navigation && this.state.navigation.activeTile) {
-            tileContent = this.state.navigation.activeTile.content || "No content available";
+            const navTile = this.state.navigation.activeTile;
+            tileContent = navTile.content || "No content available";
+            backendResolution = navTile.resolution !== undefined ? navTile.resolution : "N/A";
         }
         
         tileInfo.innerHTML = `
             <p><strong>H3 Index:</strong> ${activeTile.id}</p>
-            <p><strong>Resolution:</strong> ${this.state.resolution}</p>
+            <p><strong>Resolution (Backend):</strong> ${backendResolution}</p>
+            <p><strong>Resolution (Frontend):</strong> ${this.state.resolution}</p>
             <p><strong>Zoom Level:</strong> ${this.state.zoomLevel}</p>
             <p><strong>Grid Position:</strong> (${activeTile.col}, ${activeTile.row})</p>
             <p><strong>Content:</strong> ${tileContent}</p>

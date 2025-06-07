@@ -54,7 +54,14 @@ class HexNavigation {
             this.activeTile = tileData;
             
             // Dispatch an event to notify that the active tile has changed
-            const event = new CustomEvent('activeTileChanged', { detail: tileData });
+            // Include the resolution from the backend in the event
+            const event = new CustomEvent('activeTileChanged', { 
+                detail: {
+                    ...tileData,
+                    // Ensure resolution is available in the event
+                    resolution: tileData.resolution !== undefined ? tileData.resolution : null
+                }
+            });
             window.dispatchEvent(event);
             
             return tileData;
@@ -76,7 +83,13 @@ class HexNavigation {
             this.activeTile = fallbackTile;
             
             // Dispatch an event with the fallback tile
-            const event = new CustomEvent('activeTileChanged', { detail: fallbackTile });
+            const event = new CustomEvent('activeTileChanged', { 
+                detail: {
+                    ...fallbackTile,
+                    // Ensure resolution is available in the event
+                    resolution: fallbackTile.resolution !== undefined ? fallbackTile.resolution : null
+                }
+            });
             window.dispatchEvent(event);
             
             return fallbackTile;
