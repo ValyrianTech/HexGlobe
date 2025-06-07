@@ -73,21 +73,36 @@ def verify_grid_positions(grid_data):
     
     all_match = True
     
-    # First, print the actual grid for reference
-    print("\nActual grid contents:")
-    print("-------------------")
+    # Transform the grid from array-based to center-based coordinates
+    center_row = height // 2
+    center_col = width // 2
+    
+    # Create a center-based grid dictionary
+    center_grid = {}
     for row in range(height):
-        row_values = []
         for col in range(width):
             if grid[row][col]:
-                row_values.append(f"({row},{col}): {grid[row][col]}")
-        print(", ".join(row_values))
+                # Convert from array-based to center-based coordinates
+                center_row_pos = row - center_row
+                center_col_pos = col - center_col
+                center_grid[(center_row_pos, center_col_pos)] = grid[row][col]
+    
+    # First, print the actual grid for reference using center-based coordinates
+    print("\nActual grid contents (center-based coordinates):")
+    print("-------------------------------------------")
+    for row in range(-center_row, height - center_row):
+        row_values = []
+        for col in range(-center_col, width - center_col):
+            if (row, col) in center_grid:
+                row_values.append(f"({row},{col}): {center_grid[(row, col)]}")
+        if row_values:
+            print(", ".join(row_values))
     
     print("\nPosition verification:")
     print("--------------------")
     for (row, col), expected_id in expected_positions.items():
-        if 0 <= row < height and 0 <= col < width:
-            actual_id = grid[row][col]
+        if (row, col) in center_grid:
+            actual_id = center_grid[(row, col)]
             
             # Skip empty expected IDs (to be filled in manually)
             if not expected_id:
@@ -100,7 +115,7 @@ def verify_grid_positions(grid_data):
             if not match:
                 all_match = False
         else:
-            print(f"✗ Position ({row}, {col}) is out of grid bounds")
+            print(f"✗ Position ({row}, {col}) is out of grid bounds or empty")
             all_match = False
     
     print("\nGrid position check:", "PASSED" if all_match else "FAILED")
