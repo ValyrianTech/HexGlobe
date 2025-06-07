@@ -360,7 +360,8 @@ async def update_visual_properties(
 async def get_tile_grid(
     tile_id: str = Path(..., description="H3 index of the tile"),
     width: int = 5,
-    height: int = 5
+    height: int = 5,
+    debug: bool = False
 ):
     """
     Get a 2D grid of H3 indexes centered around the specified tile.
@@ -369,6 +370,7 @@ async def get_tile_grid(
         tile_id: H3 index of the center tile
         width: Number of columns in the grid
         height: Number of rows in the grid
+        debug: If True, will stop on the first position conflict and return debug information
         
     Returns:
         A 2D grid of H3 indexes with the specified dimensions
@@ -380,20 +382,14 @@ async def get_tile_grid(
             logger.warning(f"Invalid H3 index: {tile_id}")
             raise HTTPException(status_code=400, detail="Invalid H3 index")
         
-        # Define grid bounds for center-based coordinates
-        min_row = -height // 2
-        max_row = height // 2 + (1 if height % 2 == 1 else 0)
-        min_col = -width // 2
-        max_col = width // 2 + (1 if width % 2 == 1 else 0)
+        # Step 1: Initialize grid with None values
+        final_grid = [[None for _ in range(width)] for _ in range(height)]
         
-        # Use a dictionary-based grid for center-based coordinates
-        grid_dict = {}
-        
-        # Center position is (0, 0) in the new coordinate system
-        center_row, center_col = 0, 0
+        # Calculate center position in array coordinates
+        center_row = height // 2
+        center_col = width // 2
         
         # Define the standard mapping from neighbor positions to relative grid coordinates
-        # This is the core of our topological approach
         position_to_relative_coords = {
             "bottom_middle": (-1, 0),
             "bottom_left": (-1, -1),
@@ -403,8 +399,28 @@ async def get_tile_grid(
             "bottom_right": (-1, 1)
         }
         
-        # Place the center tile
-        grid_dict[(center_row, center_col)] = tile_id
+        # Define the inverse mapping for verification
+        inverse_positions = {
+            "bottom_middle": "top_middle",
+            "bottom_left": "top_right",
+            "top_left": "bottom_right",
+            "top_middle": "bottom_middle",
+            "top_right": "bottom_left",
+            "bottom_right": "top_left"
+        }
+        
+        # For debug: keep track of which tile placed each cell and how
+        if debug:
+            placement_info = {}  # Will convert keys to strings before returning
+        
+        # Step 2: Place center tile
+        final_grid[center_row][center_col] = tile_id
+        if debug:
+            placement_info[f"{center_row},{center_col}"] = {
+                "tile_id": tile_id,
+                "placed_by": "center",
+                "position": "center"
+            }
         
         # Load or create the center tile
         center_tile = Tile.load(tile_id)
@@ -418,133 +434,175 @@ async def get_tile_grid(
         # Track which tiles have been placed and their positions
         position_map = {tile_id: (center_row, center_col)}
         
-        # Track which tiles we've visited (processed all neighbors)
-        visited = set()
-        
-        # Queue for BFS traversal - store (tile_id, row, col) tuples
-        queue = [(tile_id, center_row, center_col)]
-        
-        # BFS to fill the grid
-        while queue:
-            current_id, current_row, current_col = queue.pop(0)
-            
-            # Skip if we've already processed this tile
-            if current_id in visited:
+        # Step 3: Place immediate neighbors of the center tile
+        # This establishes the center tile as the single source of truth
+        for position, neighbor_id in center_tile.neighbor_ids.items():
+            if neighbor_id == "pentagon":
                 continue
                 
-            # Mark as visited
-            visited.add(current_id)
-            
-            # Load the current tile
-            current_tile = Tile.load(current_id)
-            if current_tile is None:
-                # This shouldn't happen if the tile was properly created
-                logger.warning(f"Could not load tile {current_id}")
-                continue
-            
-            # Process each neighbor
-            for position, neighbor_id in current_tile.neighbor_ids.items():
-                # Skip pentagon placeholders
-                if neighbor_id == "pentagon":
-                    continue
+            if position in position_to_relative_coords:
+                row_offset, col_offset = position_to_relative_coords[position]
+                neighbor_row = center_row + row_offset
+                neighbor_col = center_col + col_offset
                 
-                # Calculate the neighbor's position based on the relative coordinates
-                if position in position_to_relative_coords:
-                    row_offset, col_offset = position_to_relative_coords[position]
-                    neighbor_row = current_row + row_offset
-                    neighbor_col = current_col + col_offset
+                # Check if the position is within grid bounds
+                if 0 <= neighbor_row < height and 0 <= neighbor_col < width:
+                    # Place the neighbor in the grid
+                    final_grid[neighbor_row][neighbor_col] = neighbor_id
+                    position_map[neighbor_id] = (neighbor_row, neighbor_col)
                     
-                    # Check if the position is within grid bounds
-                    if min_row <= neighbor_row <= max_row and min_col <= neighbor_col <= max_col:
-                        # Check if this position is already filled
-                        if (neighbor_row, neighbor_col) in grid_dict:
-                            # If filled with a different tile, we have a conflict
-                            if grid_dict[(neighbor_row, neighbor_col)] != neighbor_id:
-                                logger.warning(f"Grid position conflict at ({neighbor_row}, {neighbor_col}): "
-                                              f"Existing={grid_dict[(neighbor_row, neighbor_col)]}, New={neighbor_id}")
-                                # Keep the existing placement (first one wins)
-                        else:
-                            # Place the neighbor in the grid
-                            grid_dict[(neighbor_row, neighbor_col)] = neighbor_id
-                            position_map[neighbor_id] = (neighbor_row, neighbor_col)
-                            
-                            # Add to queue for further processing if not already visited or in queue
-                            # Include the position information in the queue
-                            if neighbor_id not in visited:
-                                queue.append((neighbor_id, neighbor_row, neighbor_col))
+                    if debug:
+                        placement_info[f"{neighbor_row},{neighbor_col}"] = {
+                            "tile_id": neighbor_id,
+                            "placed_by": tile_id,
+                            "position": position
+                        }
         
-        # Check for any empty cells that need to be filled
-        empty_cells = []
-        for row in range(min_row, max_row + 1):
-            for col in range(min_col, max_col + 1):
-                if (row, col) not in grid_dict:
-                    empty_cells.append((row, col))
+        # Step 4: Initialize processing
+        done_tiles = {tile_id}  # Set of processed tile IDs
         
-        # If we have empty cells, try to fill them by expanding from neighbors
-        if empty_cells:
-            # Keep trying to fill empty cells until no more progress is made
-            progress = True
-            while progress and empty_cells:
-                progress = False
-                remaining_empty = []
-                
-                for row, col in empty_cells:
-                    # Check all adjacent cells (including diagonals)
-                    filled = False
-                    for r_offset in [-1, 0, 1]:
-                        for c_offset in [-1, 0, 1]:
-                            if r_offset == 0 and c_offset == 0:
-                                continue  # Skip the cell itself
-                                
-                            adj_row, adj_col = row + r_offset, col + c_offset
-                            
-                            # Check if adjacent cell is within bounds and has a tile
-                            if ((min_row <= adj_row <= max_row and min_col <= adj_col <= max_col) and 
-                                (adj_row, adj_col) in grid_dict):
-                                
-                                # Load the adjacent tile
-                                adj_tile_id = grid_dict[(adj_row, adj_col)]
-                                adj_tile = Tile.load(adj_tile_id)
-                                
-                                if adj_tile is not None:
-                                    # Check if any of its neighbors can fill our empty cell
-                                    for pos, n_id in adj_tile.neighbor_ids.items():
-                                        if n_id != "pentagon" and n_id not in position_map:
-                                            # Found an unplaced neighbor, use it
-                                            grid_dict[(row, col)] = n_id
-                                            position_map[n_id] = (row, col)
-                                            filled = True
-                                            progress = True
-                                            break
-                                            
-                                if filled:
-                                    break
-                        if filled:
-                            break
-                            
-                    if not filled:
-                        remaining_empty.append((row, col))
-                        
-                empty_cells = remaining_empty
+        # Step 5: Iterative grid filling with verification
+        progress = True
+        iteration_count = 0
+        max_iterations = 100  # Safety limit to prevent infinite loops
         
-        # Convert dictionary-based grid to 2D array for API response
-        final_grid = [[None for _ in range(width)] for _ in range(height)]
-        pentagon_positions = []
-        
-        # Map from center-based to array-based coordinates
-        for (row, col), tile_id in grid_dict.items():
-            # Transform coordinates: (0,0) center-based -> (height//2, width//2) array-based
-            array_row = row + height // 2
-            array_col = col + width // 2
+        while progress and iteration_count < max_iterations:
+            progress = False
+            iteration_count += 1
             
-            if 0 <= array_row < height and 0 <= array_col < width:
-                final_grid[array_row][array_col] = tile_id
-                
-                # Check for pentagons
-                if h3.h3_is_pentagon(tile_id):
-                    pentagon_positions.append([array_row, array_col])
+            # Scan the entire grid
+            for row in range(height):
+                for col in range(width):
+                    current_id = final_grid[row][col]
+                    
+                    # Process cells that have a tile ID but haven't been processed yet
+                    if current_id is not None and current_id not in done_tiles:
+                        # Load the current tile
+                        current_tile = Tile.load(current_id)
+                        if current_tile is None:
+                            # This shouldn't happen if the tile was properly created
+                            logger.warning(f"Could not load tile {current_id}")
+                            continue
+                        
+                        # Process each neighbor
+                        for position, neighbor_id in current_tile.neighbor_ids.items():
+                            # Skip pentagon placeholders
+                            if neighbor_id == "pentagon":
+                                continue
+                            
+                            # Calculate the neighbor's position based on the relative coordinates
+                            if position in position_to_relative_coords:
+                                row_offset, col_offset = position_to_relative_coords[position]
+                                neighbor_row = row + row_offset
+                                neighbor_col = col + col_offset
+                                
+                                # Check if the position is within grid bounds
+                                if 0 <= neighbor_row < height and 0 <= neighbor_col < width:
+                                    # Verify neighbor relationship consistency
+                                    if neighbor_id in position_map:
+                                        # This neighbor is already placed somewhere
+                                        existing_row, existing_col = position_map[neighbor_id]
+                                        
+                                        if existing_row != neighbor_row or existing_col != neighbor_col:
+                                            # Conflict detected - neighbor is already placed elsewhere
+                                            if debug:
+                                                logger.warning(f"Neighbor position conflict: {neighbor_id} is already at "
+                                                             f"({existing_row},{existing_col}) but would be placed at "
+                                                             f"({neighbor_row},{neighbor_col}) by {current_id}")
+                                                
+                                                conflict_info = {
+                                                    "conflict_type": "neighbor_position_mismatch",
+                                                    "tile_id": neighbor_id,
+                                                    "existing_position": [existing_row, existing_col],
+                                                    "new_position": [neighbor_row, neighbor_col],
+                                                    "placed_by": current_id,
+                                                    "position": position,
+                                                    "center_tile": tile_id,
+                                                    "partial_grid": [[str(cell) if cell else None for cell in row] for row in final_grid]
+                                                }
+                                                
+                                                if f"{existing_row},{existing_col}" in placement_info:
+                                                    conflict_info["existing_placement_info"] = placement_info[f"{existing_row},{existing_col}"]
+                                                
+                                                # Skip this placement - trust the existing position
+                                                # (especially if it was placed by the center tile)
+                                                continue
+                                    
+                                    # Check if the position is already filled with a different tile
+                                    if final_grid[neighbor_row][neighbor_col] is not None:
+                                        existing_id = final_grid[neighbor_row][neighbor_col]
+                                        
+                                        if existing_id != neighbor_id:
+                                            # Verify if this is a reciprocal relationship
+                                            # If A says B is its "top_right", then B should say A is its "bottom_left"
+                                            is_valid_relationship = False
+                                            
+                                            # Load the existing tile
+                                            existing_tile = Tile.load(existing_id)
+                                            if existing_tile is not None:
+                                                # Check if the inverse relationship holds
+                                                inverse_pos = inverse_positions.get(position)
+                                                if inverse_pos and existing_tile.neighbor_ids.get(inverse_pos) == current_id:
+                                                    is_valid_relationship = True
+                                            
+                                            if not is_valid_relationship:
+                                                logger.warning(f"Grid position conflict at ({neighbor_row}, {neighbor_col}): "
+                                                             f"Existing={existing_id}, New={neighbor_id}")
+                                                
+                                                if debug:
+                                                    # Return debug information about the conflict
+                                                    existing_info_key = f"{neighbor_row},{neighbor_col}"
+                                                    
+                                                    conflict_info = {
+                                                        "conflict_position": [neighbor_row, neighbor_col],
+                                                        "existing_tile": existing_id,
+                                                        "new_tile": neighbor_id,
+                                                        "existing_placement_info": placement_info.get(existing_info_key, "Unknown"),
+                                                        "new_placement_info": {
+                                                            "would_be_placed_by": current_id,
+                                                            "position": position,
+                                                            "iteration": iteration_count
+                                                        },
+                                                        "center_tile": tile_id,
+                                                        "partial_grid": [[str(cell) if cell else None for cell in row] for row in final_grid]
+                                                    }
+                                                    
+                                                    # Return early with debug information
+                                                    return {
+                                                        "debug": True,
+                                                        "conflict_detected": True,
+                                                        "conflict_info": conflict_info
+                                                    }
+                                    else:
+                                        # Position is empty, place the neighbor
+                                        final_grid[neighbor_row][neighbor_col] = neighbor_id
+                                        position_map[neighbor_id] = (neighbor_row, neighbor_col)
+                                        progress = True  # We made progress in this iteration
+                                        
+                                        if debug:
+                                            placement_info[f"{neighbor_row},{neighbor_col}"] = {
+                                                "tile_id": neighbor_id,
+                                                "placed_by": current_id,
+                                                "position": position,
+                                                "iteration": iteration_count
+                                            }
+                        
+                        # Mark this tile as processed
+                        done_tiles.add(current_id)
+                        progress = True  # We made progress in this iteration
         
-        logger.info(f"Grid created successfully using topological approach")
+        if iteration_count >= max_iterations:
+            logger.warning(f"Grid filling stopped after reaching maximum iterations ({max_iterations})")
+        
+        # Identify pentagon positions
+        pentagon_positions = []
+        for row in range(height):
+            for col in range(width):
+                tile_id = final_grid[row][col]
+                if tile_id is not None and h3.h3_is_pentagon(tile_id):
+                    pentagon_positions.append([row, col])
+        
+        logger.info(f"Grid created successfully using iterative approach in {iteration_count} iterations")
         logger.info(f"Found {len(pentagon_positions)} pentagons in the grid")
         
         # Count filled and empty cells for logging
@@ -552,13 +610,22 @@ async def get_tile_grid(
         empty_count = width * height - filled_count
         logger.info(f"Grid stats: {filled_count} filled cells, {empty_count} empty cells")
         
-        return {
+        response = {
             "center_tile_id": tile_id,
             "width": width,
             "height": height,
             "grid": final_grid,
             "pentagon_positions": pentagon_positions
         }
+        
+        if debug:
+            response["debug_info"] = {
+                "iterations": iteration_count,
+                "placement_history": placement_info,
+                "position_map": {k: list(v) for k, v in position_map.items()}  # Convert tuples to lists for JSON
+            }
+            
+        return response
     
     except Exception as e:
         logger.error(f"Error creating grid for tile {tile_id}: {str(e)}")
