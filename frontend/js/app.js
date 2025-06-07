@@ -380,7 +380,7 @@ window.hexGlobeApp = {
             // Look for the active tile in the grid
             Object.entries(gridData.grid).forEach(([coordKey, h3Index]) => {
                 if (h3Index === gridData.center_tile_id) {
-                    const [col, row] = coordKey.split(',').map(Number);
+                    const [row, col] = coordKey.split(',').map(Number);
                     activeTileRow = row;
                     activeTileCol = col;
                 }
@@ -410,8 +410,8 @@ window.hexGlobeApp = {
             
             // Process each coordinate in the grid object
             Object.entries(gridData.grid).forEach(([coordKey, h3Index]) => {
-                // Parse the coordinate key (format: "col,row")
-                const [col, row] = coordKey.split(',').map(Number);
+                // Parse the coordinate key (format: "row,col" from backend)
+                const [row, col] = coordKey.split(',').map(Number);
                 
                 // Calculate the visual position on the canvas
                 // Convert from relative grid coordinates to absolute screen coordinates
@@ -425,6 +425,19 @@ window.hexGlobeApp = {
                 // Apply offset for odd columns (matching the test script)
                 if (col % 2 === 1) {
                     y += vertSpacing / 2;
+                }
+                
+                // Add debug logging for the bottom neighbor tile
+                if (h3Index !== gridData.center_tile_id && row === -1 && col === 0) {
+                    console.log("Bottom neighbor tile found!");
+                    console.log(`Bottom neighbor coordinates: (${col}, ${row})`);
+                    console.log(`Bottom neighbor grid position: (${gridCol}, ${gridRow})`);
+                    console.log(`Bottom neighbor pixel position before offset: (${gridCol * horizSpacing}, ${gridRow * vertSpacing})`);
+                    console.log(`Bottom neighbor pixel position after offset: (${x}, ${y})`);
+                    console.log(`Vertical spacing: ${vertSpacing}, Horizontal spacing: ${horizSpacing}`);
+                    console.log(`Active tile position: (${activeTileX}, ${activeTileY + activeColOffset})`);
+                    console.log(`Expected vertical distance: ${vertSpacing}`);
+                    console.log(`Actual vertical distance: ${Math.abs((activeTileY + activeColOffset) - y)}`);
                 }
                 
                 // Check if this is a pentagon
@@ -599,7 +612,7 @@ window.hexGlobeApp = {
         // Draw each tile
         for (const tile of this.state.tiles) {
             // Only draw the active tile or the bottom middle neighbor (-1, 0)
-            if (tile.isActive || (tile.col === -1 && tile.row === 0)) {
+            if (tile.isActive || (tile.row === -1 && tile.col === 0)) {
                 // Create a HexTile object with appropriate visual properties
                 const visualProperties = tile.isActive ? 
                     this.config.activeTileStyles : 
