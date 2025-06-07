@@ -348,52 +348,46 @@ window.hexGlobeApp = {
                 max_col: Math.floor(width/2)
             };
             
-            // Create the grid
-            for (let row = bounds.min_row; row <= bounds.max_row; row++) {
-                for (let col = bounds.min_col; col <= bounds.max_col; col++) {
-                    // Calculate the center position of this hexagon
-                    // Adjust the position calculation to account for the new coordinate system
-                    // We need to convert from grid coordinates to screen coordinates
-                    const gridRow = row - bounds.min_row;
-                    const gridCol = col - bounds.min_col;
-                    
-                    const x = offsetX + gridCol * (hexWidth * 0.75) + (hexWidth / 2);
-                    const y = offsetY + gridRow * hexHeight + (hexHeight / 2) + (gridCol % 2 === 0 ? 0 : hexHeight / 2);
-                    
-                    // Get H3 index from the grid data using the new format
-                    const coordKey = `${col},${row}`;
-                    const h3Index = gridData.grid[coordKey];
-                    
-                    // Skip if we don't have a valid H3 index (empty cell)
-                    if (!h3Index) continue;
-                    
-                    // Check if this is a pentagon
-                    const isPentagon = gridData.pentagon_positions && 
-                        gridData.pentagon_positions.some(pos => pos[0] === row && pos[1] === col);
-                    
-                    // Calculate if this is the center/active tile
-                    const isCenter = (h3Index === gridData.center_tile_id);
-                    
-                    // Create the tile object
-                    const tile = {
-                        id: h3Index,
-                        col: col,
-                        row: row,
-                        x: x,
-                        y: y,
-                        isActive: isCenter,
-                        isPentagon: isPentagon
-                    };
-                    
-                    // Add the tile to the array
-                    this.state.tiles.push(tile);
-                    
-                    // Update active tile coordinates
-                    if (isCenter) {
-                        this.state.activeTileCoords = { col: col, row: row };
-                    }
+            // Process each coordinate in the grid object
+            Object.entries(gridData.grid).forEach(([coordKey, h3Index]) => {
+                // Parse the coordinate key (format: "col,row")
+                const [col, row] = coordKey.split(',').map(Number);
+                
+                // Calculate the visual position on the canvas
+                // Convert from relative grid coordinates to absolute screen coordinates
+                // We need to map from the bounds coordinate system to the screen coordinate system
+                const gridRow = row - bounds.min_row;
+                const gridCol = col - bounds.min_col;
+                
+                const x = offsetX + gridCol * (hexWidth * 0.75) + (hexWidth / 2);
+                const y = offsetY + gridRow * hexHeight + (hexHeight / 2) + (gridCol % 2 === 0 ? 0 : hexHeight / 2);
+                
+                // Check if this is a pentagon
+                const isPentagon = gridData.pentagon_positions && 
+                    gridData.pentagon_positions.some(pos => pos[0] === row && pos[1] === col);
+                
+                // Calculate if this is the center/active tile
+                const isCenter = (h3Index === gridData.center_tile_id);
+                
+                // Create the tile object
+                const tile = {
+                    id: h3Index,
+                    col: col,
+                    row: row,
+                    x: x,
+                    y: y,
+                    isActive: isCenter,
+                    isPentagon: isPentagon
+                };
+                
+                // Add the tile to the array
+                this.state.tiles.push(tile);
+                
+                // Update active tile coordinates
+                if (isCenter) {
+                    this.state.activeTileCoords = { col: col, row: row };
                 }
-            }
+            });
             
             console.log(`Generated ${this.state.tiles.length} tiles`);
         } catch (error) {
