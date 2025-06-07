@@ -425,8 +425,8 @@ window.hexGlobeApp = {
                 let y = offsetY + (bounds.max_row - bounds.min_row - gridRow) * vertSpacing;
                 
                 // Apply offset for odd columns (matching the test script)
-                if (col % 2 === 1) {
-                    y += vertSpacing / 2;
+                if (col % 2 !== 0) {  
+                    y -= vertSpacing / 2;  
                 }
                 
                 // Add debug logging for the bottom neighbor tile
@@ -614,7 +614,7 @@ window.hexGlobeApp = {
         // Draw each tile
         for (const tile of this.state.tiles) {
             // Only draw the active tile or the bottom middle neighbor (row=-1, col=0)
-            if (tile.isActive || (tile.row === -1 && tile.col === 0)) {
+            if (tile.isActive || (tile.row === -1 && tile.col === 0) || (tile.row === -1 && tile.col === -1) ) {
                 // Create a HexTile object with appropriate visual properties
                 const visualProperties = tile.isActive ? 
                     this.config.activeTileStyles : 
