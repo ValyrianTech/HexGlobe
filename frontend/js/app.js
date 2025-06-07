@@ -31,7 +31,7 @@ window.hexGlobeApp = {
         activeTileCoords: { col: 0, row: 0 }, // Will be set to center tile later
         debugMode: true, // Always show debug information
         tiles: [], // Array of tile objects
-        zoomLevel: 5, // Default zoom level (1-10)
+        zoomLevel: 1, // Default zoom level (1-10)
         resolution: 7, // Default H3 resolution (0-15)
         navigation: null // Will hold the HexNavigation instance
     },
@@ -50,6 +50,10 @@ window.hexGlobeApp = {
             // Initialize resolution slider with current resolution
             document.getElementById("resolution-value").textContent = this.state.resolution;
             document.getElementById("resolution-slider").value = this.state.resolution;
+            
+            // Initialize zoom slider with current zoom level
+            document.getElementById("zoom-value").textContent = this.state.zoomLevel;
+            document.getElementById("zoom-slider").value = this.state.zoomLevel;
             
             // Initialize the navigation system
             this.initNavigation();
