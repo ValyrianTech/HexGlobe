@@ -147,9 +147,19 @@ def draw_hexagon_grid(grid_data):
     # Track which positions have pentagons
     pentagon_coords = {tuple(pos) for pos in pentagon_positions}
     
-    # Center tile position - now explicitly set to (2,2) as per user's verification
-    center_row = 2
-    center_col = 2
+    # Calculate center position in array coordinates
+    center_row = height // 2
+    center_col = width // 2
+    
+    # Create a center-based grid dictionary for easier access
+    center_grid = {}
+    for row in range(height):
+        for col in range(width):
+            if grid[row][col]:
+                # Convert from array-based to center-based coordinates
+                center_row_pos = row - center_row
+                center_col_pos = col - center_col
+                center_grid[(center_row_pos, center_col_pos)] = grid[row][col]
     
     # Draw hexagons
     for row in range(height):
@@ -163,8 +173,12 @@ def draw_hexagon_grid(grid_data):
             if col % 2 == 1:
                 y += vert_spacing / 2
                 
+            # Convert to center-based coordinates for coloring and labeling
+            center_row_pos = row - center_row
+            center_col_pos = col - center_col
+                
             # Determine color based on type
-            if row == center_row and col == center_col:
+            if center_row_pos == 0 and center_col_pos == 0:  # Center tile at (0,0)
                 color = center_color
             elif (row, col) in pentagon_coords:
                 color = pentagon_color
@@ -182,8 +196,8 @@ def draw_hexagon_grid(grid_data):
             # Use smaller font and full ID
             ax.text(x, y, tile_id, ha='center', va='center', fontsize=6)
             
-            # Add row, col coordinates for debugging
-            ax.text(x, y + 0.3, f"({row},{col})", ha='center', va='center', fontsize=6, color='red')
+            # Add center-based coordinates for debugging
+            ax.text(x, y + 0.3, f"({center_row_pos},{center_col_pos})", ha='center', va='center', fontsize=6, color='red')
     
     # Set axis limits with some padding
     ax.set_xlim(-1, width * horiz_spacing + 1)
