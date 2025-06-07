@@ -599,7 +599,7 @@ window.hexGlobeApp = {
         // Draw each tile
         for (const tile of this.state.tiles) {
             // Only draw the active tile or the bottom middle neighbor (-1, 0)
-            if (tile.isActive || (tile.row === -1 && tile.col === 0)) {
+            if (tile.isActive || (tile.col === -1 && tile.row === 0)) {
                 // Create a HexTile object with appropriate visual properties
                 const visualProperties = tile.isActive ? 
                     this.config.activeTileStyles : 
