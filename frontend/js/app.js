@@ -419,8 +419,10 @@ window.hexGlobeApp = {
                 const gridRow = row - bounds.min_row;
                 
                 // Calculate position using the same logic as the test script
+                // But invert the y-coordinate calculation to match the visual expectation
+                // (negative row should be below, positive row should be above)
                 let x = offsetX + gridCol * horizSpacing;
-                let y = offsetY + gridRow * vertSpacing;
+                let y = offsetY + (bounds.max_row - bounds.min_row - gridRow) * vertSpacing;
                 
                 // Apply offset for odd columns (matching the test script)
                 if (col % 2 === 1) {
@@ -611,7 +613,7 @@ window.hexGlobeApp = {
         
         // Draw each tile
         for (const tile of this.state.tiles) {
-            // Only draw the active tile or the bottom middle neighbor (-1, 0)
+            // Only draw the active tile or the bottom middle neighbor (row=-1, col=0)
             if (tile.isActive || (tile.row === -1 && tile.col === 0)) {
                 // Create a HexTile object with appropriate visual properties
                 const visualProperties = tile.isActive ? 
@@ -633,6 +635,8 @@ window.hexGlobeApp = {
                 
                 console.log(`Drawing tile at (${tile.col}, ${tile.row}) with ID ${tile.id}`);
                 console.log(`Tile position: x=${tile.x}, y=${tile.y}`);
+                console.log(`Tile is${tile.isActive ? '' : ' not'} active`);
+                console.log(`Tile orientation: flat-bottom (Math.PI/6)`);
             }
         }
     },

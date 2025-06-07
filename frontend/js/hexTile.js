@@ -47,6 +47,13 @@ class HexTile {
             const y = centerY + size * Math.sin(angle);
             this.vertices.push({ x, y });
         }
+        
+        // Debug log for the first hexagon created
+        if (this.id === "8a194da9a74ffff" || this.id === "8a194da9a297fff") {
+            console.log(`Hexagon ${this.id} vertices:`, this.vertices);
+            console.log(`Hexagon ${this.id} center:`, this.center);
+            console.log(`Hexagon ${this.id} size:`, this.size);
+        }
     }
 
     /**
