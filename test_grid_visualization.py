@@ -34,45 +34,38 @@ def verify_grid_positions(grid_data):
     # Expected neighbors at specific positions as provided by the user
     expected_positions = {
         # Position: Expected ID
-        (2, 2): "8a194da9a74ffff",  # Center
-        (1, 2): "8a194da9a297fff",  # bottom_middle
-        (1, 1): "8a194da9a667fff",  # bottom_left
-        (2, 1): "8a194da9a75ffff",  # top_left
-        (3, 2): "8a194da9a747fff",  # top_middle
-        (2, 3): "8a194da9a76ffff",  # top_right
-        (1, 3): "8a194da9a2b7fff",  # bottom_right
+        (0, 0): "8a194da9a74ffff",  # Center
+        (-1, 0): "8a194da9a297fff",  # bottom_middle
+        (-1, -1): "8a194da9a667fff",  # bottom_left
+        (0, -1): "8a194da9a75ffff",  # top_left
+        (1, 0): "8a194da9a747fff",  # top_middle
+        (0, 1): "8a194da9a76ffff",  # top_right
+        (-1, 1): "8a194da9a2b7fff",  # bottom_right
         
         # Additional positions from (0,0) to (4,4)
         # Fill in the expected IDs manually after running the script once
-        (0, 0): "8a194da9a64ffff",  # Fill in expected ID
-        (0, 1): "8a194da9a66ffff",  # Fill in expected ID
-        (0, 2): "8a194da9a29ffff",  # Fill in expected ID
-        (0, 3): "8a194da9a287fff",  # Fill in expected ID
-        (0, 4): "8a194da9a2affff",  # Fill in expected ID
+        (-2, -2): "8a194da9a64ffff",  # Fill in expected ID
+        (-2, -1): "8a194da9a66ffff",  # Fill in expected ID
+        (-2, 0): "8a194da9a29ffff",  # Fill in expected ID
+        (-2, 1): "8a194da9a287fff",  # Fill in expected ID
+        (-2, 2): "8a194da9a2affff",  # Fill in expected ID
         
-        (1, 0): "8a194da9a647fff",  # Fill in expected ID
-        # (1, 1) already defined above
-        # (1, 2) already defined above
-        # (1, 3) already defined above
-        (1, 4): "8a194da9a2a7fff",  # Fill in expected ID
+        (-1, -2): "8a194da9a647fff",  # Fill in expected ID
+        (-1, 2): "8a194da9a2a7fff",  # Fill in expected ID
         
-        (2, 0): "8a194da9a677fff",  # Fill in expected ID
-        # (2, 1) already defined above
-        # (2, 2) already defined above (center)
-        # (2, 3) already defined above
-        (2, 4): "8a194da9a39ffff",  # Fill in expected ID
+        (0, -2): "8a194da9a677fff",  # Fill in expected ID
+        (0, 2): "8a194da9a39ffff",  # Fill in expected ID
         
-        (3, 0): "8a194da9a62ffff",  # Fill in expected ID
-        (3, 1): "8a194da9a757fff",  # Fill in expected ID
-        # (3, 2) already defined above
-        (3, 3): "8a194da9a767fff",  # Fill in expected ID
-        (3, 4): "8a194da9a397fff",  # Fill in expected ID
+        (1, -2): "8a194da9a62ffff",  # Fill in expected ID
+        (1, -1): "8a194da9a757fff",  # Fill in expected ID
+        (1, 1): "8a194da9a767fff",  # Fill in expected ID
+        (1, 2): "8a194da9a397fff",  # Fill in expected ID
         
-        (4, 0): "8a194da9a627fff",  # Fill in expected ID
-        (4, 1): "8a194da9a70ffff",  # Fill in expected ID
-        (4, 2): "8a194da9a777fff",  # Fill in expected ID
-        (4, 3): "8a194da9a0dffff",  # Fill in expected ID
-        (4, 4): "8a194da9a0cffff",  # Fill in expected ID
+        (2, -2): "8a194da9a627fff",  # Fill in expected ID
+        (2, -1): "8a194da9a70ffff",  # Fill in expected ID
+        (2, 0): "8a194da9a777fff",  # Fill in expected ID
+        (2, 1): "8a194da9a0dffff",  # Fill in expected ID
+        (2, 2): "8a194da9a0cffff",  # Fill in expected ID
     }
     
     print("\nChecking grid positions:")
