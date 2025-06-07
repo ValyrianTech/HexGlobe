@@ -395,7 +395,7 @@ window.hexGlobeApp = {
             // Calculate offsets to center the active tile in the canvas
             // First, calculate the position of the active tile in pixels
             const activeTileX = (activeTileCol - bounds.min_col) * horizSpacing;
-            const activeTileY = (activeTileRow - bounds.min_row) * vertSpacing;
+            const activeTileY = (bounds.max_row - activeTileRow) * vertSpacing;
             
             // Apply the offset for odd columns (matching the test script)
             const activeColOffset = (activeTileCol % 2 === 1) ? vertSpacing / 2 : 0;
@@ -415,8 +415,8 @@ window.hexGlobeApp = {
                 
                 // Calculate the visual position on the canvas
                 // Convert from relative grid coordinates to absolute screen coordinates
-                const gridRow = row - bounds.min_row;
                 const gridCol = col - bounds.min_col;
+                const gridRow = bounds.max_row - row;
                 
                 // Calculate position using the same logic as the test script
                 let x = offsetX + gridCol * horizSpacing;
@@ -598,10 +598,12 @@ window.hexGlobeApp = {
         
         // Draw each tile
         for (const tile of this.state.tiles) {
-            // Only draw the active tile
-            if (tile.isActive) {
+            // Only draw the active tile or the bottom middle neighbor (-1, 0)
+            if (tile.isActive || (tile.row === -1 && tile.col === 0)) {
                 // Create a HexTile object with appropriate visual properties
-                const visualProperties = this.config.activeTileStyles;
+                const visualProperties = tile.isActive ? 
+                    this.config.activeTileStyles : 
+                    this.config.normalTileStyles;
                 
                 const hexTile = new HexTile(tile.id, visualProperties);
                 hexTile.calculateVertices(tile.x, tile.y, hexSize);
@@ -616,7 +618,7 @@ window.hexGlobeApp = {
                 // Store the HexTile object for later reference (e.g., for hit detection)
                 tile.hexTile = hexTile;
                 
-                console.log(`Drawing active tile at (${tile.col}, ${tile.row}) with ID ${tile.id}`);
+                console.log(`Drawing tile at (${tile.col}, ${tile.row}) with ID ${tile.id}`);
                 console.log(`Tile position: x=${tile.x}, y=${tile.y}`);
             }
         }
