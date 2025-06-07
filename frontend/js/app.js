@@ -625,7 +625,7 @@ window.hexGlobeApp = {
                 
                 // Set the H3 index as content to display
                 // Include the coordinates in the displayed content
-                hexTile.content = `(${tile.col},${tile.row})\n${tile.id}`;
+                hexTile.content = `(${tile.row},${tile.col})\n${tile.id}`;
                 
                 // Draw the tile
                 hexTile.draw(this.ctx);
