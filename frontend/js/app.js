@@ -608,36 +608,30 @@ window.hexGlobeApp = {
         
         console.log(`Rendering with hex size: ${hexSize}`);
         
-        // Find the active tile coordinates
-        const activeTileCoords = this.state.activeTileCoords;
-        
         // Draw each tile
         for (const tile of this.state.tiles) {
-            // Only draw the active tile or the bottom middle neighbor (row=-1, col=0)
-            if (tile.isActive || (tile.row === -1 && tile.col === 0) || (tile.row === -1 && tile.col === -1) ) {
-                // Create a HexTile object with appropriate visual properties
-                const visualProperties = tile.isActive ? 
-                    this.config.activeTileStyles : 
-                    this.config.normalTileStyles;
-                
-                const hexTile = new HexTile(tile.id, visualProperties);
-                hexTile.calculateVertices(tile.x, tile.y, hexSize);
-                
-                // Set the H3 index as content to display
-                // Include the coordinates in the displayed content
-                hexTile.content = `(${tile.row},${tile.col})\n${tile.id}`;
-                
-                // Draw the tile
-                hexTile.draw(this.ctx);
-                
-                // Store the HexTile object for later reference (e.g., for hit detection)
-                tile.hexTile = hexTile;
-                
-                console.log(`Drawing tile at (${tile.col}, ${tile.row}) with ID ${tile.id}`);
-                console.log(`Tile position: x=${tile.x}, y=${tile.y}`);
-                console.log(`Tile is${tile.isActive ? '' : ' not'} active`);
-                console.log(`Tile orientation: flat-bottom (Math.PI/6)`);
-            }
+            // Create a HexTile object with appropriate visual properties
+            const visualProperties = tile.isActive ? 
+                this.config.activeTileStyles : 
+                this.config.normalTileStyles;
+            
+            const hexTile = new HexTile(tile.id, visualProperties);
+            hexTile.calculateVertices(tile.x, tile.y, hexSize);
+            
+            // Set the H3 index as content to display
+            // Include the coordinates in the displayed content
+            hexTile.content = `(${tile.row},${tile.col})\n${tile.id}`;
+            
+            // Draw the tile
+            hexTile.draw(this.ctx);
+            
+            // Store the HexTile object for later reference (e.g., for hit detection)
+            tile.hexTile = hexTile;
+            
+            console.log(`Drawing tile at (${tile.col}, ${tile.row}) with ID ${tile.id}`);
+            console.log(`Tile position: x=${tile.x}, y=${tile.y}`);
+            console.log(`Tile is${tile.isActive ? '' : ' not'} active`);
+            console.log(`Tile orientation: flat-bottom (Math.PI/6)`);
         }
     },
     
