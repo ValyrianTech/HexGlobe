@@ -462,6 +462,8 @@ async def get_tile_grid(
         done_tiles = {tile_id}  # Set of processed tile IDs
         
         # Step 5: Iterative grid filling with verification
+        # COMMENTED OUT: Code that places tiles beyond the center tile and its immediate neighbors
+        """
         progress = True
         iteration_count = 0
         max_iterations = 100  # Safety limit to prevent infinite loops
@@ -593,6 +595,7 @@ async def get_tile_grid(
         
         if iteration_count >= max_iterations:
             logger.warning(f"Grid filling stopped after reaching maximum iterations ({max_iterations})")
+        """
         
         # Identify pentagon positions
         pentagon_positions = []
@@ -602,7 +605,7 @@ async def get_tile_grid(
                 if tile_id is not None and h3.h3_is_pentagon(tile_id):
                     pentagon_positions.append([row, col])
         
-        logger.info(f"Grid created successfully using iterative approach in {iteration_count} iterations")
+        logger.info(f"Grid created successfully with center tile and immediate neighbors only")
         logger.info(f"Found {len(pentagon_positions)} pentagons in the grid")
         
         # Count filled and empty cells for logging
@@ -620,7 +623,7 @@ async def get_tile_grid(
         
         if debug:
             response["debug_info"] = {
-                "iterations": iteration_count,
+                "iterations": 0,  # No iterations since we're only placing center and immediate neighbors
                 "placement_history": placement_info,
                 "position_map": {k: list(v) for k, v in position_map.items()}  # Convert tuples to lists for JSON
             }
