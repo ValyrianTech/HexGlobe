@@ -22,6 +22,8 @@ HexGlobe provides a framework for visualizing and interacting with a hexagonal g
 - Position-based neighbor references with descriptive keys (top_left, top_middle, etc.)
 - Consistent clockwise ordering of neighbor tiles
 - Multi-resolution tile mapping (same location at different H3 resolutions)
+- Flat-bottom hexagon orientation with proper grid alignment
+- Consistent coordinate system using (row, col) format
 
 ## Technology Stack
 
@@ -130,6 +132,8 @@ Handles the rendering of individual hexagonal tiles using HTML5 Canvas. Each til
 - Grid pattern to simulate map data
 - Tile information display
 - Point containment detection for interaction
+- Flat-bottom hexagon orientation (starting angle of 0 radians)
+- Proper vertex calculation for consistent hexagon shape
 
 ### app.js
 Main application logic that:
@@ -140,6 +144,8 @@ Main application logic that:
 - Controls zoom level and H3 resolution
 - Converts between different H3 resolutions
 - Integrates with the navigation system for API calls
+- Implements proper coordinate system using (row, col) format
+- Applies correct vertical offset for odd columns to maintain hexagonal grid alignment
 
 ### navigation.js
 Manages tile navigation and backend communication:

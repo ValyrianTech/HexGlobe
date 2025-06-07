@@ -186,6 +186,8 @@ HexGlobe is a web application framework that implements a global hexagonal grid 
 - Zoom control to adjust visible hex tiles
 - Resolution control to adjust hexagon size on Earth's surface
 - Neighbor visualization with click navigation
+- Flat-bottom hexagon orientation with proper alignment between tiles
+- Consistent coordinate system using (row, col) format
 
 #### Future Map Integration
 - Each hexagon will be filled with corresponding map data
@@ -232,6 +234,10 @@ HexGlobe is a web application framework that implements a global hexagonal grid 
 - Added neighbor_ids to tile data, ordered in a consistent clockwise manner
 - Added resolution_ids to tile data, mapping resolution levels to corresponding H3 indexes
 - Added API endpoint for retrieving resolution IDs for a tile
+- Fixed hexagon positioning to correctly display neighbor tiles in proper grid alignment
+- Corrected coordinate system to consistently use (row, col) format
+- Implemented flat-bottom hexagon orientation with proper vertex calculation
+- Added proper vertical offset for odd columns to maintain hexagonal grid alignment
 
 ### 6.2 In Progress
 - Enhancing frontend to utilize the ordered neighbor_ids for more intuitive navigation
