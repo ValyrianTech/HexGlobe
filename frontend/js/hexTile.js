@@ -39,10 +39,9 @@ class HexTile {
         this.size = size;
         this.vertices = [];
 
-        // Use flat-bottom orientation (like in the test script)
-        // Starting from bottom-right and going counter-clockwise
+        // Try a different approach: start with angle 0 for flat-bottom orientation
         for (let i = 0; i < 6; i++) {
-            const angle = (Math.PI / 3) * i + (Math.PI / 6); // Add PI/6 for flat-bottom orientation
+            const angle = (Math.PI / 3) * i;  // No offset, start at 0
             const x = centerX + size * Math.cos(angle);
             const y = centerY + size * Math.sin(angle);
             this.vertices.push({ x, y });
@@ -53,6 +52,7 @@ class HexTile {
             console.log(`Hexagon ${this.id} vertices:`, this.vertices);
             console.log(`Hexagon ${this.id} center:`, this.center);
             console.log(`Hexagon ${this.id} size:`, this.size);
+            console.log(`Hexagon ${this.id} orientation: 0 (no offset)`);
         }
     }
 
