@@ -387,7 +387,7 @@ async def get_tile_grid(
         grid_dict = {}
         
         # Define the standard mapping from neighbor positions to relative grid coordinates
-        position_to_relative_coords = {
+        relative_coords_for_even_columns = {
             "bottom_middle": (-1, 0),
             "bottom_left": (-1, -1),
             "top_left": (0, -1),
@@ -395,7 +395,16 @@ async def get_tile_grid(
             "top_right": (0, 1),
             "bottom_right": (-1, 1)
         }
-        
+
+        relative_coords_for_odd_columns = {
+            "bottom_middle": (-1, 0),
+            "bottom_left": (0, -1),
+            "top_left": (1, -1),
+            "top_middle": (1, 0),
+            "top_right": (1, 1),
+            "bottom_right": (0, 1)
+        }
+
         # Define the inverse mapping for verification
         inverse_positions = {
             "bottom_middle": "top_middle",
@@ -438,8 +447,8 @@ async def get_tile_grid(
             if neighbor_id == "pentagon":
                 continue
                 
-            if position in position_to_relative_coords:
-                row_offset, col_offset = position_to_relative_coords[position]
+            if position in relative_coords_for_even_columns:
+                row_offset, col_offset = relative_coords_for_even_columns[position]
                 neighbor_coords = (center_coords[0] + row_offset, center_coords[1] + col_offset)
                 
                 # Place the neighbor in the grid
@@ -454,7 +463,59 @@ async def get_tile_grid(
                     }
         
         # Step 4: Initialize processing
-        done_tiles = {tile_id}  # Set of processed tile IDs
+        done_tiles = {(0, 0)}  # Set of processed tile coordinates
+
+        # Go over all placed tiles but skip the onces that are done
+        for coords, tile_id in list(grid_dict.items()):
+
+            if coords in done_tiles:
+                continue
+
+            print('\n\nProcessing coords:', coords, '-- Tile_id', tile_id)
+            print('Current grid: ', grid_dict)
+
+            # Load the current tile
+            current_tile = Tile.load(tile_id)
+
+            # Process each neighbor
+            error=False
+            for position, neighbor_id in current_tile.neighbor_ids.items():
+                # Skip pentagon placeholders
+                if neighbor_id == "pentagon":
+                    continue
+                print('\nProcessing neighbor %s' % position)
+                print('%s %s' % (position, neighbor_id))
+
+                # Load the neighbor
+                neighbor_tile = Tile.load(neighbor_id)
+
+                # Find the relative coordinates
+                if coords[1] % 2 == 0:  # Even column
+                    relative_coords = (coords[0]+relative_coords_for_even_columns[position][0],
+                                       coords[1]+relative_coords_for_even_columns[position][1])
+                else:  # Odd column
+                    relative_coords = (coords[0] + relative_coords_for_odd_columns[position][0],
+                                       coords[1] + relative_coords_for_odd_columns[position][1])
+                print('Relative coords: ', relative_coords)
+
+                # Place the neighbor in the grid
+                if relative_coords in grid_dict and grid_dict[relative_coords] != neighbor_id:
+                    print('ERROR: trying to overwrite existing tile %s with new data %s' % (relative_coords, neighbor_id))
+                    error=True
+                    break
+
+                grid_dict[relative_coords] = neighbor_id
+
+            if error:
+                break
+
+            # Mark the current tile as done
+            done_tiles.add(coords)
+            print('-----------------------------------------------------')
+
+
+
+        # grid_dict[(-2, -2)] = "8a194da9a64ffff"
         
         # Step 5: Iterative grid filling with verification
         # COMMENTED OUT: Code that places tiles beyond the center tile and its immediate neighbors
