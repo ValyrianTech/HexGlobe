@@ -10,8 +10,64 @@ from pydantic import BaseModel
 # Set up logging
 logger = logging.getLogger(__name__)
 
+# Base data directory
+BASE_DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), "data")
+
+def get_static_path(h3_index: str) -> str:
+    """
+    Calculate the path for static tile data based on H3 index.
+    
+    Args:
+        h3_index: The H3 index of the tile
+        
+    Returns:
+        The absolute file path for the static data JSON file
+    """
+    # Get resolution from the index
+    resolution = h3.h3_get_resolution(h3_index)
+    
+    # Create directory structure with 2-digit segments
+    path_segments = []
+    for i in range(0, len(h3_index) - 1, 2):
+        if i + 1 < len(h3_index):
+            segment = h3_index[i:i+2]
+            path_segments.append(segment)
+    
+    # Construct the path
+    static_dir = os.path.join(BASE_DATA_DIR, "static", f"res_{resolution}", *path_segments)
+    os.makedirs(static_dir, exist_ok=True)
+    
+    return os.path.join(static_dir, f"{h3_index}.json")
+
+def get_dynamic_path(h3_index: str, mod_name: str = "default") -> str:
+    """
+    Calculate the path for dynamic tile data based on H3 index and mod name.
+    
+    Args:
+        h3_index: The H3 index of the tile
+        mod_name: The name of the mod/application (default: "default")
+        
+    Returns:
+        The absolute file path for the dynamic data JSON file
+    """
+    # Get resolution from the index
+    resolution = h3.h3_get_resolution(h3_index)
+    
+    # Create directory structure with 2-digit segments
+    path_segments = []
+    for i in range(0, len(h3_index) - 1, 2):
+        if i + 1 < len(h3_index):
+            segment = h3_index[i:i+2]
+            path_segments.append(segment)
+    
+    # Construct the path
+    dynamic_dir = os.path.join(BASE_DATA_DIR, "mods", mod_name, "tiles", f"res_{resolution}", *path_segments)
+    os.makedirs(dynamic_dir, exist_ok=True)
+    
+    return os.path.join(dynamic_dir, f"{h3_index}.json")
+
 # Data directory for tile storage
-DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), "data", "tiles")
+DATA_DIR = os.path.join(BASE_DATA_DIR, "tiles")
 os.makedirs(DATA_DIR, exist_ok=True)
 logger.info(f"Data directory set to: {DATA_DIR}")
 
