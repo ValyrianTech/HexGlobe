@@ -61,6 +61,7 @@ class HexTile {
                 this.hexMapImage = tileImage;
                 this.hexMapImageLoaded = true;
                 console.log(`Hex map image loaded for tile ${this.id}`);
+                console.log(`Image dimensions: ${tileImage.width}x${tileImage.height}`);
             };
             
             // Set up the onerror handler to keep using the placeholder
@@ -142,8 +143,22 @@ class HexTile {
             const imgX = this.center.x - imgSize / 2;
             const imgY = this.center.y - imgSize / 2;
             
+            console.log(`Drawing image for tile ${this.id} at (${imgX}, ${imgY}) with size ${imgSize}x${imgSize}`);
+            console.log(`Image source: ${this.hexMapImage.src}`);
+            console.log(`Image complete: ${this.hexMapImage.complete}, naturalWidth: ${this.hexMapImage.naturalWidth}, naturalHeight: ${this.hexMapImage.naturalHeight}`);
+            
             // Draw the image
-            ctx.drawImage(this.hexMapImage, imgX, imgY, imgSize, imgSize);
+            try {
+                ctx.drawImage(this.hexMapImage, imgX, imgY, imgSize, imgSize);
+                console.log(`Image drawn successfully for tile ${this.id}`);
+            } catch (error) {
+                console.error(`Error drawing image for tile ${this.id}:`, error);
+                // Fallback to solid color if image drawing fails
+                ctx.fillStyle = this.isActive ? 
+                    (this.visualProperties.activeFillColor || this.visualProperties.fillColor) : 
+                    this.visualProperties.fillColor;
+                ctx.fill();
+            }
         } else {
             // Fallback to solid color if no images are loaded
             ctx.fillStyle = this.isActive ? 
