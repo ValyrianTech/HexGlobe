@@ -4,6 +4,15 @@
  * This module handles the rendering of hexagonal tiles using HTML5 Canvas.
  */
 
+// Load the hex map placeholder image
+const hexMapImage = new Image();
+hexMapImage.src = 'assets/hex_map_placeholder.png';
+let hexMapImageLoaded = false;
+hexMapImage.onload = () => {
+    hexMapImageLoaded = true;
+    console.log('Hex map placeholder image loaded successfully');
+};
+
 class HexTile {
     /**
      * Create a new HexTile instance
@@ -63,6 +72,7 @@ class HexTile {
     draw(ctx) {
         if (this.vertices.length === 0) return;
 
+        // Begin path for the hexagon shape
         ctx.beginPath();
         ctx.moveTo(this.vertices[0].x, this.vertices[0].y);
         
@@ -72,67 +82,37 @@ class HexTile {
         
         ctx.closePath();
         
-        // Fill the hexagon using the visual properties
-        ctx.fillStyle = this.isActive ? 
-            (this.visualProperties.activeFillColor || this.visualProperties.fillColor) : 
-            this.visualProperties.fillColor;
-        ctx.fill();
+        // Create a clipping path for the hexagon
+        ctx.save();
+        ctx.clip();
+        
+        // Draw the background image if loaded
+        if (hexMapImageLoaded) {
+            // Calculate the position and size to draw the image
+            // Use a larger size to ensure the image covers the entire hexagon
+            const imgSize = this.size * 3;
+            const imgX = this.center.x - imgSize / 2;
+            const imgY = this.center.y - imgSize / 2;
+            
+            // Draw the image
+            ctx.drawImage(hexMapImage, imgX, imgY, imgSize, imgSize);
+        } else {
+            // Fallback to solid color if image not loaded
+            ctx.fillStyle = this.isActive ? 
+                (this.visualProperties.activeFillColor || this.visualProperties.fillColor) : 
+                this.visualProperties.fillColor;
+            ctx.fill();
+        }
+        
+        ctx.restore();
         
         // Draw the border
         ctx.strokeStyle = this.visualProperties.borderColor;
         ctx.lineWidth = this.visualProperties.borderThickness;
         ctx.stroke();
         
-        // Draw grid pattern inside the hexagon to simulate map data
-        this.drawGridPattern(ctx);
-        
         // Draw the H3 index in the center
         this.drawH3Index(ctx);
-    }
-    
-    /**
-     * Draw a grid pattern inside the hexagon to simulate map data
-     * @param {CanvasRenderingContext2D} ctx - The canvas rendering context
-     */
-    drawGridPattern(ctx) {
-        const gridSpacing = this.size / 4;
-        
-        ctx.save();
-        ctx.strokeStyle = "#e0e0e0";
-        ctx.lineWidth = 0.5;
-        
-        // Create a clipping path for the hexagon
-        ctx.beginPath();
-        ctx.moveTo(this.vertices[0].x, this.vertices[0].y);
-        for (let i = 1; i < this.vertices.length; i++) {
-            ctx.lineTo(this.vertices[i].x, this.vertices[i].y);
-        }
-        ctx.closePath();
-        ctx.clip();
-        
-        // Draw horizontal grid lines
-        const startY = Math.floor(this.center.y - this.size) - gridSpacing;
-        const endY = Math.ceil(this.center.y + this.size) + gridSpacing;
-        
-        for (let y = startY; y <= endY; y += gridSpacing) {
-            ctx.beginPath();
-            ctx.moveTo(this.center.x - this.size - gridSpacing, y);
-            ctx.lineTo(this.center.x + this.size + gridSpacing, y);
-            ctx.stroke();
-        }
-        
-        // Draw vertical grid lines
-        const startX = Math.floor(this.center.x - this.size) - gridSpacing;
-        const endX = Math.ceil(this.center.x + this.size) + gridSpacing;
-        
-        for (let x = startX; x <= endX; x += gridSpacing) {
-            ctx.beginPath();
-            ctx.moveTo(x, this.center.y - this.size - gridSpacing);
-            ctx.lineTo(x, this.center.y + this.size + gridSpacing);
-            ctx.stroke();
-        }
-        
-        ctx.restore();
     }
     
     /**
