@@ -145,8 +145,8 @@ class HexTile {
         // Draw the background image if loaded
         if (this.hexMapImageLoaded) {
             // Calculate the position and size to draw the image
-            // Use a larger size to ensure the image covers the entire hexagon
-            const imgSize = this.size * 3;
+            // Use a smaller size to ensure we can see the borders from the original images
+            const imgSize = this.size * 2;
             const imgX = this.center.x - imgSize / 2;
             const imgY = this.center.y - imgSize / 2;
             
