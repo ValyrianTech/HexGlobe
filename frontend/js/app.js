@@ -633,7 +633,18 @@ window.hexGlobeApp = {
                 this.config.activeTileStyles : 
                 this.config.normalTileStyles;
             
-            const hexTile = new HexTile(tile.id, visualProperties);
+            // Define a callback function for when the image loads
+            const onImageLoad = (hexTile) => {
+                // Store the updated hexTile object with the loaded image
+                tile.hexTile = hexTile;
+                
+                // Redraw just this specific tile with the loaded image
+                this.redrawTile(tile, hexSize);
+                
+                console.log(`Redrawing tile ${tile.id} with loaded image`);
+            };
+            
+            const hexTile = new HexTile(tile.id, visualProperties, onImageLoad);
             hexTile.calculateVertices(tile.x, tile.y, hexSize);
             
             // Set the H3 index as content to display
@@ -650,6 +661,43 @@ window.hexGlobeApp = {
             console.log(`Tile position: x=${tile.x}, y=${tile.y}`);
             console.log(`Tile is${tile.isActive ? '' : ' not'} active`);
             console.log(`Tile orientation: flat-bottom (Math.PI/6)`);
+        }
+    },
+    
+    // Redraw a specific tile when its image is loaded
+    redrawTile: function(tile, hexSize) {
+        if (!tile.hexTile) return;
+        
+        // Recalculate vertices with current position and size
+        tile.hexTile.calculateVertices(tile.x, tile.y, hexSize);
+        
+        // Draw just this tile
+        tile.hexTile.draw(this.ctx);
+        
+        // Redraw the border of any tiles that might have been covered
+        // This ensures tile borders remain visible
+        this.redrawTileBorders();
+    },
+    
+    // Redraw all tile borders to ensure they're visible
+    redrawTileBorders: function() {
+        for (const tile of this.state.tiles) {
+            if (tile.hexTile && tile.hexTile.vertices.length > 0) {
+                const ctx = this.ctx;
+                
+                // Draw just the border
+                ctx.beginPath();
+                ctx.moveTo(tile.hexTile.vertices[0].x, tile.hexTile.vertices[0].y);
+                
+                for (let i = 1; i < tile.hexTile.vertices.length; i++) {
+                    ctx.lineTo(tile.hexTile.vertices[i].x, tile.hexTile.vertices[i].y);
+                }
+                
+                ctx.closePath();
+                ctx.strokeStyle = tile.hexTile.visualProperties.borderColor;
+                ctx.lineWidth = tile.hexTile.visualProperties.borderThickness;
+                ctx.stroke();
+            }
         }
     },
     

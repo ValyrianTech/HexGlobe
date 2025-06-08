@@ -18,8 +18,9 @@ class HexTile {
      * Create a new HexTile instance
      * @param {string} id - The H3 index of the tile
      * @param {Object} visualProperties - Visual properties for rendering
+     * @param {Function} onImageLoad - Optional callback when the image loads
      */
-    constructor(id, visualProperties = {}) {
+    constructor(id, visualProperties = {}, onImageLoad = null) {
         this.id = id;
         this.content = id;
         this.visualProperties = {
@@ -41,13 +42,14 @@ class HexTile {
         this.hexMapImageLoaded = placeholderImageLoaded;
         
         // Try to load the tile-specific image
-        this.loadHexMapImage();
+        this.loadHexMapImage(onImageLoad);
     }
 
     /**
      * Load the hex map image for this specific tile
+     * @param {Function} onImageLoad - Optional callback when the image loads
      */
-    loadHexMapImage() {
+    loadHexMapImage(onImageLoad = null) {
         try {
             // Get the resolution from the H3 index
             const resolution = parseInt(this.id[1], 16); // Second character of H3 index indicates resolution
@@ -62,6 +64,11 @@ class HexTile {
                 this.hexMapImageLoaded = true;
                 console.log(`Hex map image loaded for tile ${this.id}`);
                 console.log(`Image dimensions: ${tileImage.width}x${tileImage.height}`);
+                
+                // Call the onImageLoad callback if provided
+                if (onImageLoad && typeof onImageLoad === 'function') {
+                    onImageLoad(this);
+                }
             };
             
             // Set up the onerror handler to keep using the placeholder
