@@ -312,7 +312,8 @@ def create_hexagon_map(h3_index, zoom=None, rotate=True):
         draw.line([pixel_vertices[i], pixel_vertices[next_i]], fill="white", width=2)
     
     # Save the unrotated image for reference
-    image.save(f"{h3_index}_vertices.png")
+    unrotated_image = image.copy()
+    unrotated_image.save(f"{h3_index}_vertices.png")
     print(f"Image with labeled vertices saved to {h3_index}_vertices.png")
     
     # Print vertex coordinates
@@ -342,8 +343,9 @@ def create_hexagon_map(h3_index, zoom=None, rotate=True):
         bottom_right = pixel_vertices[bottom_right_idx]
         
         # Draw the bottom edge in a different color
+        draw = ImageDraw.Draw(unrotated_image)
         draw.line([bottom_left, bottom_right], fill="cyan", width=5)
-        image.save(f"{h3_index}_bottom_edge.png")
+        unrotated_image.save(f"{h3_index}_bottom_edge.png")
         print(f"Image with bottom edge highlighted saved to {h3_index}_bottom_edge.png")
         
         # Calculate the angle of the bottom edge with the horizontal
@@ -356,12 +358,58 @@ def create_hexagon_map(h3_index, zoom=None, rotate=True):
         print(f"Bottom edge angle with horizontal: {edge_angle:.2f} degrees")
         
         # Calculate rotation needed to make this edge horizontal
-        rotation_angle = -edge_angle
+        rotation_angle = edge_angle  # Changed from -edge_angle to edge_angle
         print(f"Rotation angle needed: {rotation_angle:.2f} degrees")
         
-        # For now, let's not apply the rotation until we confirm the bottom edge is correct
-        if False:  # Change to True when ready to apply rotation
-            image, pixel_vertices = rotate_image_and_vertices(image, pixel_vertices, rotation_angle)
+        # Apply the rotation to make the bottom edge horizontal
+        image, rotated_vertices = rotate_image_and_vertices(image, pixel_vertices, rotation_angle)
+        
+        # Draw all vertices on the rotated image
+        draw = ImageDraw.Draw(image)
+        
+        # Draw circles at all vertices
+        for i, vertex in enumerate(rotated_vertices):
+            draw.ellipse((vertex[0]-radius, vertex[1]-radius, vertex[0]+radius, vertex[1]+radius), fill=colors[i % len(colors)])
+        
+        # Draw text labels with coordinates
+        for i, vertex in enumerate(rotated_vertices):
+            draw.text((vertex[0]+radius, vertex[1]-radius), f"{i}: ({vertex[0]}, {vertex[1]})", fill=colors[i % len(colors)], font=font)
+        
+        # Draw lines connecting the vertices in order
+        for i in range(len(rotated_vertices)):
+            next_i = (i + 1) % len(rotated_vertices)
+            draw.line([rotated_vertices[i], rotated_vertices[next_i]], fill="white", width=2)
+        
+        # Find the bottom edge in the rotated image
+        vertices_by_y = sorted(enumerate(rotated_vertices), key=lambda x: x[1][1], reverse=True)
+        bottom_vertices_indices = [vertices_by_y[0][0], vertices_by_y[1][0]]
+        bottom_vertices_indices.sort(key=lambda idx: rotated_vertices[idx][0])
+        
+        bottom_left_idx = bottom_vertices_indices[0]
+        bottom_right_idx = bottom_vertices_indices[1]
+        
+        bottom_left = rotated_vertices[bottom_left_idx]
+        bottom_right = rotated_vertices[bottom_right_idx]
+        
+        # Draw the bottom edge in the rotated image
+        draw.line([bottom_left, bottom_right], fill="cyan", width=5)
+        
+        # Calculate the angle of the bottom edge after rotation
+        dx = bottom_right[0] - bottom_left[0]
+        dy = bottom_right[1] - bottom_left[1]
+        edge_angle_after = math.degrees(math.atan2(dy, dx))
+        
+        print(f"\nAfter rotation:")
+        print(f"Bottom edge: Vertex {bottom_left_idx} to Vertex {bottom_right_idx}")
+        print(f"Bottom edge coordinates: ({bottom_left[0]}, {bottom_left[1]}) to ({bottom_right[0]}, {bottom_right[1]})")
+        print(f"Bottom edge angle with horizontal: {edge_angle_after:.2f} degrees")
+        
+        # Save the rotated image with vertices
+        image.save(f"{h3_index}_rotated.png")
+        print(f"Rotated image saved to {h3_index}_rotated.png")
+        
+        # Update the pixel vertices to the rotated ones
+        pixel_vertices = rotated_vertices
     
     return image, pixel_vertices
 
