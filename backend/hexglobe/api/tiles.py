@@ -30,7 +30,7 @@ async def get_tile(
             raise HTTPException(status_code=400, detail="Invalid H3 index")
         
         # Try to load from storage
-        tile = Tile.load(tile_id)
+        tile = Tile.load(tile_id, mod_name)
         
         # If not found in storage, create a new one
         if tile is None:
@@ -54,7 +54,7 @@ async def get_tile(
                     continue  # Skip the center tile
                     
                 # Check if neighbor already exists
-                if Tile.load(neighbor_id) is None:
+                if Tile.load(neighbor_id, mod_name) is None:
                     # Create and save the neighbor tile (static data only)
                     if h3.h3_is_pentagon(neighbor_id):
                         neighbor_tile = PentagonTile(neighbor_id)
@@ -87,7 +87,7 @@ async def update_tile(
             raise HTTPException(status_code=400, detail="Invalid H3 index")
         
         # Load or create the tile
-        tile = Tile.load(tile_id)
+        tile = Tile.load(tile_id, mod_name)
         if tile is None:
             logger.info(f"[{datetime.now()}] Tile {tile_id} not found in storage, creating new one")
             if h3.h3_is_pentagon(tile_id):
@@ -132,7 +132,7 @@ async def get_neighbors(
             raise HTTPException(status_code=400, detail="Invalid H3 index")
         
         # Load or create the tile
-        tile = Tile.load(tile_id)
+        tile = Tile.load(tile_id, mod_name)
         if tile is None:
             logger.info(f"[{datetime.now()}] Tile {tile_id} not found in storage, creating new one")
             if h3.h3_is_pentagon(tile_id):
@@ -155,7 +155,7 @@ async def get_neighbors(
                 }
             else:
                 # Load or create the neighbor tile
-                neighbor_tile = Tile.load(neighbor_id)
+                neighbor_tile = Tile.load(neighbor_id, mod_name)
                 if neighbor_tile is None:
                     if h3.h3_is_pentagon(neighbor_id):
                         neighbor_tile = PentagonTile(neighbor_id)
@@ -190,7 +190,7 @@ async def get_parent(
             raise HTTPException(status_code=400, detail="Invalid H3 index")
         
         # Load or create the tile
-        tile = Tile.load(tile_id)
+        tile = Tile.load(tile_id, mod_name)
         if tile is None:
             logger.info(f"[{datetime.now()}] Tile {tile_id} not found in storage, creating new one")
             if h3.h3_is_pentagon(tile_id):
@@ -232,7 +232,7 @@ async def get_children(
             raise HTTPException(status_code=400, detail="Invalid H3 index")
         
         # Load or create the tile
-        tile = Tile.load(tile_id)
+        tile = Tile.load(tile_id, mod_name)
         if tile is None:
             logger.info(f"[{datetime.now()}] Tile {tile_id} not found in storage, creating new one")
             if h3.h3_is_pentagon(tile_id):
@@ -271,7 +271,7 @@ async def move_content(
             raise HTTPException(status_code=400, detail="Invalid H3 index")
         
         # Load or create the source tile
-        source_tile = Tile.load(tile_id)
+        source_tile = Tile.load(tile_id, mod_name)
         if source_tile is None:
             logger.info(f"[{datetime.now()}] Source tile {tile_id} not found in storage, creating new one")
             if h3.h3_is_pentagon(tile_id):
@@ -284,7 +284,7 @@ async def move_content(
             logger.info(f"[{datetime.now()}] New source tile {tile_id} static data saved to storage")
         
         # Load or create the target tile
-        target_tile = Tile.load(target_id)
+        target_tile = Tile.load(target_id, mod_name)
         if target_tile is None:
             logger.info(f"[{datetime.now()}] Target tile {target_id} not found in storage, creating new one")
             if h3.h3_is_pentagon(target_id):
@@ -333,7 +333,7 @@ async def update_visual_properties(
             raise HTTPException(status_code=400, detail="Invalid H3 index")
         
         # Load or create the tile
-        tile = Tile.load(tile_id)
+        tile = Tile.load(tile_id, mod_name)
         if tile is None:
             logger.info(f"[{datetime.now()}] Tile {tile_id} not found in storage, creating new one")
             if h3.h3_is_pentagon(tile_id):
@@ -435,7 +435,7 @@ async def get_tile_grid(
         grid_dict[center_coords] = tile_id
 
         # Load or create the center tile
-        center_tile = Tile.load(tile_id)
+        center_tile = Tile.load(tile_id, mod_name)
         if center_tile is None:
             if h3.h3_is_pentagon(tile_id):
                 center_tile = PentagonTile(tile_id)
@@ -475,7 +475,7 @@ async def get_tile_grid(
                     continue
 
                 # Load the current tile
-                current_tile = Tile.load(current_id)
+                current_tile = Tile.load(current_id, mod_name)
 
                 if current_tile is None:
                     logger.info(f"[{datetime.now()}] Tile {current_id} not found in storage, creating new one")
@@ -575,7 +575,7 @@ async def get_resolutions(
             raise HTTPException(status_code=400, detail="Invalid H3 index")
         
         # Load or create the tile
-        tile = Tile.load(tile_id)
+        tile = Tile.load(tile_id, mod_name)
         if tile is None:
             logger.info(f"[{datetime.now()}] Tile {tile_id} not found in storage, creating new one")
             if h3.h3_is_pentagon(tile_id):

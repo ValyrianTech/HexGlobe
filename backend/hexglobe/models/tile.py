@@ -341,33 +341,22 @@ class Tile(ABC):
         }
     
     def save(self) -> None:
-        """Persists tile data to storage (legacy method)."""
+        """
+        Persists tile data to storage.
+        
+        This method now uses the new split format, saving static data always
+        and dynamic data only when needed.
+        """
         try:
-            file_path = os.path.join(DATA_DIR, f"{self.id}.json")
-            logger.info(f"Attempting to save tile {self.id} to {file_path}")
+            logger.info(f"Saving tile {self.id}")
             
-            # Check if directory exists
-            if not os.path.exists(DATA_DIR):
-                logger.warning(f"Data directory {DATA_DIR} does not exist, creating it")
-                os.makedirs(DATA_DIR, exist_ok=True)
-            
-            # Convert to dict and save
-            tile_data = self.to_dict()
-            logger.info(f"Tile data to save: {tile_data}")
-            
-            with open(file_path, 'w') as f:
-                json.dump(tile_data, f, indent=2)
-                
-            logger.info(f"Successfully saved tile {self.id} to {file_path}")
-            
-            # Verify file was created
-            if os.path.exists(file_path):
-                logger.info(f"Verified file exists: {file_path}")
-            else:
-                logger.error(f"File was not created: {file_path}")
-                
-            # Also save using the new format
+            # Save static data (always)
             self.save_static()
+            
+            # Save dynamic data (only if needed)
+            self.save_dynamic()
+            
+            logger.info(f"Successfully saved tile {self.id}")
                 
         except Exception as e:
             logger.error(f"Error saving tile {self.id}: {str(e)}")
@@ -375,11 +364,15 @@ class Tile(ABC):
     
     def save_split(self, mod_name: str = "default") -> None:
         """
-        Persists tile data to storage using the new split format.
+        Persists tile data to storage using the split format.
+        
+        DEPRECATED: Use save_static() and save_dynamic() directly instead.
+        This method is kept for backward compatibility.
         
         Args:
             mod_name: The name of the mod/application (default: "default")
         """
+        logger.warning("save_split() is deprecated. Use save_static() and save_dynamic() directly instead.")
         try:
             # Save static data
             self.save_static()
@@ -468,50 +461,66 @@ class Tile(ABC):
             raise
     
     @classmethod
-    def load(cls, tile_id: str) -> Optional["Tile"]:
-        """Load a tile from storage (legacy method)."""
-        file_path = os.path.join(DATA_DIR, f"{tile_id}.json")
-        if not os.path.exists(file_path):
-            # Try loading from the new format
-            return cls.load_split(tile_id)
+    def load(cls, tile_id: str, mod_name: str = "default") -> Optional["Tile"]:
+        """
+        Load a tile from storage.
         
+        Args:
+            tile_id: The H3 index of the tile
+            mod_name: The name of the mod/application (default: "default")
+            
+        Returns:
+            The loaded tile or None if not found
+        """
         try:
-            with open(file_path, 'r') as f:
-                data = json.load(f)
+            # Check for legacy format first for backward compatibility
+            legacy_path = os.path.join(DATA_DIR, f"{tile_id}.json")
+            if os.path.exists(legacy_path):
+                logger.info(f"Found legacy format for tile {tile_id}, loading from {legacy_path}")
+                with open(legacy_path, 'r') as f:
+                    data = json.load(f)
+                
+                # Create the appropriate tile type
+                if h3.h3_is_pentagon(tile_id):
+                    tile = PentagonTile(tile_id)
+                else:
+                    tile = HexagonTile(tile_id)
+                
+                # Load data
+                tile.content = data.get("content")
+                
+                if "visual_properties" in data:
+                    tile.visual_properties = VisualProperties(**data["visual_properties"])
+                
+                tile.parent_id = data.get("parent_id")
+                tile.children_ids = data.get("children_ids", [])
+                
+                # Handle both list and dict formats for backward compatibility
+                neighbor_ids = data.get("neighbor_ids", {})
+                if isinstance(neighbor_ids, list):
+                    # Convert old list format to new dict format
+                    tile.neighbor_ids = tile._get_positioned_neighbors(tile_id)
+                else:
+                    tile.neighbor_ids = neighbor_ids
+                
+                tile.resolution_ids = data.get("resolution_ids", {})
+                
+                # Load resolution or calculate it if not present in the data
+                if "resolution" in data:
+                    tile.resolution = data["resolution"]
+                else:
+                    # For backward compatibility with existing tiles
+                    tile.resolution = h3.h3_get_resolution(tile_id)
+                
+                # Save in the new format for future use
+                tile.save_static()
+                tile.save_dynamic(mod_name)
+                
+                return tile
             
-            # Create the appropriate tile type
-            if h3.h3_is_pentagon(tile_id):
-                tile = PentagonTile(tile_id)
-            else:
-                tile = HexagonTile(tile_id)
+            # If not found in legacy format, try the new split format
+            return cls.load_split(tile_id, mod_name)
             
-            # Load data
-            tile.content = data.get("content")
-            
-            if "visual_properties" in data:
-                tile.visual_properties = VisualProperties(**data["visual_properties"])
-            
-            tile.parent_id = data.get("parent_id")
-            tile.children_ids = data.get("children_ids", [])
-            
-            # Handle both list and dict formats for backward compatibility
-            neighbor_ids = data.get("neighbor_ids", {})
-            if isinstance(neighbor_ids, list):
-                # Convert old list format to new dict format
-                tile.neighbor_ids = tile._get_positioned_neighbors(tile_id)
-            else:
-                tile.neighbor_ids = neighbor_ids
-            
-            tile.resolution_ids = data.get("resolution_ids", {})
-            
-            # Load resolution or calculate it if not present in the data
-            if "resolution" in data:
-                tile.resolution = data["resolution"]
-            else:
-                # For backward compatibility with existing tiles
-                tile.resolution = h3.h3_get_resolution(tile_id)
-            
-            return tile
         except Exception as e:
             logger.error(f"Error loading tile {tile_id}: {str(e)}")
             return None

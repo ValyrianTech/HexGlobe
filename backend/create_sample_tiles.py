@@ -7,14 +7,11 @@ This will generate a set of tiles at a specific resolution around a center point
 import os
 import json
 import h3
-from hexglobe.models.tile import DATA_DIR, TileData, VisualProperties
-from hexglobe.models.tile import get_static_path, get_dynamic_path, HexagonTile, PentagonTile
+from hexglobe.models.tile import TileData, VisualProperties
+from hexglobe.models.tile import HexagonTile, PentagonTile
 
 def create_sample_tiles():
     """Create sample tile data for testing."""
-    # Ensure data directory exists
-    os.makedirs(DATA_DIR, exist_ok=True)
-    
     # Define center point (San Francisco)
     lat, lng = 37.7749, -122.4194
     
@@ -38,26 +35,11 @@ def create_sample_tiles():
             fill_opacity=0.7
         )
         
-        # Create tile data
-        tile_data = TileData(
-            id=index,
-            content=f"Sample content for {'pentagon' if is_pentagon else 'hexagon'} {index}",
-            visual_properties=visual_props,
-            parent_id=h3.h3_to_parent(index, h3.h3_get_resolution(index) - 1) if h3.h3_get_resolution(index) > 0 else None,
-            children_ids=h3.h3_to_children(index, h3.h3_get_resolution(index) + 1)
-        )
-        
-        # Save to legacy file
-        file_path = os.path.join(DATA_DIR, f"{index}.json")
-        with open(file_path, 'w') as f:
-            f.write(tile_data.model_dump_json(indent=2))
-        
-        # Save to new split format
         # Create the appropriate tile type
         if is_pentagon:
-            tile = PentagonTile(index, tile_data.content)
+            tile = PentagonTile(index, f"Sample content for pentagon {index}")
         else:
-            tile = HexagonTile(index, tile_data.content)
+            tile = HexagonTile(index, f"Sample content for hexagon {index}")
             
         # Set visual properties
         for prop_name, prop_value in visual_props.dict().items():
@@ -78,7 +60,7 @@ def create_sample_tiles():
         
         print(f"Created tile: {index} ({'pentagon' if is_pentagon else 'hexagon'})")
     
-    print(f"Created {len(tile_indices)} sample tiles in both legacy and new formats")
+    print(f"Created {len(tile_indices)} sample tiles")
     print(f"Center tile ID: {center_index}")
 
 if __name__ == "__main__":
