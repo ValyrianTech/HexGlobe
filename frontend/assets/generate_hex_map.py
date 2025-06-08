@@ -17,6 +17,7 @@ import math
 from PIL import Image
 from staticmap import StaticMap, Line
 import numpy as np
+import json
 
 # Constants for the image rendering
 CANVAS_SIZE = 1024
@@ -31,6 +32,8 @@ def parse_arguments():
     parser.add_argument('--output', default=None, help='Output file path (default: h3_index.png)')
     parser.add_argument('--zoom', type=int, default=None, 
                         help='OpenStreetMap zoom level (1-19, default: auto-calculated)')
+    parser.add_argument('--vertices', action='store_true',
+                        help='Output the pixel coordinates of the hexagon vertices')
     return parser.parse_args()
 
 
@@ -80,6 +83,42 @@ def calculate_zoom_level(boundary):
         return 19  # Was 17
 
 
+def geo_to_pixel(lat, lng, center_lat, center_lng, zoom):
+    """
+    Convert geographic coordinates to pixel coordinates in the image.
+    
+    Args:
+        lat: Latitude
+        lng: Longitude
+        center_lat: Center latitude of the map
+        center_lng: Center longitude of the map
+        zoom: Zoom level
+        
+    Returns:
+        (x, y) pixel coordinates
+    """
+    # Web Mercator projection formulas
+    def lat_to_y(lat):
+        return 128 / math.pi * 2**zoom * (math.pi - math.log(math.tan(math.pi / 4 + lat * math.pi / 360)))
+    
+    def lng_to_x(lng):
+        return 128 / math.pi * 2**zoom * (lng + 180) / 360
+    
+    # Calculate center pixel
+    center_x = lng_to_x(center_lng)
+    center_y = lat_to_y(center_lat)
+    
+    # Calculate target pixel
+    x = lng_to_x(lng)
+    y = lat_to_y(lat)
+    
+    # Calculate relative position from center
+    rel_x = x - center_x + CANVAS_SIZE / 2
+    rel_y = y - center_y + CANVAS_SIZE / 2
+    
+    return (int(rel_x), int(rel_y))
+
+
 def create_hexagon_map(h3_index, zoom=None):
     """
     Create a map image with a hexagon boundary for the given H3 index.
@@ -89,7 +128,7 @@ def create_hexagon_map(h3_index, zoom=None):
         zoom: OpenStreetMap zoom level (optional)
         
     Returns:
-        PIL Image object with the map and hexagon boundary
+        Tuple of (PIL Image object, list of vertex pixel coordinates)
     """
     # Validate the H3 index
     if not h3.h3_is_valid(h3_index):
@@ -125,7 +164,13 @@ def create_hexagon_map(h3_index, zoom=None):
     # Render the map with the hexagon boundary
     image = m.render(zoom=zoom, center=[center_lng, center_lat])
     
-    return image
+    # Calculate pixel coordinates of vertices
+    pixel_vertices = []
+    for lat, lng in boundary:
+        pixel_x, pixel_y = geo_to_pixel(lat, lng, center_lat, center_lng, zoom)
+        pixel_vertices.append((pixel_x, pixel_y))
+    
+    return image, pixel_vertices
 
 
 def main():
@@ -134,7 +179,7 @@ def main():
     
     try:
         # Create the map image
-        img = create_hexagon_map(args.h3_index, args.zoom)
+        img, vertices = create_hexagon_map(args.h3_index, args.zoom)
         
         # Determine output path
         output_path = args.output if args.output else f"{args.h3_index}.png"
@@ -145,6 +190,22 @@ def main():
         # Save the image
         img.save(output_path, format='PNG')
         print(f"Map image saved to {output_path}")
+        
+        # Output vertex coordinates if requested
+        if args.vertices:
+            vertices_file = f"{os.path.splitext(output_path)[0]}_vertices.json"
+            with open(vertices_file, 'w') as f:
+                json.dump({
+                    'h3_index': args.h3_index,
+                    'image_size': CANVAS_SIZE,
+                    'vertices': vertices
+                }, f, indent=2)
+            print(f"Vertex coordinates saved to {vertices_file}")
+            
+            # Also print to console for convenience
+            print("\nHexagon Vertices (x, y):")
+            for i, (x, y) in enumerate(vertices):
+                print(f"Vertex {i}: ({x}, {y})")
         
     except Exception as e:
         print(f"Error: {str(e)}")
