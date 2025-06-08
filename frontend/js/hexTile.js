@@ -66,12 +66,16 @@ class HexTile {
             // Set up the onerror handler to keep using the placeholder
             tileImage.onerror = () => {
                 console.warn(`Failed to load hex map image for tile ${this.id}, using placeholder`);
+                console.warn(`Attempted to load from path: ${tileImage.src}`);
                 // Keep using the placeholder (already set in constructor)
             };
             
             // Construct the path to the hex map image
-            // Use relative path from the frontend directory
-            const hexMapPath = `../data/hex_maps/res_${resolution}/${this.id.substring(0, 2)}/${this.id.substring(2, 4)}/${this.id.substring(4, 6)}/${this.id.substring(6, 8)}/${this.id.substring(8, 10)}/${this.id.substring(10, 12)}/${this.id.substring(12, 14)}/${this.id}.png`;
+            // Use a path relative to the frontend directory, similar to the placeholder
+            const hexMapPath = `data/hex_maps/res_${resolution}/${this.id.substring(0, 2)}/${this.id.substring(2, 4)}/${this.id.substring(4, 6)}/${this.id.substring(6, 8)}/${this.id.substring(8, 10)}/${this.id.substring(10, 12)}/${this.id.substring(12, 14)}/${this.id}.png`;
+            
+            // Log the path we're trying to load
+            console.log(`Attempting to load hex map image from: ${hexMapPath}`);
             
             // Set the image source after setting up handlers
             tileImage.src = hexMapPath;
