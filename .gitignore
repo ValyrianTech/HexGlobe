@@ -57,6 +57,10 @@ coverage
 /data/*
 !/data/.gitkeep
 
+# Generated visualization files
+grid_visualization.png
+single_tile_visualization.png
+
 # Logs
 logs
 *.log
