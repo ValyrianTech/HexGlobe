@@ -328,8 +328,27 @@ class Tile(ABC):
             "resolution": self.resolution
         }
     
+    def to_static_dict(self) -> Dict:
+        """Convert tile to dictionary for static data JSON serialization."""
+        return {
+            "id": self.id,
+            "parent_id": self.parent_id,
+            "children_ids": list(self.children_ids) if isinstance(self.children_ids, set) else self.children_ids,
+            "neighbor_ids": self.neighbor_ids,
+            "resolution_ids": self.resolution_ids,
+            "resolution": self.resolution
+        }
+    
+    def to_dynamic_dict(self) -> Dict:
+        """Convert tile to dictionary for dynamic data JSON serialization."""
+        return {
+            "id": self.id,
+            "content": self.content,
+            "visual_properties": self.visual_properties.dict()
+        }
+    
     def save(self) -> None:
-        """Persists tile data to storage."""
+        """Persists tile data to storage (legacy method)."""
         try:
             file_path = os.path.join(DATA_DIR, f"{self.id}.json")
             logger.info(f"Attempting to save tile {self.id} to {file_path}")
@@ -354,16 +373,54 @@ class Tile(ABC):
             else:
                 logger.error(f"File was not created: {file_path}")
                 
+            # Also save using the new format
+            self.save_split()
+                
         except Exception as e:
             logger.error(f"Error saving tile {self.id}: {str(e)}")
             raise
     
+    def save_split(self, mod_name: str = "default") -> None:
+        """
+        Persists tile data to storage using the new split format.
+        
+        Args:
+            mod_name: The name of the mod/application (default: "default")
+        """
+        try:
+            # Save static data
+            static_path = get_static_path(self.id)
+            logger.info(f"Saving static data for tile {self.id} to {static_path}")
+            
+            static_data = self.to_static_dict()
+            os.makedirs(os.path.dirname(static_path), exist_ok=True)
+            
+            with open(static_path, 'w') as f:
+                json.dump(static_data, f, indent=2)
+            
+            # Save dynamic data
+            dynamic_path = get_dynamic_path(self.id, mod_name)
+            logger.info(f"Saving dynamic data for tile {self.id} to {dynamic_path}")
+            
+            dynamic_data = self.to_dynamic_dict()
+            os.makedirs(os.path.dirname(dynamic_path), exist_ok=True)
+            
+            with open(dynamic_path, 'w') as f:
+                json.dump(dynamic_data, f, indent=2)
+            
+            logger.info(f"Successfully saved tile {self.id} in split format")
+            
+        except Exception as e:
+            logger.error(f"Error saving tile {self.id} in split format: {str(e)}")
+            raise
+    
     @classmethod
     def load(cls, tile_id: str) -> Optional["Tile"]:
-        """Load a tile from storage."""
+        """Load a tile from storage (legacy method)."""
         file_path = os.path.join(DATA_DIR, f"{tile_id}.json")
         if not os.path.exists(file_path):
-            return None
+            # Try loading from the new format
+            return cls.load_split(tile_id)
         
         try:
             with open(file_path, 'r') as f:
@@ -404,6 +461,62 @@ class Tile(ABC):
             return tile
         except Exception as e:
             logger.error(f"Error loading tile {tile_id}: {str(e)}")
+            return None
+    
+    @classmethod
+    def load_split(cls, tile_id: str, mod_name: str = "default") -> Optional["Tile"]:
+        """
+        Load a tile from storage using the new split format.
+        
+        Args:
+            tile_id: The H3 index of the tile
+            mod_name: The name of the mod/application (default: "default")
+            
+        Returns:
+            The loaded tile or None if not found
+        """
+        static_path = get_static_path(tile_id)
+        dynamic_path = get_dynamic_path(tile_id, mod_name)
+        
+        # Check if at least the static file exists
+        if not os.path.exists(static_path):
+            logger.info(f"Static data file not found for tile {tile_id}")
+            return None
+        
+        try:
+            # Load static data
+            with open(static_path, 'r') as f:
+                static_data = json.load(f)
+            
+            # Create the appropriate tile type
+            if h3.h3_is_pentagon(tile_id):
+                tile = PentagonTile(tile_id)
+            else:
+                tile = HexagonTile(tile_id)
+            
+            # Load static data
+            tile.parent_id = static_data.get("parent_id")
+            tile.children_ids = static_data.get("children_ids", [])
+            tile.neighbor_ids = static_data.get("neighbor_ids", {})
+            tile.resolution_ids = static_data.get("resolution_ids", {})
+            tile.resolution = static_data.get("resolution", h3.h3_get_resolution(tile_id))
+            
+            # Try to load dynamic data if it exists
+            if os.path.exists(dynamic_path):
+                with open(dynamic_path, 'r') as f:
+                    dynamic_data = json.load(f)
+                
+                # Load dynamic data
+                tile.content = dynamic_data.get("content")
+                
+                if "visual_properties" in dynamic_data:
+                    tile.visual_properties = VisualProperties(**dynamic_data["visual_properties"])
+            else:
+                logger.info(f"Dynamic data file not found for tile {tile_id}, using default values")
+            
+            return tile
+        except Exception as e:
+            logger.error(f"Error loading tile {tile_id} from split format: {str(e)}")
             return None
     
     @abstractmethod

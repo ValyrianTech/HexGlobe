@@ -8,6 +8,7 @@ import os
 import json
 import h3
 from hexglobe.models.tile import DATA_DIR, TileData, VisualProperties
+from hexglobe.models.tile import get_static_path, get_dynamic_path, HexagonTile, PentagonTile
 
 def create_sample_tiles():
     """Create sample tile data for testing."""
@@ -46,14 +47,28 @@ def create_sample_tiles():
             children_ids=h3.h3_to_children(index, h3.h3_get_resolution(index) + 1)
         )
         
-        # Save to file
+        # Save to legacy file
         file_path = os.path.join(DATA_DIR, f"{index}.json")
         with open(file_path, 'w') as f:
             f.write(tile_data.model_dump_json(indent=2))
         
+        # Save to new split format
+        # Create the appropriate tile type
+        if is_pentagon:
+            tile = PentagonTile(index, tile_data.content)
+        else:
+            tile = HexagonTile(index, tile_data.content)
+            
+        # Set visual properties
+        for prop_name, prop_value in visual_props.dict().items():
+            tile.set_visual_property(prop_name, prop_value)
+            
+        # Save using the new split format
+        tile.save_split()
+        
         print(f"Created tile: {index} ({'pentagon' if is_pentagon else 'hexagon'})")
     
-    print(f"Created {len(tile_indices)} sample tiles in {DATA_DIR}")
+    print(f"Created {len(tile_indices)} sample tiles in both legacy and new formats")
     print(f"Center tile ID: {center_index}")
 
 if __name__ == "__main__":
