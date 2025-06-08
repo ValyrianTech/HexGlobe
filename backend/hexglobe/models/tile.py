@@ -55,6 +55,32 @@ def get_dynamic_path(h3_index: str, mod_name: str = "default") -> str:
     dynamic_dir = os.path.join(BASE_DATA_DIR, "dynamic", mod_name, f"res_{resolution}", *path_segments)
     return os.path.join(dynamic_dir, f"{h3_index}.json")
 
+def get_hex_map_path(h3_index: str) -> str:
+    """
+    Calculate the path for hex map image based on H3 index.
+    
+    Args:
+        h3_index: The H3 index of the tile
+        
+    Returns:
+        The absolute file path for the hex map PNG file
+    """
+    # Get resolution from the index
+    resolution = h3.h3_get_resolution(h3_index)
+    
+    # Create directory structure with 2-digit segments
+    path_segments = []
+    for i in range(0, len(h3_index) - 1, 2):
+        if i + 1 < len(h3_index):
+            segment = h3_index[i:i+2]
+            path_segments.append(segment)
+    
+    # Construct the path
+    hex_maps_dir = os.path.join(BASE_DATA_DIR, "hex_maps", f"res_{resolution}", *path_segments)
+    os.makedirs(hex_maps_dir, exist_ok=True)
+    
+    return os.path.join(hex_maps_dir, f"{h3_index}.png")
+
 class VisualProperties(BaseModel):
     """Visual properties for a tile."""
     border_color: str = "#000000"
@@ -371,6 +397,12 @@ class Tile(ABC):
             
             logger.info(f"Successfully saved static data for tile {self.id}")
             
+            # Generate hex map if it doesn't exist
+            hex_map_path = get_hex_map_path(self.id)
+            if not os.path.exists(hex_map_path):
+                logger.info(f"Hex map doesn't exist for tile {self.id}, generating it")
+                self.generate_hex_map()
+        
         except Exception as e:
             logger.error(f"Error saving static data for tile {self.id}: {str(e)}")
             raise
@@ -426,6 +458,48 @@ class Tile(ABC):
         except Exception as e:
             logger.error(f"Error saving dynamic data for tile {self.id}: {str(e)}")
             raise
+    
+    def generate_hex_map(self) -> None:
+        """
+        Generates a hex map image for this tile using the generate_hex_map.py script.
+        The image is saved in the hex_maps directory with the same structure as static/dynamic data.
+        """
+        try:
+            import subprocess
+            
+            # Get the path for the hex map
+            hex_map_path = get_hex_map_path(self.id)
+            
+            # Ensure the directory exists
+            os.makedirs(os.path.dirname(hex_map_path), exist_ok=True)
+            
+            # Path to the generate_hex_map.py script
+            script_path = os.path.join(
+                os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), 
+                "frontend", "assets", "generate_hex_map.py"
+            )
+            
+            # Run the script to generate the hex map
+            logger.info(f"Generating hex map for tile {self.id}")
+            result = subprocess.run(
+                [
+                    "python", 
+                    script_path, 
+                    "--h3_index", self.id, 
+                    "--output", hex_map_path
+                ],
+                capture_output=True,
+                text=True
+            )
+            
+            if result.returncode == 0:
+                logger.info(f"Successfully generated hex map for tile {self.id}")
+            else:
+                logger.error(f"Error generating hex map for tile {self.id}: {result.stderr}")
+                
+        except Exception as e:
+            logger.error(f"Error generating hex map for tile {self.id}: {str(e)}")
+            # Don't raise the exception, as this is not critical for tile saving
     
     @classmethod
     def load(cls, tile_id: str, mod_name: str = "default") -> Optional["Tile"]:
