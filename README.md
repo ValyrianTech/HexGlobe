@@ -112,7 +112,13 @@ HexGlobe/
 │   ├── pyproject.toml      # Python dependencies
 │   └── run.py              # Entry point
 ├── data/
-│   └── tiles/              # JSON storage for tile data
+│   ├── static/             # Static tile data (H3 grid information)
+│   │   └── res_X/          # Organized by resolution level
+│   │       └── ...         # Nested directories by H3 index segments
+│   └── dynamic/            # Dynamic tile data (content and visual properties)
+│       └── default/        # Default mod/application
+│           └── res_X/      # Organized by resolution level
+│               └── ...     # Nested directories by H3 index segments
 ├── frontend/
 │   ├── css/
 │   │   └── styles.css      # Main stylesheet
@@ -183,19 +189,41 @@ HexGlobe uses Uber's H3 library for hexagonal grid operations:
 The backend provides the following RESTful API endpoints:
 
 - `GET /api/tiles/{tile_id}`: Get tile information
+  - Query parameter: `mod_name` (optional, default: "default")
 - `PUT /api/tiles/{tile_id}`: Update tile information
+  - Query parameter: `mod_name` (optional, default: "default")
 - `GET /api/tiles/{tile_id}/neighbors`: Get neighboring tiles
+  - Query parameter: `mod_name` (optional, default: "default")
 - `GET /api/tiles/{tile_id}/parent`: Get parent tile
+  - Query parameter: `mod_name` (optional, default: "default")
 - `GET /api/tiles/{tile_id}/children`: Get child tiles
+  - Query parameter: `mod_name` (optional, default: "default")
 - `GET /api/tiles/{tile_id}/resolutions`: Get resolution IDs for the tile
+  - Query parameter: `mod_name` (optional, default: "default")
 - `POST /api/tiles/{tile_id}/move-content/{target_id}`: Move content to target tile
+  - Query parameter: `mod_name` (optional, default: "default")
 - `PUT /api/tiles/{tile_id}/visual`: Update visual properties
+  - Query parameter: `mod_name` (optional, default: "default")
 - `GET /api/tiles/{tile_id}/grid`: Get a 2D grid of H3 indexes centered around the specified tile
+  - Query parameter: `mod_name` (optional, default: "default")
 
 ## Tile Data Structure
 
-Each tile is stored as a JSON file with the following structure:
+Each tile's data is split into static and dynamic components:
 
+### Static Data (H3 grid information)
+```json
+{
+  "id": "8928308280fffff",
+  "parent_id": "8828308280fffff",
+  "children_ids": [...],
+  "neighbor_ids": {...},
+  "resolution_ids": {...},
+  "resolution": 9
+}
+```
+
+### Dynamic Data (Content and visual properties)
 ```json
 {
   "id": "8928308280fffff",
@@ -205,26 +233,12 @@ Each tile is stored as a JSON file with the following structure:
     "border_thickness": 2,
     "border_style": "solid",
     "fill_color": "#FFFFFF",
-    "fill_opacity": 0.5
-  },
-  "parent_id": "8828308280fffff",
-  "children_ids": ["...array of child IDs..."],
-  "neighbors": {
-    "bottom_middle": "...neighbor ID...",
-    "bottom_left": "...neighbor ID...",
-    "bottom_right": "...neighbor ID...",
-    "top_left": "...neighbor ID...",
-    "top_middle": "...neighbor ID...",
-    "top_right": "...neighbor ID..."
-  },
-  "resolution_ids": {
-    "0": "8000000000000",
-    "1": "8100000000000",
-    "...": "...",
-    "15": "8f00000000000"
+    "fill_opacity": 0.7
   }
 }
 ```
+
+Dynamic data files are only created when there's actual content or non-default visual properties.
 
 ## License
 

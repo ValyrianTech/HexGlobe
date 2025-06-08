@@ -84,20 +84,23 @@ HexGlobe is a web application framework that implements a global hexagonal grid 
 
 ### 3.2 Data Storage
 
-- Each tile's data stored as a separate JSON file
-- Filename format: `{tile_id}.json`
-- Directory structure: `/data/tiles/`
-- Sample JSON structure:
+- Tile data is split into static and dynamic components:
+  - **Static data**: H3 grid information that doesn't change (parent_id, children_ids, neighbor_ids, resolution_ids)
+  - **Dynamic data**: Content and visual properties that can change
+- Directory structure:
+  - Static data: `/data/static/res_X/aa/bb/cc/.../{tile_id}.json`
+  - Dynamic data: `/data/dynamic/{mod_name}/res_X/aa/bb/cc/.../{tile_id}.json`
+  - Where:
+    - `res_X` is the H3 resolution level
+    - `aa/bb/cc/...` are two-digit segments of the H3 index for efficient file organization
+    - `mod_name` is the name of the mod/application (default: "default")
+- Dynamic data files are only created when there's actual content or non-default visual properties
+- Helper functions `get_static_path()` and `get_dynamic_path()` calculate the appropriate file paths
+
+#### 3.2.1 Static Data JSON Structure
 ```json
 {
   "id": "8928308280fffff",
-  "content": "Sample content",
-  "visual_properties": {
-    "border_color": "#FF0000",
-    "border_thickness": 2,
-    "border_style": "solid",
-    "fill_color": "#FFFFFF"
-  },
   "parent_id": "8828308280fffff",
   "children_ids": [
     "8a28308280fffff",
@@ -133,6 +136,22 @@ HexGlobe is a web application framework that implements a global hexagonal grid 
     "13": "8d00000000000",
     "14": "8e00000000000",
     "15": "8f00000000000"
+  },
+  "resolution": 9
+}
+```
+
+#### 3.2.2 Dynamic Data JSON Structure
+```json
+{
+  "id": "8928308280fffff",
+  "content": "Sample content",
+  "visual_properties": {
+    "border_color": "#FF0000",
+    "border_thickness": 2,
+    "border_style": "solid",
+    "fill_color": "#FFFFFF",
+    "fill_opacity": 0.7
   }
 }
 ```
@@ -143,16 +162,25 @@ HexGlobe is a web application framework that implements a global hexagonal grid 
 
 #### Tile Operations
 - `GET /api/tiles/{tile_id}`: Get tile information
+  - Query parameter: `mod_name` (optional, default: "default")
 - `PUT /api/tiles/{tile_id}`: Update tile information
+  - Query parameter: `mod_name` (optional, default: "default")
 - `GET /api/tiles/{tile_id}/neighbors`: Get neighboring tiles with their position information
+  - Query parameter: `mod_name` (optional, default: "default")
 - `GET /api/tiles/{tile_id}/parent`: Get parent tile
+  - Query parameter: `mod_name` (optional, default: "default")
 - `GET /api/tiles/{tile_id}/children`: Get child tiles
+  - Query parameter: `mod_name` (optional, default: "default")
 - `GET /api/tiles/{tile_id}/resolutions`: Get resolution IDs for the tile
+  - Query parameter: `mod_name` (optional, default: "default")
 - `POST /api/tiles/{tile_id}/move-content/{target_id}`: Move content to target tile
+  - Query parameter: `mod_name` (optional, default: "default")
 - `GET /api/tiles/{tile_id}/grid`: Get a 2D grid of H3 indexes centered around the specified tile
+  - Query parameter: `mod_name` (optional, default: "default")
 
 #### Visual Operations
 - `PUT /api/tiles/{tile_id}/visual`: Update visual properties
+  - Query parameter: `mod_name` (optional, default: "default")
 
 ### 4.2 WebSocket Endpoints (Future Enhancement)
 - `/ws/tiles/{tile_id}`: Real-time updates for tile changes
@@ -252,14 +280,39 @@ HexGlobe is a web application framework that implements a global hexagonal grid 
 - Performance optimizations for large grids
 - Advanced visualization options
 
-## 7. Technology Stack
+## 7. Mod Support
+
+### 7.1 Overview
+
+HexGlobe supports multiple mods or applications using the same underlying hexagonal grid structure. This allows different applications to share the same static H3 grid data while maintaining separate dynamic content and visual properties.
+
+### 7.2 Implementation
+
+- **Mod Name Parameter**: All API endpoints accept an optional `mod_name` parameter (default: "default")
+- **Data Storage**:
+  - Static data (H3 grid information) is shared across all mods
+  - Dynamic data (content and visual properties) is stored separately for each mod
+  - Directory structure: `/data/dynamic/{mod_name}/res_X/.../{tile_id}.json`
+- **Storage Optimization**:
+  - Dynamic data files are only created when there's actual content or non-default visual properties
+  - Empty or default tiles don't create dynamic data files, improving storage efficiency
+  - When a tile's content and visual properties are reset to defaults, the dynamic file is removed
+
+### 7.3 Benefits
+
+- **Resource Efficiency**: Static H3 grid data is shared, reducing storage requirements
+- **Separation of Concerns**: Different applications can use the same grid without interfering with each other
+- **Storage Optimization**: Only tiles with actual content create files, minimizing disk usage
+- **Scalability**: The system can support many different mods without duplicating the underlying grid structure
+
+## 8. Technology Stack
 
 - **Backend**: Python 3.12, FastAPI, H3 Python bindings
 - **Frontend**: HTML5, CSS3, JavaScript, Canvas API, h3-js
 - **Data Storage**: File-based JSON
 - **Development Tools**: Git, Poetry (dependency management)
 
-## 8. Extension Points
+## 9. Extension Points
 
 - **Custom Content Types**: Extend the content model to support different types of data
 - **Alternative Map Providers**: Add support for different map data sources
