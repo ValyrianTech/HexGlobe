@@ -219,12 +219,6 @@ This geometry ensures that:
 - The hexagon is perfectly centered in the canvas
 - The flat-bottom orientation aligns with the H3 grid system's representation
 
-#### 5.2.2 Visual Styling
-
-- **Border**: Configurable width (default: 5px) and color (default: black)
-- **Fill**: Configurable color (default: light grey - RGB: 220, 220, 220)
-- **Text**: "HexGlobe" centered in the tile with configurable color (default: darker grey - RGB: 150, 150, 150)
-
 ### 5.3 Interaction Flow
 
 1. User loads the application, which displays the default active tile
