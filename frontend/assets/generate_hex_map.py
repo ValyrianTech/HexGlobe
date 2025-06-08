@@ -18,6 +18,7 @@ from PIL import Image
 from staticmap import StaticMap, Line
 import numpy as np
 import json
+import sys
 
 # Constants for the image rendering
 CANVAS_SIZE = 1024
@@ -36,6 +37,8 @@ def parse_arguments():
                         help='Output the pixel coordinates of the hexagon vertices')
     parser.add_argument('--no-rotate', action='store_true',
                         help='Skip rotation to flat-bottom orientation')
+    parser.add_argument('--debug', action='store_true',
+                        help='Enable debug mode (save intermediate images and print debug info)')
     return parser.parse_args()
 
 
@@ -234,7 +237,7 @@ def rotate_image_and_vertices(image, vertices, angle, center=None):
     return rotated_image, rotated_vertices
 
 
-def create_hexagon_map(h3_index, zoom=None, rotate=True):
+def create_hexagon_map(h3_index, zoom=None, rotate=True, debug=False):
     """
     Create a map image with a hexagon boundary for the given H3 index.
     
@@ -242,6 +245,7 @@ def create_hexagon_map(h3_index, zoom=None, rotate=True):
         h3_index: H3 index of the tile
         zoom: OpenStreetMap zoom level (optional)
         rotate: Whether to rotate the image to flat-bottom orientation
+        debug: Whether to save intermediate debug images and print debug info
         
     Returns:
         Tuple of (PIL Image object, list of vertex pixel coordinates)
@@ -286,40 +290,42 @@ def create_hexagon_map(h3_index, zoom=None, rotate=True):
         pixel_x, pixel_y = geo_to_pixel(lat, lng, center_lat, center_lng, zoom)
         pixel_vertices.append((pixel_x, pixel_y))
     
-    # Draw all vertices on the image with labels
+    # Draw all vertices on the image with labels if debug is enabled
     from PIL import ImageDraw, ImageFont
     draw = ImageDraw.Draw(image)
     
-    # Draw circles at all vertices
-    colors = ["red", "orange", "yellow", "green", "blue", "purple"]
-    radius = 10
+    if debug:
+        # Draw circles at all vertices
+        colors = ["red", "orange", "yellow", "green", "blue", "purple"]
+        radius = 10
+        
+        for i, vertex in enumerate(pixel_vertices):
+            draw.ellipse((vertex[0]-radius, vertex[1]-radius, vertex[0]+radius, vertex[1]+radius), fill=colors[i % len(colors)])
+        
+        # Draw text labels with coordinates
+        try:
+            font = ImageFont.truetype("arial.ttf", 16)
+        except IOError:
+            font = ImageFont.load_default()
+        
+        for i, vertex in enumerate(pixel_vertices):
+            draw.text((vertex[0]+radius, vertex[1]-radius), f"{i}: ({vertex[0]}, {vertex[1]})", fill=colors[i % len(colors)], font=font)
+        
+        # Draw lines connecting the vertices in order
+        for i in range(len(pixel_vertices)):
+            next_i = (i + 1) % len(pixel_vertices)
+            draw.line([pixel_vertices[i], pixel_vertices[next_i]], fill="white", width=2)
     
-    for i, vertex in enumerate(pixel_vertices):
-        draw.ellipse((vertex[0]-radius, vertex[1]-radius, vertex[0]+radius, vertex[1]+radius), fill=colors[i % len(colors)])
-    
-    # Draw text labels with coordinates
-    try:
-        font = ImageFont.truetype("arial.ttf", 16)
-    except IOError:
-        font = ImageFont.load_default()
-    
-    for i, vertex in enumerate(pixel_vertices):
-        draw.text((vertex[0]+radius, vertex[1]-radius), f"{i}: ({vertex[0]}, {vertex[1]})", fill=colors[i % len(colors)], font=font)
-    
-    # Draw lines connecting the vertices in order
-    for i in range(len(pixel_vertices)):
-        next_i = (i + 1) % len(pixel_vertices)
-        draw.line([pixel_vertices[i], pixel_vertices[next_i]], fill="white", width=2)
-    
-    # Save the unrotated image for reference
+    # Save the unrotated image for reference if debug is enabled
     unrotated_image = image.copy()
-    unrotated_image.save(f"{h3_index}_vertices.png")
-    print(f"Image with labeled vertices saved to {h3_index}_vertices.png")
-    
-    # Print vertex coordinates
-    print("Hexagon Vertices (x, y):")
-    for i, vertex in enumerate(pixel_vertices):
-        print(f"Vertex {i}: ({vertex[0]}, {vertex[1]})")
+    if debug:
+        unrotated_image.save(f"{h3_index}_vertices.png")
+        print(f"Image with labeled vertices saved to {h3_index}_vertices.png")
+        
+        # Print vertex coordinates
+        print("Hexagon Vertices (x, y):")
+        for i, vertex in enumerate(pixel_vertices):
+            print(f"Vertex {i}: ({vertex[0]}, {vertex[1]})")
     
     # If rotation is requested, we need to determine which edge should be at the bottom
     if rotate:
@@ -342,43 +348,47 @@ def create_hexagon_map(h3_index, zoom=None, rotate=True):
         bottom_left = pixel_vertices[bottom_left_idx]
         bottom_right = pixel_vertices[bottom_right_idx]
         
-        # Draw the bottom edge in a different color
-        draw = ImageDraw.Draw(unrotated_image)
-        draw.line([bottom_left, bottom_right], fill="cyan", width=5)
-        unrotated_image.save(f"{h3_index}_bottom_edge.png")
-        print(f"Image with bottom edge highlighted saved to {h3_index}_bottom_edge.png")
+        # Draw the bottom edge in a different color if debug is enabled
+        if debug:
+            draw = ImageDraw.Draw(unrotated_image)
+            draw.line([bottom_left, bottom_right], fill="cyan", width=5)
+            unrotated_image.save(f"{h3_index}_bottom_edge.png")
+            print(f"Image with bottom edge highlighted saved to {h3_index}_bottom_edge.png")
         
         # Calculate the angle of the bottom edge with the horizontal
         dx = bottom_right[0] - bottom_left[0]
         dy = bottom_right[1] - bottom_left[1]
         edge_angle = math.degrees(math.atan2(dy, dx))
         
-        print(f"\nBottom edge: Vertex {bottom_left_idx} to Vertex {bottom_right_idx}")
-        print(f"Bottom edge coordinates: ({bottom_left[0]}, {bottom_left[1]}) to ({bottom_right[0]}, {bottom_right[1]})")
-        print(f"Bottom edge angle with horizontal: {edge_angle:.2f} degrees")
+        if debug:
+            print(f"\nBottom edge: Vertex {bottom_left_idx} to Vertex {bottom_right_idx}")
+            print(f"Bottom edge coordinates: ({bottom_left[0]}, {bottom_left[1]}) to ({bottom_right[0]}, {bottom_right[1]})")
+            print(f"Bottom edge angle with horizontal: {edge_angle:.2f} degrees")
         
         # Calculate rotation needed to make this edge horizontal
         rotation_angle = edge_angle  # Changed from -edge_angle to edge_angle
-        print(f"Rotation angle needed: {rotation_angle:.2f} degrees")
+        if debug:
+            print(f"Rotation angle needed: {rotation_angle:.2f} degrees")
         
         # Apply the rotation to make the bottom edge horizontal
         image, rotated_vertices = rotate_image_and_vertices(image, pixel_vertices, rotation_angle)
         
-        # Draw all vertices on the rotated image
-        draw = ImageDraw.Draw(image)
-        
-        # Draw circles at all vertices
-        for i, vertex in enumerate(rotated_vertices):
-            draw.ellipse((vertex[0]-radius, vertex[1]-radius, vertex[0]+radius, vertex[1]+radius), fill=colors[i % len(colors)])
-        
-        # Draw text labels with coordinates
-        for i, vertex in enumerate(rotated_vertices):
-            draw.text((vertex[0]+radius, vertex[1]-radius), f"{i}: ({vertex[0]}, {vertex[1]})", fill=colors[i % len(colors)], font=font)
-        
-        # Draw lines connecting the vertices in order
-        for i in range(len(rotated_vertices)):
-            next_i = (i + 1) % len(rotated_vertices)
-            draw.line([rotated_vertices[i], rotated_vertices[next_i]], fill="white", width=2)
+        # Draw all vertices on the rotated image if debug is enabled
+        if debug:
+            draw = ImageDraw.Draw(image)
+            
+            # Draw circles at all vertices
+            for i, vertex in enumerate(rotated_vertices):
+                draw.ellipse((vertex[0]-radius, vertex[1]-radius, vertex[0]+radius, vertex[1]+radius), fill=colors[i % len(colors)])
+            
+            # Draw text labels with coordinates
+            for i, vertex in enumerate(rotated_vertices):
+                draw.text((vertex[0]+radius, vertex[1]-radius), f"{i}: ({vertex[0]}, {vertex[1]})", fill=colors[i % len(colors)], font=font)
+            
+            # Draw lines connecting the vertices in order
+            for i in range(len(rotated_vertices)):
+                next_i = (i + 1) % len(rotated_vertices)
+                draw.line([rotated_vertices[i], rotated_vertices[next_i]], fill="white", width=2)
         
         # Find the bottom edge in the rotated image
         vertices_by_y = sorted(enumerate(rotated_vertices), key=lambda x: x[1][1], reverse=True)
@@ -391,22 +401,23 @@ def create_hexagon_map(h3_index, zoom=None, rotate=True):
         bottom_left = rotated_vertices[bottom_left_idx]
         bottom_right = rotated_vertices[bottom_right_idx]
         
-        # Draw the bottom edge in the rotated image
-        draw.line([bottom_left, bottom_right], fill="cyan", width=5)
-        
-        # Calculate the angle of the bottom edge after rotation
-        dx = bottom_right[0] - bottom_left[0]
-        dy = bottom_right[1] - bottom_left[1]
-        edge_angle_after = math.degrees(math.atan2(dy, dx))
-        
-        print(f"\nAfter rotation:")
-        print(f"Bottom edge: Vertex {bottom_left_idx} to Vertex {bottom_right_idx}")
-        print(f"Bottom edge coordinates: ({bottom_left[0]}, {bottom_left[1]}) to ({bottom_right[0]}, {bottom_right[1]})")
-        print(f"Bottom edge angle with horizontal: {edge_angle_after:.2f} degrees")
-        
-        # Save the rotated image with vertices
-        image.save(f"{h3_index}_rotated.png")
-        print(f"Rotated image saved to {h3_index}_rotated.png")
+        # Draw the bottom edge in the rotated image if debug is enabled
+        if debug:
+            draw.line([bottom_left, bottom_right], fill="cyan", width=5)
+            
+            # Calculate the angle of the bottom edge after rotation
+            dx = bottom_right[0] - bottom_left[0]
+            dy = bottom_right[1] - bottom_left[1]
+            edge_angle_after = math.degrees(math.atan2(dy, dx))
+            
+            print(f"\nAfter rotation:")
+            print(f"Bottom edge: Vertex {bottom_left_idx} to Vertex {bottom_right_idx}")
+            print(f"Bottom edge coordinates: ({bottom_left[0]}, {bottom_left[1]}) to ({bottom_right[0]}, {bottom_right[1]})")
+            print(f"Bottom edge angle with horizontal: {edge_angle_after:.2f} degrees")
+            
+            # Save the rotated image with vertices
+            image.save(f"{h3_index}_rotated.png")
+            print(f"Rotated image saved to {h3_index}_rotated.png")
         
         # Update the pixel vertices to the rotated ones
         pixel_vertices = rotated_vertices
@@ -458,30 +469,31 @@ def create_hexagon_map(h3_index, zoom=None, rotate=True):
             new_y = (y - crop_top) * scaling_factor
             final_vertices.append((new_x, new_y))
         
-        # Draw the final vertices for verification
-        draw = ImageDraw.Draw(final_image)
-        
-        # Draw circles at all vertices
-        for i, vertex in enumerate(final_vertices):
-            draw.ellipse((vertex[0]-radius, vertex[1]-radius, vertex[0]+radius, vertex[1]+radius), fill=colors[i % len(colors)])
-        
-        # Draw text labels with coordinates
-        for i, vertex in enumerate(final_vertices):
-            draw.text((vertex[0]+radius, vertex[1]-radius), f"{i}: ({int(vertex[0])}, {int(vertex[1])})", fill=colors[i % len(colors)], font=font)
-        
-        # Draw lines connecting the vertices in order
-        for i in range(len(final_vertices)):
-            next_i = (i + 1) % len(final_vertices)
-            draw.line([final_vertices[i], final_vertices[next_i]], fill="white", width=2)
-        
-        # Save the final image
-        final_image.save(f"{h3_index}_final.png")
-        print(f"Final image saved to {h3_index}_final.png")
-        
-        # Print the final vertex coordinates
-        print("\nFinal Hexagon Vertices (x, y):")
-        for i, vertex in enumerate(final_vertices):
-            print(f"Vertex {i}: ({int(vertex[0])}, {int(vertex[1])})")
+        # Draw the final vertices for verification if debug is enabled
+        if debug:
+            draw = ImageDraw.Draw(final_image)
+            
+            # Draw circles at all vertices
+            for i, vertex in enumerate(final_vertices):
+                draw.ellipse((vertex[0]-radius, vertex[1]-radius, vertex[0]+radius, vertex[1]+radius), fill=colors[i % len(colors)])
+            
+            # Draw text labels with coordinates
+            for i, vertex in enumerate(final_vertices):
+                draw.text((vertex[0]+radius, vertex[1]-radius), f"{i}: ({int(vertex[0])}, {int(vertex[1])})", fill=colors[i % len(colors)], font=font)
+            
+            # Draw lines connecting the vertices in order
+            for i in range(len(final_vertices)):
+                next_i = (i + 1) % len(final_vertices)
+                draw.line([final_vertices[i], final_vertices[next_i]], fill="white", width=2)
+            
+            # Save the final image with debug info
+            final_image.save(f"{h3_index}_final.png")
+            print(f"Final image saved to {h3_index}_final.png")
+            
+            # Print the final vertex coordinates
+            print("\nFinal Hexagon Vertices (x, y):")
+            for i, vertex in enumerate(final_vertices):
+                print(f"Vertex {i}: ({int(vertex[0])}, {int(vertex[1])})")
         
         # Update the image and vertices
         image = final_image
@@ -496,7 +508,7 @@ def main():
     
     try:
         # Create the map image
-        img, vertices = create_hexagon_map(args.h3_index, args.zoom, not args.no_rotate)
+        img, vertices = create_hexagon_map(args.h3_index, args.zoom, not args.no_rotate, args.debug)
         
         # Determine output path
         output_path = args.output if args.output else f"{args.h3_index}.png"
