@@ -54,7 +54,7 @@ coverage
 *.sw?
 
 # Data files
-/data/*.json
+/data/*
 !/data/.gitkeep
 
 # Logs
