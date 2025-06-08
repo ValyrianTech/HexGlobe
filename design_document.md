@@ -195,7 +195,37 @@ HexGlobe is a web application framework that implements a global hexagonal grid 
 - **Zoom Control**: Slider to adjust the zoom level (1-10), controlling how many hex tiles are visible
 - **Resolution Control**: Slider to adjust the H3 resolution (0-15), controlling the size of hexagons on Earth's surface
 
-### 5.2 Interaction Flow
+### 5.2 Hexagon Rendering Specifications
+
+#### 5.2.1 Hexagon Geometry
+
+The standard hexagon used in HexGlobe is rendered in a 1024x1024 pixel canvas with the following specifications:
+
+- **Orientation**: Flat-bottom hexagon
+- **Center Point**: (512.0, 512.0)
+- **Radius**: 512.0 pixels (distance from center to any vertex)
+
+The six vertices of the hexagon are positioned at the following coordinates (clockwise from the rightmost point):
+
+1. Vertex 1 (angle 0°): (1024.0, 512.0) - right middle
+2. Vertex 2 (angle 60°): (768.0, 955.4) - bottom right
+3. Vertex 3 (angle 120°): (256.0, 955.4) - bottom left
+4. Vertex 4 (angle 180°): (0.0, 512.0) - left middle
+5. Vertex 5 (angle 240°): (256.0, 68.6) - top left
+6. Vertex 6 (angle 300°): (768.0, 68.6) - top right
+
+This geometry ensures that:
+- The hexagon extends to the full edges of the image on the left and right sides
+- The hexagon is perfectly centered in the canvas
+- The flat-bottom orientation aligns with the H3 grid system's representation
+
+#### 5.2.2 Visual Styling
+
+- **Border**: Configurable width (default: 5px) and color (default: black)
+- **Fill**: Configurable color (default: light grey - RGB: 220, 220, 220)
+- **Text**: "HexGlobe" centered in the tile with configurable color (default: darker grey - RGB: 150, 150, 150)
+
+### 5.3 Interaction Flow
 
 1. User loads the application, which displays the default active tile
 2. Neighboring tiles are visible around the active tile
@@ -205,7 +235,7 @@ HexGlobe is a web application framework that implements a global hexagonal grid 
 6. The clicked tile becomes the active tile with a smooth transition
 7. The view updates to show the new active tile and its neighbors
 
-### 5.3 Visualization Approach
+### 5.4 Visualization Approach
 
 #### Current Implementation
 - Pure Canvas-based hexagon rendering
@@ -222,7 +252,7 @@ HexGlobe is a web application framework that implements a global hexagonal grid 
 - Custom rendering of map features within hexagon boundaries
 - Potential for different map styles or data sources per hexagon
 
-### 5.4 JavaScript Implementation
+### 5.5 JavaScript Implementation
 
 - **Structure**:
   - `index.html`: Main HTML entry point
