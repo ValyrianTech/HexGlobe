@@ -306,9 +306,16 @@ window.hexGlobeApp = {
         
         // Calculate hex dimensions
         // Adjust hex size based on zoom level
-        // At zoom level 1, hex size is large (active tile takes most of screen)
+        // At zoom level 1, hex size is very large (active tile takes most of screen)
         // At zoom level 10, hex size is small (many tiles visible)
-        const zoomFactor = 1 + (10 - this.state.zoomLevel) * 0.5;
+        // Using exponential scaling to make zoom level 1 much larger
+        let zoomFactor;
+        if (this.state.zoomLevel === 1) {
+            zoomFactor = 4.5; // Much larger factor for zoom level 1
+        } else {
+            zoomFactor = 1 + (10 - this.state.zoomLevel) * 0.4;
+        }
+        
         const baseHexSize = this.config.hexSize;
         const adjustedHexSize = baseHexSize * zoomFactor;
         
@@ -326,7 +333,8 @@ window.hexGlobeApp = {
         let gridHeight = rows;
         
         // Ensure we have enough tiles to show the desired number of rings based on zoom level
-        const minRings = this.state.zoomLevel;
+        // For zoom level 1, show only 1 ring of neighbors
+        const minRings = this.state.zoomLevel === 1 ? 1 : this.state.zoomLevel;
         const minTilesForRings = minRings * 2 + 1; // Diameter of the grid in tiles
         
         gridWidth = Math.max(gridWidth, minTilesForRings);
@@ -361,8 +369,18 @@ window.hexGlobeApp = {
         
         // Fetch grid data from the API
         try {
-            console.log(`Fetching grid data for dimensions: ${width}x${height}`);
-            const gridData = await this.state.navigation.fetchTileGrid(width, height);
+            // For zoom level 1, limit the grid to 5x5 regardless of calculated dimensions
+            let apiGridWidth = width;
+            let apiGridHeight = height;
+            
+            if (this.state.zoomLevel === 1) {
+                apiGridWidth = 5;
+                apiGridHeight = 5;
+                console.log(`Zoom level 1: Limiting grid request to ${apiGridWidth}x${apiGridHeight}`);
+            }
+            
+            console.log(`Fetching grid data for dimensions: ${apiGridWidth}x${apiGridHeight}`);
+            const gridData = await this.state.navigation.fetchTileGrid(apiGridWidth, apiGridHeight);
             console.log("Grid data received:", gridData);
             
             // Get the bounds from the grid data
