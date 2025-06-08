@@ -39,19 +39,25 @@ def generate_hex_background(output_path, size=1024, border_width=2, border_color
     # We'll use the maximum radius that fits within the image
     radius = size / 2
     
+    print(f"Image size: {size}x{size}")
+    print(f"Center point: ({center_x}, {center_y})")
+    print(f"Radius: {radius}")
+    print("\nHexagon vertices:")
+    
     # For a flat-bottom hexagon, we need these specific angles
     # 0° is to the right, and we go clockwise
     angles = [0, 60, 120, 180, 240, 300]  # in degrees
     
     # Calculate the six vertices of the hexagon
     points = []
-    for angle in angles:
+    for i, angle in enumerate(angles):
         # Convert angle to radians
         rad = math.radians(angle)
         # Calculate the point
         x = center_x + radius * math.cos(rad)
         y = center_y + radius * math.sin(rad)
         points.append((x, y))
+        print(f"Vertex {i+1} (angle {angle}°): ({x:.1f}, {y:.1f})")
     
     # Draw the hexagon with border
     if border_width > 0:
@@ -88,7 +94,7 @@ def generate_hex_background(output_path, size=1024, border_width=2, border_color
     
     # Save the image
     img.save(output_path)
-    print(f"Hexagon background image saved to {output_path}")
+    print(f"\nHexagon background image saved to {output_path}")
     
     return img
 
