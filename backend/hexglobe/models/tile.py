@@ -41,28 +41,21 @@ def get_static_path(h3_index: str) -> str:
 
 def get_dynamic_path(h3_index: str, mod_name: str = "default") -> str:
     """
-    Calculate the path for dynamic tile data based on H3 index and mod name.
+    Calculate the path for dynamic tile data.
     
     Args:
         h3_index: The H3 index of the tile
         mod_name: The name of the mod/application (default: "default")
         
     Returns:
-        The absolute file path for the dynamic data JSON file
+        str: The full path to the dynamic data JSON file
     """
-    # Get resolution from the index
     resolution = h3.h3_get_resolution(h3_index)
+    path_segments = [h3_index[i:i+2] for i in range(0, len(h3_index) - 1, 2)]
+    dynamic_dir = os.path.join(BASE_DATA_DIR, "dynamic", mod_name, f"res_{resolution}", *path_segments)
     
-    # Create directory structure with 2-digit segments
-    path_segments = []
-    for i in range(0, len(h3_index) - 1, 2):
-        if i + 1 < len(h3_index):
-            segment = h3_index[i:i+2]
-            path_segments.append(segment)
-    
-    # Construct the path
-    dynamic_dir = os.path.join(BASE_DATA_DIR, "mods", mod_name, "tiles", f"res_{resolution}", *path_segments)
-    os.makedirs(dynamic_dir, exist_ok=True)
+    # Note: We don't create directories here anymore
+    # Directories will be created only when actually saving data
     
     return os.path.join(dynamic_dir, f"{h3_index}.json")
 
@@ -448,12 +441,14 @@ class Tile(ABC):
             
             # Only save if there's content or custom visual properties
             if has_content or has_custom_visuals:
-                # Save dynamic data
+                # Get the dynamic path
                 dynamic_path = get_dynamic_path(self.id, mod_name)
                 logger.info(f"Saving dynamic data for tile {self.id} to {dynamic_path}")
                 
-                dynamic_data = self.to_dynamic_dict()
+                # Create directories only when we're actually saving data
                 os.makedirs(os.path.dirname(dynamic_path), exist_ok=True)
+                
+                dynamic_data = self.to_dynamic_dict()
                 
                 with open(dynamic_path, 'w') as f:
                     json.dump(dynamic_data, f, indent=2)

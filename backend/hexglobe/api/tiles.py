@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Path
+from fastapi import APIRouter, HTTPException, Path, Query
 from typing import Dict, List, Optional
 import h3
 import logging
@@ -17,9 +17,12 @@ router = APIRouter(
 )
 
 @router.get("/{tile_id}")
-async def get_tile(tile_id: str = Path(..., description="H3 index of the tile")):
+async def get_tile(
+    tile_id: str = Path(..., description="H3 index of the tile"),
+    mod_name: str = Query("default", description="Name of the mod/application")
+):
     """Get information about a specific tile."""
-    logger.info(f"[{datetime.now()}] GET request received for tile: {tile_id}")
+    logger.info(f"[{datetime.now()}] GET request received for tile: {tile_id}, mod: {mod_name}")
     try:
         # Validate the H3 index
         if not h3.h3_is_valid(tile_id):
@@ -37,9 +40,9 @@ async def get_tile(tile_id: str = Path(..., description="H3 index of the tile"))
             else:
                 tile = HexagonTile(tile_id)
             
-            # Save the newly created tile
-            tile.save()
-            logger.info(f"[{datetime.now()}] New tile {tile_id} saved to storage")
+            # Save only the static data for the newly created tile
+            tile.save_static()
+            logger.info(f"[{datetime.now()}] New tile {tile_id} static data saved to storage")
             
             # Create all tiles within a distance of 5 to ensure grid is populated
             logger.info(f"[{datetime.now()}] Creating neighbor tiles within distance 5 of {tile_id}")
@@ -52,12 +55,12 @@ async def get_tile(tile_id: str = Path(..., description="H3 index of the tile"))
                     
                 # Check if neighbor already exists
                 if Tile.load(neighbor_id) is None:
-                    # Create and save the neighbor tile
+                    # Create and save the neighbor tile (static data only)
                     if h3.h3_is_pentagon(neighbor_id):
                         neighbor_tile = PentagonTile(neighbor_id)
                     else:
                         neighbor_tile = HexagonTile(neighbor_id)
-                    neighbor_tile.save()
+                    neighbor_tile.save_static()
                     created_count += 1
             
             logger.info(f"[{datetime.now()}] Created {created_count} new neighbor tiles for {tile_id}")
@@ -72,10 +75,11 @@ async def get_tile(tile_id: str = Path(..., description="H3 index of the tile"))
 @router.put("/{tile_id}")
 async def update_tile(
     tile_data: Dict,
-    tile_id: str = Path(..., description="H3 index of the tile")
+    tile_id: str = Path(..., description="H3 index of the tile"),
+    mod_name: str = Query("default", description="Name of the mod/application")
 ):
     """Update tile information."""
-    logger.info(f"[{datetime.now()}] PUT request received to update tile: {tile_id}")
+    logger.info(f"[{datetime.now()}] PUT request received to update tile: {tile_id}, mod: {mod_name}")
     try:
         # Validate the H3 index
         if not h3.h3_is_valid(tile_id):
@@ -91,9 +95,9 @@ async def update_tile(
             else:
                 tile = HexagonTile(tile_id)
             
-            # Save the newly created tile
-            tile.save()
-            logger.info(f"[{datetime.now()}] New tile {tile_id} saved to storage")
+            # Save the static data for the newly created tile
+            tile.save_static()
+            logger.info(f"[{datetime.now()}] New tile {tile_id} static data saved to storage")
         
         # Update content if provided
         if "content" in tile_data:
@@ -101,12 +105,13 @@ async def update_tile(
         
         # Update visual properties if provided
         if "visual_properties" in tile_data:
-            for key, value in tile_data["visual_properties"].items():
-                tile.set_visual_property(key, value)
+            visual_props = tile_data["visual_properties"]
+            for prop_name, prop_value in visual_props.items():
+                tile.set_visual_property(prop_name, prop_value)
         
-        # Save the updated tile
-        tile.save()
-        logger.info(f"[{datetime.now()}] Updated tile {tile_id} saved to storage")
+        # Save the dynamic data since we've updated content or visual properties
+        tile.save_dynamic(mod_name)
+        logger.info(f"[{datetime.now()}] Updated tile {tile_id} dynamic data saved for mod {mod_name}")
         
         return {"message": "Tile updated successfully", "tile": tile.to_dict()}
     except Exception as e:
@@ -114,9 +119,12 @@ async def update_tile(
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/{tile_id}/neighbors")
-async def get_neighbors(tile_id: str = Path(..., description="H3 index of the tile")):
+async def get_neighbors(
+    tile_id: str = Path(..., description="H3 index of the tile"),
+    mod_name: str = Query("default", description="Name of the mod/application")
+):
     """Get neighboring tiles with their positions."""
-    logger.info(f"[{datetime.now()}] GET request received for neighbors of tile: {tile_id}")
+    logger.info(f"[{datetime.now()}] GET request received for neighbors of tile: {tile_id}, mod: {mod_name}")
     try:
         # Validate the H3 index
         if not h3.h3_is_valid(tile_id):
@@ -132,9 +140,9 @@ async def get_neighbors(tile_id: str = Path(..., description="H3 index of the ti
             else:
                 tile = HexagonTile(tile_id)
             
-            # Save the newly created tile
-            tile.save()
-            logger.info(f"[{datetime.now()}] New tile {tile_id} saved to storage")
+            # Save the static data for the newly created tile
+            tile.save_static()
+            logger.info(f"[{datetime.now()}] New tile {tile_id} static data saved to storage")
         
         # Get neighbors with positions
         neighbor_data = {}
@@ -153,7 +161,7 @@ async def get_neighbors(tile_id: str = Path(..., description="H3 index of the ti
                         neighbor_tile = PentagonTile(neighbor_id)
                     else:
                         neighbor_tile = HexagonTile(neighbor_id)
-                    neighbor_tile.save()
+                    neighbor_tile.save_static()
                 
                 # Add neighbor data with position
                 neighbor_data[position] = neighbor_tile.to_dict()
@@ -169,9 +177,12 @@ async def get_neighbors(tile_id: str = Path(..., description="H3 index of the ti
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/{tile_id}/parent")
-async def get_parent(tile_id: str = Path(..., description="H3 index of the tile")):
+async def get_parent(
+    tile_id: str = Path(..., description="H3 index of the tile"),
+    mod_name: str = Query("default", description="Name of the mod/application")
+):
     """Get parent tile."""
-    logger.info(f"[{datetime.now()}] GET request received for parent of tile: {tile_id}")
+    logger.info(f"[{datetime.now()}] GET request received for parent of tile: {tile_id}, mod: {mod_name}")
     try:
         # Validate the H3 index
         if not h3.h3_is_valid(tile_id):
@@ -187,9 +198,9 @@ async def get_parent(tile_id: str = Path(..., description="H3 index of the tile"
             else:
                 tile = HexagonTile(tile_id)
             
-            # Save the newly created tile
-            tile.save()
-            logger.info(f"[{datetime.now()}] New tile {tile_id} saved to storage")
+            # Save the static data for the newly created tile
+            tile.save_static()
+            logger.info(f"[{datetime.now()}] New tile {tile_id} static data saved to storage")
         
         # Get parent
         parent = tile.get_parent()
@@ -208,9 +219,12 @@ async def get_parent(tile_id: str = Path(..., description="H3 index of the tile"
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/{tile_id}/children")
-async def get_children(tile_id: str = Path(..., description="H3 index of the tile")):
+async def get_children(
+    tile_id: str = Path(..., description="H3 index of the tile"),
+    mod_name: str = Query("default", description="Name of the mod/application")
+):
     """Get child tiles."""
-    logger.info(f"[{datetime.now()}] GET request received for children of tile: {tile_id}")
+    logger.info(f"[{datetime.now()}] GET request received for children of tile: {tile_id}, mod: {mod_name}")
     try:
         # Validate the H3 index
         if not h3.h3_is_valid(tile_id):
@@ -226,9 +240,9 @@ async def get_children(tile_id: str = Path(..., description="H3 index of the til
             else:
                 tile = HexagonTile(tile_id)
             
-            # Save the newly created tile
-            tile.save()
-            logger.info(f"[{datetime.now()}] New tile {tile_id} saved to storage")
+            # Save the static data for the newly created tile
+            tile.save_static()
+            logger.info(f"[{datetime.now()}] New tile {tile_id} static data saved to storage")
         
         # Get children
         children = tile.get_children()
@@ -245,10 +259,11 @@ async def get_children(tile_id: str = Path(..., description="H3 index of the til
 @router.post("/{tile_id}/move-content/{target_id}")
 async def move_content(
     tile_id: str = Path(..., description="Source H3 index"),
-    target_id: str = Path(..., description="Target H3 index")
+    target_id: str = Path(..., description="Target H3 index"),
+    mod_name: str = Query("default", description="Name of the mod/application")
 ):
     """Move content from one tile to another."""
-    logger.info(f"[{datetime.now()}] POST request received to move content from tile {tile_id} to {target_id}")
+    logger.info(f"[{datetime.now()}] POST request received to move content from tile {tile_id} to {target_id}, mod: {mod_name}")
     try:
         # Validate the H3 indices
         if not h3.h3_is_valid(tile_id) or not h3.h3_is_valid(target_id):
@@ -264,9 +279,9 @@ async def move_content(
             else:
                 source_tile = HexagonTile(tile_id)
             
-            # Save the newly created tile
-            source_tile.save()
-            logger.info(f"[{datetime.now()}] New source tile {tile_id} saved to storage")
+            # Save the static data for the newly created tile
+            source_tile.save_static()
+            logger.info(f"[{datetime.now()}] New source tile {tile_id} static data saved to storage")
         
         # Load or create the target tile
         target_tile = Tile.load(target_id)
@@ -277,9 +292,9 @@ async def move_content(
             else:
                 target_tile = HexagonTile(target_id)
             
-            # Save the newly created tile
-            target_tile.save()
-            logger.info(f"[{datetime.now()}] New target tile {target_id} saved to storage")
+            # Save the static data for the newly created tile
+            target_tile.save_static()
+            logger.info(f"[{datetime.now()}] New target tile {target_id} static data saved to storage")
         
         # Move content
         success = source_tile.move_content_to(target_tile)
@@ -306,10 +321,11 @@ async def move_content(
 @router.put("/{tile_id}/visual")
 async def update_visual_properties(
     visual_props: Dict,
-    tile_id: str = Path(..., description="H3 index of the tile")
+    tile_id: str = Path(..., description="H3 index of the tile"),
+    mod_name: str = Query("default", description="Name of the mod/application")
 ):
     """Update visual properties of a tile."""
-    logger.info(f"[{datetime.now()}] PUT request received to update visual properties of tile: {tile_id}")
+    logger.info(f"[{datetime.now()}] PUT request received to update visual properties of tile: {tile_id}, mod: {mod_name}")
     try:
         # Validate the H3 index
         if not h3.h3_is_valid(tile_id):
@@ -325,9 +341,9 @@ async def update_visual_properties(
             else:
                 tile = HexagonTile(tile_id)
             
-            # Save the newly created tile
-            tile.save()
-            logger.info(f"[{datetime.now()}] New tile {tile_id} saved to storage")
+            # Save the static data for the newly created tile
+            tile.save_static()
+            logger.info(f"[{datetime.now()}] New tile {tile_id} static data saved to storage")
         
         # Update visual properties
         updated = False
@@ -342,9 +358,9 @@ async def update_visual_properties(
                 detail="No valid visual properties provided"
             )
         
-        # Save the updated tile
-        tile.save()
-        logger.info(f"[{datetime.now()}] Visual properties updated for tile {tile_id}")
+        # Save the dynamic data since we've updated visual properties
+        tile.save_dynamic(mod_name)
+        logger.info(f"[{datetime.now()}] Visual properties updated for tile {tile_id} and saved for mod {mod_name}")
         
         return {
             "message": "Visual properties updated successfully",
@@ -360,7 +376,8 @@ async def update_visual_properties(
 async def get_tile_grid(
     tile_id: str = Path(..., description="H3 index of the tile"),
     width: int = 5,
-    height: int = 5
+    height: int = 5,
+    mod_name: str = Query("default", description="Name of the mod/application")
 ):
     """
     Get a grid of H3 indexes centered around the specified tile.
@@ -373,7 +390,7 @@ async def get_tile_grid(
     Returns:
         A dictionary grid of H3 indexes with the center tile at (0,0)
     """
-    logger.info(f"GET request received for grid centered on tile: {tile_id}, width: {width}, height: {height}")
+    logger.info(f"GET request received for grid centered on tile: {tile_id}, width: {width}, height: {height}, mod: {mod_name}")
     try:
         # Validate the H3 index
         if not h3.h3_is_valid(tile_id):
@@ -424,7 +441,7 @@ async def get_tile_grid(
                 center_tile = PentagonTile(tile_id)
             else:
                 center_tile = HexagonTile(tile_id)
-            center_tile.save()
+            center_tile.save_static()
         
         # Track which tiles have been placed and their positions
         position_map = {tile_id: center_coords}
@@ -467,9 +484,9 @@ async def get_tile_grid(
                     else:
                         current_tile = HexagonTile(current_id)
 
-                    # Save the newly created tile
-                    current_tile.save()
-                    logger.info(f"[{datetime.now()}] New tile {current_id} saved to storage")
+                    # Save the static data for the newly created tile
+                    current_tile.save_static()
+                    logger.info(f"[{datetime.now()}] New tile {current_id} static data saved to storage")
 
                 # Process each neighbor
                 error=False
@@ -545,9 +562,12 @@ async def get_tile_grid(
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/{tile_id}/resolutions")
-async def get_resolutions(tile_id: str = Path(..., description="H3 index of the tile")):
+async def get_resolutions(
+    tile_id: str = Path(..., description="H3 index of the tile"),
+    mod_name: str = Query("default", description="Name of the mod/application")
+):
     """Get all resolution IDs for a specific tile."""
-    logger.info(f"[{datetime.now()}] GET request received for resolutions of tile: {tile_id}")
+    logger.info(f"[{datetime.now()}] GET request received for resolutions of tile: {tile_id}, mod: {mod_name}")
     try:
         # Validate the H3 index
         if not h3.h3_is_valid(tile_id):
@@ -563,9 +583,9 @@ async def get_resolutions(tile_id: str = Path(..., description="H3 index of the 
             else:
                 tile = HexagonTile(tile_id)
             
-            # Save the newly created tile
-            tile.save()
-            logger.info(f"[{datetime.now()}] New tile {tile_id} saved to storage")
+            # Save the static data for the newly created tile
+            tile.save_static()
+            logger.info(f"[{datetime.now()}] New tile {tile_id} static data saved to storage")
         
         # Return resolution IDs
         logger.info(f"[{datetime.now()}] Returning {len(tile.resolution_ids)} resolution IDs for tile {tile_id}")
