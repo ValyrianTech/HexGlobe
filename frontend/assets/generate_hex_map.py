@@ -322,48 +322,24 @@ def create_hexagon_map(h3_index, zoom=None, rotate=True):
     
     # If rotation is requested, we need to determine which edge should be at the bottom
     if rotate:
-        # For a flat-bottom hexagon, we need to find the orientation
-        # First, determine the center of the hexagon in pixel coordinates
-        center_x = sum(v[0] for v in pixel_vertices) / len(pixel_vertices)
-        center_y = sum(v[1] for v in pixel_vertices) / len(pixel_vertices)
+        # For a flat-bottom hexagon, we need to find the bottom edge
+        # A flat-bottom hexagon should have two vertices with similar y-coordinates at the bottom
         
-        # Calculate angles from center to each vertex
-        vertex_angles = []
-        for i, vertex in enumerate(pixel_vertices):
-            dx = vertex[0] - center_x
-            dy = vertex[1] - center_y
-            angle = math.degrees(math.atan2(dy, dx))
-            # Normalize angle to 0-360
-            if angle < 0:
-                angle += 360
-            vertex_angles.append((i, angle))
+        # First, sort vertices by y-coordinate (descending)
+        vertices_by_y = sorted(enumerate(pixel_vertices), key=lambda x: x[1][1], reverse=True)
         
-        # Sort vertices by angle
-        vertex_angles.sort(key=lambda x: x[1])
+        # Get the two vertices with the largest y-coordinates (lowest on screen)
+        bottom_vertices_indices = [vertices_by_y[0][0], vertices_by_y[1][0]]
         
-        # Print sorted vertices by angle
-        print("\nVertices sorted by angle from center:")
-        for idx, angle in vertex_angles:
-            print(f"Vertex {idx}: {angle:.2f} degrees")
-        
-        # For a flat-bottom hexagon, we want vertices at approximately 210° and 330°
-        # to form the bottom edge (assuming 0° is to the right, 90° is down)
-        
-        # Find vertices closest to these angles
-        target_angles = [210, 330]
-        bottom_vertices = []
-        
-        for target in target_angles:
-            closest_idx = min(vertex_angles, key=lambda x: min(abs(x[1] - target), abs(x[1] - target + 360), abs(x[1] - target - 360)))[0]
-            bottom_vertices.append(closest_idx)
-        
-        # Ensure bottom_vertices[0] is to the left of bottom_vertices[1]
-        if pixel_vertices[bottom_vertices[0]][0] > pixel_vertices[bottom_vertices[1]][0]:
-            bottom_vertices = bottom_vertices[::-1]
+        # Sort these two vertices by x-coordinate
+        bottom_vertices_indices.sort(key=lambda idx: pixel_vertices[idx][0])
         
         # Get the coordinates of the bottom vertices
-        bottom_left = pixel_vertices[bottom_vertices[0]]
-        bottom_right = pixel_vertices[bottom_vertices[1]]
+        bottom_left_idx = bottom_vertices_indices[0]
+        bottom_right_idx = bottom_vertices_indices[1]
+        
+        bottom_left = pixel_vertices[bottom_left_idx]
+        bottom_right = pixel_vertices[bottom_right_idx]
         
         # Draw the bottom edge in a different color
         draw.line([bottom_left, bottom_right], fill="cyan", width=5)
@@ -375,7 +351,7 @@ def create_hexagon_map(h3_index, zoom=None, rotate=True):
         dy = bottom_right[1] - bottom_left[1]
         edge_angle = math.degrees(math.atan2(dy, dx))
         
-        print(f"\nBottom edge: Vertex {bottom_vertices[0]} to Vertex {bottom_vertices[1]}")
+        print(f"\nBottom edge: Vertex {bottom_left_idx} to Vertex {bottom_right_idx}")
         print(f"Bottom edge coordinates: ({bottom_left[0]}, {bottom_left[1]}) to ({bottom_right[0]}, {bottom_right[1]})")
         print(f"Bottom edge angle with horizontal: {edge_angle:.2f} degrees")
         
