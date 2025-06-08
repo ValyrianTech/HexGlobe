@@ -410,6 +410,82 @@ def create_hexagon_map(h3_index, zoom=None, rotate=True):
         
         # Update the pixel vertices to the rotated ones
         pixel_vertices = rotated_vertices
+        
+        # Now we need to crop and scale the image to make the hexagon fit perfectly
+        # Find the leftmost and rightmost vertices
+        leftmost_x = min(v[0] for v in pixel_vertices)
+        rightmost_x = max(v[0] for v in pixel_vertices)
+        topmost_y = min(v[1] for v in pixel_vertices)
+        bottommost_y = max(v[1] for v in pixel_vertices)
+        
+        # Calculate the current width and height of the hexagon
+        current_width = rightmost_x - leftmost_x
+        current_height = bottommost_y - topmost_y
+        
+        # Calculate scaling factor to make the width exactly 1024 pixels
+        scaling_factor = 1024 / current_width
+        
+        # Calculate new dimensions for the image
+        new_width = int(image.width * scaling_factor)
+        new_height = int(image.height * scaling_factor)
+        
+        # Calculate the center of the hexagon
+        hex_center_x = (leftmost_x + rightmost_x) / 2
+        hex_center_y = (topmost_y + bottommost_y) / 2
+        
+        # Calculate the crop box to center the hexagon
+        crop_left = int(hex_center_x - (CANVAS_SIZE / 2 / scaling_factor))
+        crop_top = int(hex_center_y - (CANVAS_SIZE / 2 / scaling_factor))
+        crop_right = int(hex_center_x + (CANVAS_SIZE / 2 / scaling_factor))
+        crop_bottom = int(hex_center_y + (CANVAS_SIZE / 2 / scaling_factor))
+        
+        # Ensure crop box is within image bounds
+        crop_left = max(0, crop_left)
+        crop_top = max(0, crop_top)
+        crop_right = min(image.width, crop_right)
+        crop_bottom = min(image.height, crop_bottom)
+        
+        # Crop the image
+        cropped_image = image.crop((crop_left, crop_top, crop_right, crop_bottom))
+        
+        # Resize to 1024x1024
+        final_image = cropped_image.resize((CANVAS_SIZE, CANVAS_SIZE), Image.LANCZOS)
+        
+        # Calculate the new vertex positions after cropping and scaling
+        final_vertices = []
+        for x, y in pixel_vertices:
+            new_x = (x - crop_left) * scaling_factor
+            new_y = (y - crop_top) * scaling_factor
+            final_vertices.append((new_x, new_y))
+        
+        # Draw the final vertices for verification
+        draw = ImageDraw.Draw(final_image)
+        
+        # Draw circles at all vertices
+        for i, vertex in enumerate(final_vertices):
+            draw.ellipse((vertex[0]-radius, vertex[1]-radius, vertex[0]+radius, vertex[1]+radius), fill=colors[i % len(colors)])
+        
+        # Draw text labels with coordinates
+        for i, vertex in enumerate(final_vertices):
+            draw.text((vertex[0]+radius, vertex[1]-radius), f"{i}: ({int(vertex[0])}, {int(vertex[1])})", fill=colors[i % len(colors)], font=font)
+        
+        # Draw lines connecting the vertices in order
+        for i in range(len(final_vertices)):
+            next_i = (i + 1) % len(final_vertices)
+            draw.line([final_vertices[i], final_vertices[next_i]], fill="white", width=2)
+        
+        # Save the final image
+        final_image.save(f"{h3_index}_final.png")
+        print(f"Final image saved to {h3_index}_final.png")
+        
+        # Print the final vertex coordinates
+        print("\nFinal Hexagon Vertices (x, y):")
+        for i, vertex in enumerate(final_vertices):
+            print(f"Vertex {i}: ({int(vertex[0])}, {int(vertex[1])})")
+        
+        # Update the image and vertices
+        image = final_image
+        pixel_vertices = final_vertices
     
     return image, pixel_vertices
 
