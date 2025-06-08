@@ -374,7 +374,7 @@ class Tile(ABC):
                 logger.error(f"File was not created: {file_path}")
                 
             # Also save using the new format
-            self.save_split()
+            self.save_static()
                 
         except Exception as e:
             logger.error(f"Error saving tile {self.id}: {str(e)}")
@@ -389,6 +389,24 @@ class Tile(ABC):
         """
         try:
             # Save static data
+            self.save_static()
+            
+            # Save dynamic data
+            self.save_dynamic(mod_name)
+            
+            logger.info(f"Successfully saved tile {self.id} in split format")
+            
+        except Exception as e:
+            logger.error(f"Error saving tile {self.id} in split format: {str(e)}")
+            raise
+    
+    def save_static(self) -> None:
+        """
+        Persists static tile data to storage.
+        Static data includes H3 grid information that doesn't change.
+        """
+        try:
+            # Save static data
             static_path = get_static_path(self.id)
             logger.info(f"Saving static data for tile {self.id} to {static_path}")
             
@@ -398,20 +416,60 @@ class Tile(ABC):
             with open(static_path, 'w') as f:
                 json.dump(static_data, f, indent=2)
             
-            # Save dynamic data
-            dynamic_path = get_dynamic_path(self.id, mod_name)
-            logger.info(f"Saving dynamic data for tile {self.id} to {dynamic_path}")
-            
-            dynamic_data = self.to_dynamic_dict()
-            os.makedirs(os.path.dirname(dynamic_path), exist_ok=True)
-            
-            with open(dynamic_path, 'w') as f:
-                json.dump(dynamic_data, f, indent=2)
-            
-            logger.info(f"Successfully saved tile {self.id} in split format")
+            logger.info(f"Successfully saved static data for tile {self.id}")
             
         except Exception as e:
-            logger.error(f"Error saving tile {self.id} in split format: {str(e)}")
+            logger.error(f"Error saving static data for tile {self.id}: {str(e)}")
+            raise
+    
+    def save_dynamic(self, mod_name: str = "default") -> None:
+        """
+        Persists dynamic tile data to storage.
+        Dynamic data includes content and visual properties that can change.
+        Only saves if there's actual content or non-default visual properties.
+        
+        Args:
+            mod_name: The name of the mod/application (default: "default")
+        """
+        try:
+            # Check if there's any content or non-default visual properties
+            has_content = self.content is not None and self.content.strip() != ""
+            
+            # Create a default visual properties object for comparison
+            default_visual_props = VisualProperties()
+            
+            # Check if any visual property is different from default
+            has_custom_visuals = False
+            for prop_name, prop_value in self.visual_properties.dict().items():
+                default_value = getattr(default_visual_props, prop_name)
+                if prop_value != default_value:
+                    has_custom_visuals = True
+                    break
+            
+            # Only save if there's content or custom visual properties
+            if has_content or has_custom_visuals:
+                # Save dynamic data
+                dynamic_path = get_dynamic_path(self.id, mod_name)
+                logger.info(f"Saving dynamic data for tile {self.id} to {dynamic_path}")
+                
+                dynamic_data = self.to_dynamic_dict()
+                os.makedirs(os.path.dirname(dynamic_path), exist_ok=True)
+                
+                with open(dynamic_path, 'w') as f:
+                    json.dump(dynamic_data, f, indent=2)
+                
+                logger.info(f"Successfully saved dynamic data for tile {self.id}")
+            else:
+                logger.info(f"No content or custom visual properties for tile {self.id}, skipping dynamic data save")
+                
+                # Check if a dynamic file already exists and delete it if it does
+                dynamic_path = get_dynamic_path(self.id, mod_name)
+                if os.path.exists(dynamic_path):
+                    logger.info(f"Removing empty dynamic data file for tile {self.id}")
+                    os.remove(dynamic_path)
+            
+        except Exception as e:
+            logger.error(f"Error saving dynamic data for tile {self.id}: {str(e)}")
             raise
     
     @classmethod

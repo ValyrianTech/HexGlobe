@@ -63,8 +63,18 @@ def create_sample_tiles():
         for prop_name, prop_value in visual_props.dict().items():
             tile.set_visual_property(prop_name, prop_value)
             
-        # Save using the new split format
-        tile.save_split()
+        # Save using the new split format methods
+        tile.save_static()
+        
+        # For demonstration, only add content to even-indexed tiles
+        if i % 2 == 0:
+            tile.save_dynamic()
+        else:
+            # For odd-indexed tiles, set empty content to demonstrate dynamic file not being created
+            tile.content = ""
+            # Reset visual properties to defaults
+            tile.visual_properties = VisualProperties()
+            tile.save_dynamic()
         
         print(f"Created tile: {index} ({'pentagon' if is_pentagon else 'hexagon'})")
     
