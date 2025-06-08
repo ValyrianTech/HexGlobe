@@ -362,30 +362,6 @@ class Tile(ABC):
             logger.error(f"Error saving tile {self.id}: {str(e)}")
             raise
     
-    def save_split(self, mod_name: str = "default") -> None:
-        """
-        Persists tile data to storage using the split format.
-        
-        DEPRECATED: Use save_static() and save_dynamic() directly instead.
-        This method is kept for backward compatibility.
-        
-        Args:
-            mod_name: The name of the mod/application (default: "default")
-        """
-        logger.warning("save_split() is deprecated. Use save_static() and save_dynamic() directly instead.")
-        try:
-            # Save static data
-            self.save_static()
-            
-            # Save dynamic data
-            self.save_dynamic(mod_name)
-            
-            logger.info(f"Successfully saved tile {self.id} in split format")
-            
-        except Exception as e:
-            logger.error(f"Error saving tile {self.id} in split format: {str(e)}")
-            raise
-    
     def save_static(self) -> None:
         """
         Persists static tile data to storage.
@@ -519,16 +495,16 @@ class Tile(ABC):
                 return tile
             
             # If not found in legacy format, try the new split format
-            return cls.load_split(tile_id, mod_name)
+            return cls.load_from_split_files(tile_id, mod_name)
             
         except Exception as e:
             logger.error(f"Error loading tile {tile_id}: {str(e)}")
             return None
     
     @classmethod
-    def load_split(cls, tile_id: str, mod_name: str = "default") -> Optional["Tile"]:
+    def load_from_split_files(cls, tile_id: str, mod_name: str = "default") -> Optional["Tile"]:
         """
-        Load a tile from storage using the new split format.
+        Load a tile from storage using the split file format.
         
         Args:
             tile_id: The H3 index of the tile
@@ -573,12 +549,11 @@ class Tile(ABC):
                 
                 if "visual_properties" in dynamic_data:
                     tile.visual_properties = VisualProperties(**dynamic_data["visual_properties"])
-            else:
-                logger.info(f"Dynamic data file not found for tile {tile_id}, using default values")
             
             return tile
+            
         except Exception as e:
-            logger.error(f"Error loading tile {tile_id} from split format: {str(e)}")
+            logger.error(f"Error loading tile {tile_id} from split files: {str(e)}")
             return None
     
     @abstractmethod
