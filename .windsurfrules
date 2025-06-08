@@ -1,0 +1,54 @@
+HexGlobe is a web application framework that implements a global hexagonal grid system using Uber's H3 library. It provides a platform for developers to build applications on top of a hexagonal/pentagonal tile-based world map with a 2D representation that allows interactive tiles to store content and be navigated by users.
+
+Key components:
+1. Backend: Python/FastAPI with H3 integration and JSON file-based storage
+2. Frontend: Pure HTML/CSS/JavaScript with Canvas-based hexagon visualization
+3. Data Model: Tile base class with HexagonTile and PentagonTile child classes
+4. Storage: Split into static (H3 grid info) and dynamic (content/visual properties) components
+5. API: RESTful endpoints for tile operations with mod support
+
+Core features:
+- Interactive hexagonal grid visualization and navigation
+- Multi-resolution support (H3 resolutions 0-15)
+- Zoom control (1-10) for adjusting visible hex tiles
+- Position-based neighbor references with descriptive keys
+- Mod support allowing different applications to share the same grid
+- Efficient storage with files only created for tiles with content
+
+Technical implementation:
+- Canvas-based hexagon rendering with proper grid alignment
+- Flat-bottom hexagon orientation with consistent coordinate system
+- Neighbor tiles ordered in a consistent clockwise manner
+- Multi-resolution tile mapping for the same geographic location
+
+## Project Directory Structure
+
+```
+HexGlobe/
+├── backend/
+│   ├── hexglobe/
+│   │   ├── api/
+│   │   │   └── tiles.py    # API endpoints for tile operations
+│   │   ├── models/
+│   │   │   └── tile.py     # Tile data models and storage
+│   │   └── main.py         # FastAPI application setup
+│   ├── pyproject.toml      # Python dependencies
+│   └── run.py              # Entry point
+├── data/
+│   ├── static/             # Static tile data (H3 grid information)
+│   │   └── res_X/          # Organized by resolution level
+│   │       └── ...         # Nested directories by H3 index segments
+│   └── dynamic/            # Dynamic tile data (content and visual properties)
+│       └── default/        # Default mod/application
+│           └── res_X/      # Organized by resolution level
+│               └── ...     # Nested directories by H3 index segments
+├── frontend/
+│   ├── css/
+│   │   └── styles.css      # Main stylesheet
+│   ├── js/
+│   │   ├── app.js          # Main application logic
+│   │   ├── hexTile.js      # Canvas-based hexagon rendering module
+│   │   └── navigation.js   # Tile navigation and API communication
+│   └── index.html          # Main HTML entry point
+├── design_document.md      # Comprehensive design documentation
+└── README.md               # Project overview and setup instructions
