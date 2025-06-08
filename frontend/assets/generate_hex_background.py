@@ -7,10 +7,10 @@ making the hexagon as large as possible with transparent background.
 
 import os
 import math
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFont
 
 def generate_hex_background(output_path, size=1024, border_width=2, border_color=(50, 50, 50, 255), 
-                           fill_color=(255, 255, 255, 255)):
+                           fill_color=(255, 255, 255, 255), add_text=True, text_color=(200, 200, 200, 128)):
     """
     Generate a flat-bottom hexagon background image.
     
@@ -20,6 +20,8 @@ def generate_hex_background(output_path, size=1024, border_width=2, border_color
         border_width: Width of the hexagon border in pixels
         border_color: RGBA color tuple for the border
         fill_color: RGBA color tuple for the hexagon fill
+        add_text: Whether to add the "HexGlobe" text in the center
+        text_color: RGBA color tuple for the text (faint grey by default)
     """
     # Create a transparent image
     img = Image.new('RGBA', (size, size), (0, 0, 0, 0))
@@ -57,6 +59,30 @@ def generate_hex_background(output_path, size=1024, border_width=2, border_color
     else:
         draw.polygon(points, fill=fill_color)
     
+    # Add "HexGlobe" text in the center if requested
+    if add_text:
+        try:
+            # Try to load a system font
+            font_size = int(size / 10)  # Adjust font size based on image size
+            try:
+                font = ImageFont.truetype("Arial", font_size)
+            except IOError:
+                # Fallback to default font if Arial is not available
+                font = ImageFont.load_default()
+                font_size = int(size / 15)  # Default font might be smaller
+                
+            text = "HexGlobe"
+            # Get text size to center it properly
+            text_bbox = draw.textbbox((0, 0), text, font=font)
+            text_width = text_bbox[2] - text_bbox[0]
+            text_height = text_bbox[3] - text_bbox[1]
+            
+            # Draw the text in the center
+            text_position = (center_x - text_width / 2, center_y - text_height / 2)
+            draw.text(text_position, text, font=font, fill=text_color)
+        except Exception as e:
+            print(f"Warning: Could not add text: {e}")
+    
     # Ensure the directory exists
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     
@@ -69,16 +95,15 @@ def generate_hex_background(output_path, size=1024, border_width=2, border_color
 if __name__ == "__main__":
     # Create the assets directory if it doesn't exist
     output_dir = os.path.dirname(os.path.abspath(__file__))
-    output_path = os.path.join(output_dir, "hex_background.png")
-    
-    # Generate the default hexagon background
-    generate_hex_background(output_path)
-    
-    # Generate a subtle version with custom properties
-    subtle_path = os.path.join(output_dir, "subtle_hex_background.png")
+
+    # Generate a version with black border, light grey fill, and darker text
+    custom_path = os.path.join(output_dir, "hex_map_placeholder.png")
+    light_grey = (220, 220, 220, 255)  # Light grey fill
+    darker_text = (150, 150, 150, 255)  # Darker text color
     generate_hex_background(
-        subtle_path, 
-        border_width=2, 
-        border_color=(100, 100, 120, 255),
-        fill_color=(245, 245, 250, 180)  # Semi-transparent fill
+        custom_path,
+        border_width=5,
+        border_color=(0, 0, 0, 255),  # Black border
+        fill_color=light_grey,
+        text_color=darker_text
     )
