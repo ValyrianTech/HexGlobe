@@ -4,12 +4,12 @@
  * This module handles the rendering of hexagonal tiles using HTML5 Canvas.
  */
 
-// Load the hex map placeholder image
-const hexMapImage = new Image();
-hexMapImage.src = 'assets/hex_map_placeholder.png';
-let hexMapImageLoaded = false;
-hexMapImage.onload = () => {
-    hexMapImageLoaded = true;
+// Load the hex map placeholder image as fallback
+const placeholderImage = new Image();
+placeholderImage.src = 'assets/hex_map_placeholder.png';
+let placeholderImageLoaded = false;
+placeholderImage.onload = () => {
+    placeholderImageLoaded = true;
     console.log('Hex map placeholder image loaded successfully');
 };
 
@@ -35,6 +35,50 @@ class HexTile {
         this.vertices = [];
         this.size = 0;
         this.isActive = false;
+        
+        // Use the placeholder image by default
+        this.hexMapImage = placeholderImage;
+        this.hexMapImageLoaded = placeholderImageLoaded;
+        
+        // Try to load the tile-specific image
+        this.loadHexMapImage();
+    }
+
+    /**
+     * Load the hex map image for this specific tile
+     */
+    loadHexMapImage() {
+        try {
+            // Get the resolution from the H3 index
+            const resolution = parseInt(this.id[1], 16); // Second character of H3 index indicates resolution
+            
+            // Create a new image object for this specific tile
+            const tileImage = new Image();
+            
+            // Set up the onload handler before setting the src
+            tileImage.onload = () => {
+                // Only update the image if it loaded successfully
+                this.hexMapImage = tileImage;
+                this.hexMapImageLoaded = true;
+                console.log(`Hex map image loaded for tile ${this.id}`);
+            };
+            
+            // Set up the onerror handler to keep using the placeholder
+            tileImage.onerror = () => {
+                console.warn(`Failed to load hex map image for tile ${this.id}, using placeholder`);
+                // Keep using the placeholder (already set in constructor)
+            };
+            
+            // Construct the path to the hex map image
+            // Use relative path from the frontend directory
+            const hexMapPath = `../data/hex_maps/res_${resolution}/${this.id.substring(0, 2)}/${this.id.substring(2, 4)}/${this.id.substring(4, 6)}/${this.id.substring(6, 8)}/${this.id.substring(8, 10)}/${this.id.substring(10, 12)}/${this.id.substring(12, 14)}/${this.id}.png`;
+            
+            // Set the image source after setting up handlers
+            tileImage.src = hexMapPath;
+        } catch (error) {
+            console.error(`Error loading hex map for tile ${this.id}:`, error);
+            // Keep using the placeholder (already set in constructor)
+        }
     }
 
     /**
@@ -87,7 +131,7 @@ class HexTile {
         ctx.clip();
         
         // Draw the background image if loaded
-        if (hexMapImageLoaded) {
+        if (this.hexMapImageLoaded) {
             // Calculate the position and size to draw the image
             // Use a larger size to ensure the image covers the entire hexagon
             const imgSize = this.size * 3;
@@ -95,9 +139,9 @@ class HexTile {
             const imgY = this.center.y - imgSize / 2;
             
             // Draw the image
-            ctx.drawImage(hexMapImage, imgX, imgY, imgSize, imgSize);
+            ctx.drawImage(this.hexMapImage, imgX, imgY, imgSize, imgSize);
         } else {
-            // Fallback to solid color if image not loaded
+            // Fallback to solid color if no images are loaded
             ctx.fillStyle = this.isActive ? 
                 (this.visualProperties.activeFillColor || this.visualProperties.fillColor) : 
                 this.visualProperties.fillColor;
