@@ -7,7 +7,7 @@ import h3
 import math
 from pydantic import BaseModel
 
-# Set up logging
+# Configure logging
 logger = logging.getLogger(__name__)
 
 # Base data directory
@@ -48,21 +48,12 @@ def get_dynamic_path(h3_index: str, mod_name: str = "default") -> str:
         mod_name: The name of the mod/application (default: "default")
         
     Returns:
-        str: The full path to the dynamic data JSON file
+        The path to the dynamic data file
     """
     resolution = h3.h3_get_resolution(h3_index)
-    path_segments = [h3_index[i:i+2] for i in range(0, len(h3_index) - 1, 2)]
+    path_segments = [h3_index[i:i+2] for i in range(0, min(len(h3_index), 10), 2)]
     dynamic_dir = os.path.join(BASE_DATA_DIR, "dynamic", mod_name, f"res_{resolution}", *path_segments)
-    
-    # Note: We don't create directories here anymore
-    # Directories will be created only when actually saving data
-    
     return os.path.join(dynamic_dir, f"{h3_index}.json")
-
-# Data directory for tile storage
-DATA_DIR = os.path.join(BASE_DATA_DIR, "tiles")
-os.makedirs(DATA_DIR, exist_ok=True)
-logger.info(f"Data directory set to: {DATA_DIR}")
 
 class VisualProperties(BaseModel):
     """Visual properties for a tile."""
@@ -449,54 +440,7 @@ class Tile(ABC):
             The loaded tile or None if not found
         """
         try:
-            # Check for legacy format first for backward compatibility
-            legacy_path = os.path.join(DATA_DIR, f"{tile_id}.json")
-            if os.path.exists(legacy_path):
-                logger.info(f"Found legacy format for tile {tile_id}, loading from {legacy_path}")
-                with open(legacy_path, 'r') as f:
-                    data = json.load(f)
-                
-                # Create the appropriate tile type
-                if h3.h3_is_pentagon(tile_id):
-                    tile = PentagonTile(tile_id)
-                else:
-                    tile = HexagonTile(tile_id)
-                
-                # Load data
-                tile.content = data.get("content")
-                
-                if "visual_properties" in data:
-                    tile.visual_properties = VisualProperties(**data["visual_properties"])
-                
-                tile.parent_id = data.get("parent_id")
-                tile.children_ids = data.get("children_ids", [])
-                
-                # Handle both list and dict formats for backward compatibility
-                neighbor_ids = data.get("neighbor_ids", {})
-                if isinstance(neighbor_ids, list):
-                    # Convert old list format to new dict format
-                    tile.neighbor_ids = tile._get_positioned_neighbors(tile_id)
-                else:
-                    tile.neighbor_ids = neighbor_ids
-                
-                tile.resolution_ids = data.get("resolution_ids", {})
-                
-                # Load resolution or calculate it if not present in the data
-                if "resolution" in data:
-                    tile.resolution = data["resolution"]
-                else:
-                    # For backward compatibility with existing tiles
-                    tile.resolution = h3.h3_get_resolution(tile_id)
-                
-                # Save in the new format for future use
-                tile.save_static()
-                tile.save_dynamic(mod_name)
-                
-                return tile
-            
-            # If not found in legacy format, try the new split format
             return cls.load_from_split_files(tile_id, mod_name)
-            
         except Exception as e:
             logger.error(f"Error loading tile {tile_id}: {str(e)}")
             return None
