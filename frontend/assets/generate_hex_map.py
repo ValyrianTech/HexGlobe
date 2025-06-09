@@ -20,6 +20,15 @@ import numpy as np
 import json
 import sys
 
+# Import the get_hex_map_path helper function from the tile module
+sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "backend"))
+try:
+    from hexglobe.models.tile import get_hex_map_path
+except ImportError:
+    print("Warning: Could not import get_hex_map_path from tile module. Using default path.")
+    def get_hex_map_path(h3_index):
+        return f"{h3_index}.png"
+
 # Constants for the image rendering
 CANVAS_SIZE = 1024
 HEXAGON_BORDER_WIDTH = 5
@@ -30,7 +39,7 @@ def parse_arguments():
     """Parse command line arguments."""
     parser = argparse.ArgumentParser(description='Generate map images for HexGlobe hexagons.')
     parser.add_argument('--h3_index', required=True, help='H3 index of the tile')
-    parser.add_argument('--output', default=None, help='Output file path (default: h3_index.png)')
+    parser.add_argument('--output', default=None, help='Output file path (default: uses get_hex_map_path from tile module)')
     parser.add_argument('--zoom', type=int, default=None, 
                         help='OpenStreetMap zoom level (1-19, default: auto-calculated)')
     parser.add_argument('--vertices', action='store_true',
@@ -510,8 +519,8 @@ def main():
         # Create the map image
         img, vertices = create_hexagon_map(args.h3_index, args.zoom, not args.no_rotate, args.debug)
         
-        # Determine output path
-        output_path = args.output if args.output else f"{args.h3_index}.png"
+        # Determine output path - use get_hex_map_path as default
+        output_path = args.output if args.output else get_hex_map_path(args.h3_index)
         
         # Ensure the directory exists
         os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
