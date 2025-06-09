@@ -375,13 +375,13 @@ window.hexGlobeApp = {
         
         // Fetch grid data from the API
         try {
-            // For zoom level 1, limit the grid to 5x5 regardless of calculated dimensions
+            // For zoom level 1, limit the grid to 7x7 regardless of calculated dimensions
             let apiGridWidth = width;
             let apiGridHeight = height;
             
             if (this.state.zoomLevel === 1) {
-                apiGridWidth = 5;
-                apiGridHeight = 5;
+                apiGridWidth = 7;
+                apiGridHeight = 7;
                 console.log(`Zoom level 1: Limiting grid request to ${apiGridWidth}x${apiGridHeight}`);
             }
             
