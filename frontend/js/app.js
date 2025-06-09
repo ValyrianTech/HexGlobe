@@ -247,42 +247,86 @@ window.hexGlobeApp = {
                 this.state.resolution = newResolution;
                 document.getElementById("resolution-value").textContent = this.state.resolution;
                 
-                // Update the active tile ID to use the new resolution
-                if (window.h3 && typeof window.h3.h3ToGeo === 'function' && typeof window.h3.geoToH3 === 'function') {
-                    try {
-                        // Get the lat/lng of the current index
-                        const latLng = window.h3.h3ToGeo(this.state.activeTileId);
-                        
-                        // Convert to the new resolution
-                        const newIndex = window.h3.geoToH3(latLng[0], latLng[1], this.state.resolution);
-                        this.state.activeTileId = newIndex;
-                        
-                        console.log(`Updated H3 index to resolution ${this.state.resolution}: ${newIndex}`);
-                        
-                        // Update URL to reflect the new H3 index
-                        const url = new URL(window.location);
-                        url.searchParams.set('h3', newIndex);
-                        window.history.replaceState({}, '', url);
-                        
-                        // Update the navigation system with the new active tile ID
-                        if (this.state.navigation) {
-                            this.state.navigation.navigateTo(newIndex).then(() => {
+                // Check if we have resolution_ids from the API
+                if (this.state.navigation && 
+                    this.state.navigation.activeTile && 
+                    this.state.navigation.activeTile.resolution_ids && 
+                    this.state.navigation.activeTile.resolution_ids[newResolution]) {
+                    
+                    // Use the pre-calculated resolution ID from the API
+                    const newIndex = this.state.navigation.activeTile.resolution_ids[newResolution];
+                    this.state.activeTileId = newIndex;
+                    
+                    console.log(`Updated H3 index to resolution ${this.state.resolution} using API data: ${newIndex}`);
+                    
+                    // Update URL to reflect the new H3 index
+                    const url = new URL(window.location);
+                    url.searchParams.set('h3', newIndex);
+                    window.history.replaceState({}, '', url);
+                    
+                    // Update the navigation system with the new active tile ID
+                    if (this.state.navigation) {
+                        this.state.navigation.navigateTo(newIndex).then(() => {
+                            // Generate grid and wait for it to complete before rendering
+                            this.generateGrid().then(() => {
+                                this.render();
+                                this.updateDebugPanel();
+                            });
+                        });
+                    } else {
+                        // Generate grid and wait for it to complete before rendering
+                        this.generateGrid().then(() => {
+                            this.render();
+                            this.updateDebugPanel();
+                        });
+                    }
+                } else {
+                    // Fallback to H3 library or default index if resolution_ids not available
+                    if (window.h3 && typeof window.h3.h3ToGeo === 'function' && typeof window.h3.geoToH3 === 'function') {
+                        try {
+                            // Get the lat/lng of the current index
+                            const latLng = window.h3.h3ToGeo(this.state.activeTileId);
+                            
+                            // Convert to the new resolution
+                            const newIndex = window.h3.geoToH3(latLng[0], latLng[1], this.state.resolution);
+                            this.state.activeTileId = newIndex;
+                            
+                            console.log(`Updated H3 index to resolution ${this.state.resolution} using H3 library: ${newIndex}`);
+                            
+                            // Update URL to reflect the new H3 index
+                            const url = new URL(window.location);
+                            url.searchParams.set('h3', newIndex);
+                            window.history.replaceState({}, '', url);
+                            
+                            // Update the navigation system with the new active tile ID
+                            if (this.state.navigation) {
+                                this.state.navigation.navigateTo(newIndex).then(() => {
+                                    // Generate grid and wait for it to complete before rendering
+                                    this.generateGrid().then(() => {
+                                        this.render();
+                                        this.updateDebugPanel();
+                                    });
+                                });
+                            } else {
                                 // Generate grid and wait for it to complete before rendering
                                 this.generateGrid().then(() => {
                                     this.render();
                                     this.updateDebugPanel();
                                 });
-                            });
-                        } else {
+                            }
+                        } catch (error) {
+                            console.error("Error updating H3 resolution:", error);
+                            // Fall back to a default index for this resolution
+                            this.state.activeTileId = this.getDefaultH3IndexForResolution(this.state.resolution);
+                            
                             // Generate grid and wait for it to complete before rendering
                             this.generateGrid().then(() => {
                                 this.render();
                                 this.updateDebugPanel();
                             });
                         }
-                    } catch (error) {
-                        console.error("Error updating H3 resolution:", error);
-                        // Fall back to a default index for this resolution
+                    } else {
+                        // If H3 functions aren't available, use default index
                         this.state.activeTileId = this.getDefaultH3IndexForResolution(this.state.resolution);
                         
                         // Generate grid and wait for it to complete before rendering
@@ -291,17 +335,16 @@ window.hexGlobeApp = {
                             this.updateDebugPanel();
                         });
                     }
-                } else {
-                    // If H3 functions aren't available, use default index
-                    this.state.activeTileId = this.getDefaultH3IndexForResolution(this.state.resolution);
-                    
-                    // Generate grid and wait for it to complete before rendering
-                    this.generateGrid().then(() => {
-                        this.render();
-                        this.updateDebugPanel();
-                    });
                 }
             }
+        });
+
+        // Add a change event listener to handle when the slider interaction is complete
+        document.getElementById("resolution-slider").addEventListener("change", (event) => {
+            // Update URL and reload the page to reflect the new resolution
+            const url = new URL(window.location);
+            url.searchParams.set('h3', this.state.activeTileId);
+            window.location.href = url.toString(); // This will reload the page with the new URL
         });
     },
     
