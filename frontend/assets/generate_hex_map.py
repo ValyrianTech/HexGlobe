@@ -35,8 +35,8 @@ HEXAGON_BORDER_WIDTH = 5
 HEXAGON_BORDER_COLOR = "#00FF00"  # Green border for visibility
 OUTER_HEXAGON_COLOR = "#FF0000"   # Red for outer hexagon
 INNER_HEXAGON_COLOR = "#0000FF"   # Blue for inner hexagon
-OUTER_SCALE_FACTOR = 1.05         # 5% larger than the main hexagon
-INNER_SCALE_FACTOR = 0.95         # 5% smaller than the main hexagon
+OUTER_OFFSET_PIXELS = 10          # Pixels to offset outward
+INNER_OFFSET_PIXELS = 10          # Pixels to offset inward
 
 def parse_arguments():
     """Parse command line arguments."""
@@ -249,37 +249,113 @@ def rotate_image_and_vertices(image, vertices, angle, center=None):
     return rotated_image, rotated_vertices
 
 
-def scale_polygon(vertices, scale_factor, center=None):
+def offset_edge(p1, p2, distance):
     """
-    Scale a polygon (list of vertices) by a given factor around a center point.
+    Offset an edge by a perpendicular distance.
+    
+    Args:
+        p1: (x, y) coordinates of first point
+        p2: (x, y) coordinates of second point
+        distance: Distance to offset (positive = outward, negative = inward)
+        
+    Returns:
+        Two new points representing the offset edge
+    """
+    # Calculate the vector of the edge
+    dx = p2[0] - p1[0]
+    dy = p2[1] - p1[1]
+    
+    # Calculate the length of the edge
+    length = math.sqrt(dx*dx + dy*dy)
+    
+    # Normalize the vector
+    if length > 0:
+        dx /= length
+        dy /= length
+    
+    # Calculate the perpendicular vector (rotate 90 degrees)
+    perpx = -dy
+    perpy = dx
+    
+    # Offset the points
+    new_p1 = (p1[0] + perpx * distance, p1[1] + perpy * distance)
+    new_p2 = (p2[0] + perpx * distance, p2[1] + perpy * distance)
+    
+    return new_p1, new_p2
+
+
+def create_offset_polygon(vertices, distance):
+    """
+    Create a new polygon by offsetting each edge of the original polygon.
     
     Args:
         vertices: List of (x, y) vertex coordinates
-        scale_factor: Factor to scale by (>1 for larger, <1 for smaller)
-        center: (x, y) center point to scale around (if None, uses centroid)
+        distance: Distance to offset edges (positive = outward, negative = inward)
         
     Returns:
-        List of scaled (x, y) vertex coordinates
+        List of (x, y) vertex coordinates for the offset polygon
     """
-    if center is None:
-        # Calculate centroid if no center is provided
-        center_x = sum(v[0] for v in vertices) / len(vertices)
-        center_y = sum(v[1] for v in vertices) / len(vertices)
-        center = (center_x, center_y)
+    num_vertices = len(vertices)
+    offset_edges = []
     
-    scaled_vertices = []
-    for x, y in vertices:
-        # Vector from center to vertex
-        dx = x - center[0]
-        dy = y - center[1]
+    # Offset each edge
+    for i in range(num_vertices):
+        next_i = (i + 1) % num_vertices
+        p1 = vertices[i]
+        p2 = vertices[next_i]
         
-        # Scale the vector
-        scaled_x = center[0] + dx * scale_factor
-        scaled_y = center[1] + dy * scale_factor
-        
-        scaled_vertices.append((scaled_x, scaled_y))
+        new_p1, new_p2 = offset_edge(p1, p2, distance)
+        offset_edges.append((new_p1, new_p2))
     
-    return scaled_vertices
+    # Find the intersection points of adjacent offset edges
+    offset_vertices = []
+    for i in range(num_vertices):
+        prev_i = (i - 1) % num_vertices
+        
+        line1_p1, line1_p2 = offset_edges[prev_i]
+        line2_p1, line2_p2 = offset_edges[i]
+        
+        # Calculate intersection
+        try:
+            intersection = line_intersection(line1_p1, line1_p2, line2_p1, line2_p2)
+            offset_vertices.append(intersection)
+        except Exception:
+            # If lines are parallel or coincident, use the endpoint
+            offset_vertices.append(line2_p1)
+    
+    return offset_vertices
+
+
+def line_intersection(line1_p1, line1_p2, line2_p1, line2_p2):
+    """
+    Find the intersection point of two lines.
+    
+    Args:
+        line1_p1, line1_p2: Two points defining the first line
+        line2_p1, line2_p2: Two points defining the second line
+        
+    Returns:
+        (x, y) coordinates of the intersection point
+    """
+    # Convert to the form Ax + By = C
+    a1 = line1_p2[1] - line1_p1[1]
+    b1 = line1_p1[0] - line1_p2[0]
+    c1 = a1 * line1_p1[0] + b1 * line1_p1[1]
+    
+    a2 = line2_p2[1] - line2_p1[1]
+    b2 = line2_p1[0] - line2_p2[0]
+    c2 = a2 * line2_p1[0] + b2 * line2_p1[1]
+    
+    determinant = a1 * b2 - a2 * b1
+    
+    if determinant == 0:
+        # Lines are parallel or coincident
+        raise Exception("Lines do not intersect")
+    
+    x = (b2 * c1 - b1 * c2) / determinant
+    y = (a1 * c2 - a2 * c1) / determinant
+    
+    return (x, y)
 
 
 def create_hexagon_map(h3_index, zoom=None, rotate=True, debug=False):
@@ -339,24 +415,41 @@ def create_hexagon_map(h3_index, zoom=None, rotate=True, debug=False):
     from PIL import ImageDraw, ImageFont
     draw = ImageDraw.Draw(image)
     
-    # Create outer and inner hexagons
+    # Calculate the center of the hexagon
     center_x = sum(v[0] for v in pixel_vertices) / len(pixel_vertices)
     center_y = sum(v[1] for v in pixel_vertices) / len(pixel_vertices)
     center_point = (center_x, center_y)
     
-    # Scale the vertices to create outer and inner hexagons
-    outer_vertices = scale_polygon(pixel_vertices, OUTER_SCALE_FACTOR, center_point)
-    inner_vertices = scale_polygon(pixel_vertices, INNER_SCALE_FACTOR, center_point)
-    
-    # Draw the outer hexagon (red)
-    for i in range(len(outer_vertices)):
-        next_i = (i + 1) % len(outer_vertices)
-        draw.line([outer_vertices[i], outer_vertices[next_i]], fill=OUTER_HEXAGON_COLOR, width=HEXAGON_BORDER_WIDTH)
-    
-    # Draw the inner hexagon (blue)
-    for i in range(len(inner_vertices)):
-        next_i = (i + 1) % len(inner_vertices)
-        draw.line([inner_vertices[i], inner_vertices[next_i]], fill=INNER_HEXAGON_COLOR, width=HEXAGON_BORDER_WIDTH)
+    # Create outer and inner hexagons by offsetting edges
+    try:
+        outer_vertices = create_offset_polygon(pixel_vertices, OUTER_OFFSET_PIXELS)
+        inner_vertices = create_offset_polygon(pixel_vertices, -INNER_OFFSET_PIXELS)
+        
+        # Draw the outer hexagon (red)
+        for i in range(len(outer_vertices)):
+            next_i = (i + 1) % len(outer_vertices)
+            draw.line([outer_vertices[i], outer_vertices[next_i]], fill=OUTER_HEXAGON_COLOR, width=HEXAGON_BORDER_WIDTH)
+        
+        # Draw the inner hexagon (blue)
+        for i in range(len(inner_vertices)):
+            next_i = (i + 1) % len(inner_vertices)
+            draw.line([inner_vertices[i], inner_vertices[next_i]], fill=INNER_HEXAGON_COLOR, width=HEXAGON_BORDER_WIDTH)
+    except Exception as e:
+        if debug:
+            print(f"Error creating offset hexagons: {e}")
+            # Fallback to the scaling method
+            outer_vertices = scale_polygon(pixel_vertices, 1.05, center_point)
+            inner_vertices = scale_polygon(pixel_vertices, 0.95, center_point)
+            
+            # Draw the outer hexagon (red)
+            for i in range(len(outer_vertices)):
+                next_i = (i + 1) % len(outer_vertices)
+                draw.line([outer_vertices[i], outer_vertices[next_i]], fill=OUTER_HEXAGON_COLOR, width=HEXAGON_BORDER_WIDTH)
+            
+            # Draw the inner hexagon (blue)
+            for i in range(len(inner_vertices)):
+                next_i = (i + 1) % len(inner_vertices)
+                draw.line([inner_vertices[i], inner_vertices[next_i]], fill=INNER_HEXAGON_COLOR, width=HEXAGON_BORDER_WIDTH)
     
     if debug:
         # Draw circles at all vertices
