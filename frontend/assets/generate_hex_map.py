@@ -601,9 +601,10 @@ def create_hexagon_map(h3_index, zoom=None, rotate=True, debug=False, vertical_a
     # Create a closed polygon by adding the first point at the end
     line_points.append(line_points[0])
     
-    # Add the hexagon boundary to the map
-    line = Line(line_points, HEXAGON_BORDER_COLOR, HEXAGON_BORDER_WIDTH)
-    m.add_line(line)
+    # Add the hexagon boundary to the map only if debug is enabled
+    if debug:
+        line = Line(line_points, HEXAGON_BORDER_COLOR, HEXAGON_BORDER_WIDTH)
+        m.add_line(line)
     
     # Render the map with the hexagon boundary
     image = m.render(zoom=zoom, center=[center_lng, center_lat])
@@ -640,12 +641,12 @@ def create_hexagon_map(h3_index, zoom=None, rotate=True, debug=False, vertical_a
             next_i = (i + 1) % len(inner_vertices)
             draw.line([inner_vertices[i], inner_vertices[next_i]], fill=INNER_HEXAGON_COLOR, width=HEXAGON_BORDER_WIDTH)
     
-    # Draw the main hexagon (green) - use the original vertices
-    for i in range(len(pixel_vertices)):
-        next_i = (i + 1) % len(pixel_vertices)
-        draw.line([pixel_vertices[i], pixel_vertices[next_i]], fill=HEXAGON_BORDER_COLOR, width=HEXAGON_BORDER_WIDTH)
-    
+    # Draw the main hexagon (green) only when in debug mode
     if debug:
+        for i in range(len(pixel_vertices)):
+            next_i = (i + 1) % len(pixel_vertices)
+            draw.line([pixel_vertices[i], pixel_vertices[next_i]], fill=HEXAGON_BORDER_COLOR, width=HEXAGON_BORDER_WIDTH)
+        
         # Draw circles at all vertices
         colors = ["red", "orange", "yellow", "green", "blue", "purple"]
         radius = REFERENCE_DOT_RADIUS
