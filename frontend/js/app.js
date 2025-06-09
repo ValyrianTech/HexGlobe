@@ -21,6 +21,11 @@ window.hexGlobeApp = {
             borderThickness: 1,      // Normal border thickness
             fillColor: "#a3c9e9"     // Light blue fill color for normal tiles
         },
+        selectedTileStyles: {
+            borderColor: "#FF9800",  // Orange border for selected tiles
+            borderThickness: 2,      // Medium border for selected tiles
+            fillColor: "#FFC107"     // Yellow-ish fill for selected tiles
+        },
         h3LibraryCheckMaxRetries: 20, // Increased maximum number of retries for H3 library check
         h3LibraryCheckInterval: 200   // Increased interval in ms between H3 library checks
     },
@@ -33,7 +38,8 @@ window.hexGlobeApp = {
         tiles: [], // Array of tile objects
         zoomLevel: 1, // Default zoom level (1-10)
         resolution: 7, // Default H3 resolution (0-15)
-        navigation: null // Will hold the HexNavigation instance
+        navigation: null, // Will hold the HexNavigation instance
+        selectedTiles: [] // Array to store selected tile IDs
     },
     
     // Initialize the application
@@ -575,23 +581,109 @@ window.hexGlobeApp = {
             if (tile.hexTile && tile.hexTile.containsPoint(x, y)) {
                 console.log(`Clicked on tile: ${tile.id} (${tile.col}, ${tile.row})`);
                 
-                if (tile.isActive) {
-                    // Already the active tile, do nothing
-                    return;
+                // Toggle selection for the clicked tile
+                const selectedIndex = this.state.selectedTiles.findIndex(selectedTile => selectedTile === tile.id);
+                
+                if (selectedIndex >= 0) {
+                    // Tile is already selected, unselect it
+                    this.state.selectedTiles.splice(selectedIndex, 1);
+                    tile.hexTile.setSelected(false);
+                    console.log(`Unselected tile: ${tile.id}`);
+                } else {
+                    // Tile is not selected, select it
+                    this.state.selectedTiles.push(tile.id);
+                    tile.hexTile.setSelected(true);
+                    console.log(`Selected tile: ${tile.id}`);
                 }
                 
+                // Re-render the canvas to show selection changes
+                this.render();
+                
+                // Update the debug panel
+                this.updateDebugPanel();
+                
+                return;
+            }
+        }
+    },
+    
+    // Update the tile information panel
+    updateDebugPanel: function() {
+        // Get the active tile
+        const activeTile = this.state.tiles.find(tile => tile.isActive);
+        
+        if (!activeTile) {
+            return;
+        }
+        
+        // Update the tile information panel
+        const tileInfo = document.getElementById("tile-info");
+        
+        // Try to get tile data from the navigation system
+        let tileContent = "No content available";
+        let backendResolution = "N/A";
+        
+        if (this.state.navigation && this.state.navigation.activeTile) {
+            const navTile = this.state.navigation.activeTile;
+            tileContent = navTile.content || "No content available";
+            backendResolution = navTile.resolution !== undefined ? navTile.resolution : "N/A";
+        }
+        
+        // Create selected tiles list HTML
+        let selectedTilesHtml = '';
+        if (this.state.selectedTiles.length > 0) {
+            selectedTilesHtml = `
+                <p><strong>Selected Tiles (${this.state.selectedTiles.length}):</strong></p>
+                <ul style="max-height: 100px; overflow-y: auto; margin-top: 5px;">
+                    ${this.state.selectedTiles.map(tileId => `<li>${tileId}</li>`).join('')}
+                </ul>
+            `;
+        } else {
+            selectedTilesHtml = '<p><strong>Selected Tiles:</strong> None</p>';
+        }
+        
+        // Create navigation button HTML if exactly one tile is selected
+        let navigationButtonHtml = '';
+        if (this.state.selectedTiles.length === 1) {
+            navigationButtonHtml = `
+                <button id="navigate-to-selected" class="action-button">
+                    Navigate to Selected Tile
+                </button>
+            `;
+        }
+        
+        tileInfo.innerHTML = `
+            <p><strong>H3 Index:</strong> ${activeTile.id}</p>
+            <p><strong>Resolution (Backend):</strong> ${backendResolution}</p>
+            <p><strong>Resolution (Frontend):</strong> ${this.state.resolution}</p>
+            <p><strong>Zoom Level:</strong> ${this.state.zoomLevel}</p>
+            <p><strong>Grid Position:</strong> (${activeTile.col}, ${activeTile.row})</p>
+            <p><strong>Content:</strong> ${tileContent}</p>
+            ${selectedTilesHtml}
+            ${navigationButtonHtml}
+        `;
+        
+        // Add event listener for navigation button if it exists
+        const navigateButton = document.getElementById("navigate-to-selected");
+        if (navigateButton) {
+            navigateButton.addEventListener("click", () => {
+                const selectedTileId = this.state.selectedTiles[0];
+                
                 // Update the active tile ID
-                this.state.activeTileId = tile.id;
+                this.state.activeTileId = selectedTileId;
                 
                 // Update URL with the new H3 index without refreshing the page
                 const url = new URL(window.location);
-                url.searchParams.set('h3', tile.id);
+                url.searchParams.set('h3', selectedTileId);
                 window.history.pushState({}, '', url);
                 
                 // Use the navigation system to navigate to the new tile
                 if (this.state.navigation) {
-                    console.log(`Navigating to tile: ${tile.id} via API`);
-                    this.state.navigation.navigateTo(tile.id).then(() => {
+                    console.log(`Navigating to tile: ${selectedTileId} via API`);
+                    this.state.navigation.navigateTo(selectedTileId).then(() => {
+                        // Clear the selection
+                        this.clearSelection();
+                        
                         // Regenerate the grid with the new center tile
                         this.generateGrid().then(() => {
                             // Re-render the canvas
@@ -604,13 +696,25 @@ window.hexGlobeApp = {
                 } else {
                     console.warn("Navigation system not initialized, using fallback");
                     // Fallback to the old method
+                    this.clearSelection();
                     this.generateGrid().then(() => {
                         this.render();
                         this.updateDebugPanel();
                     });
                 }
-                
-                return;
+            });
+        }
+    },
+    
+    // Helper method to clear all selections
+    clearSelection: function() {
+        // Clear the selected tiles array
+        this.state.selectedTiles = [];
+        
+        // Update the tile objects
+        for (const tile of this.state.tiles) {
+            if (tile.hexTile) {
+                tile.hexTile.setSelected(false);
             }
         }
     },
@@ -629,9 +733,18 @@ window.hexGlobeApp = {
         // Draw each tile
         for (const tile of this.state.tiles) {
             // Create a HexTile object with appropriate visual properties
-            const visualProperties = tile.isActive ? 
-                this.config.activeTileStyles : 
-                this.config.normalTileStyles;
+            let visualProperties;
+            
+            if (this.state.selectedTiles.includes(tile.id)) {
+                // Selected tile styling
+                visualProperties = this.config.selectedTileStyles;
+            } else if (tile.isActive) {
+                // Active tile styling
+                visualProperties = this.config.activeTileStyles;
+            } else {
+                // Normal tile styling
+                visualProperties = this.config.normalTileStyles;
+            }
             
             // Define a callback function for when the image loads
             const onImageLoad = (hexTile) => {
@@ -651,6 +764,10 @@ window.hexGlobeApp = {
             // Include the coordinates in the displayed content
             hexTile.content = `(${tile.row},${tile.col})\n${tile.id}`;
             
+            // Set active and selected states
+            hexTile.setActive(tile.isActive);
+            hexTile.setSelected(this.state.selectedTiles.includes(tile.id));
+            
             // Draw the tile
             hexTile.draw(this.ctx);
             
@@ -660,7 +777,7 @@ window.hexGlobeApp = {
             console.log(`Drawing tile at (${tile.col}, ${tile.row}) with ID ${tile.id}`);
             console.log(`Tile position: x=${tile.x}, y=${tile.y}`);
             console.log(`Tile is${tile.isActive ? '' : ' not'} active`);
-            console.log(`Tile orientation: flat-bottom (Math.PI/6)`);
+            console.log(`Tile is${this.state.selectedTiles.includes(tile.id) ? '' : ' not'} selected`);
         }
     },
     
@@ -699,38 +816,6 @@ window.hexGlobeApp = {
                 ctx.stroke();
             }
         }
-    },
-    
-    // Update the tile information panel
-    updateDebugPanel: function() {
-        // Get the active tile
-        const activeTile = this.state.tiles.find(tile => tile.isActive);
-        
-        if (!activeTile) {
-            return;
-        }
-        
-        // Update the tile information panel
-        const tileInfo = document.getElementById("tile-info");
-        
-        // Try to get tile data from the navigation system
-        let tileContent = "No content available";
-        let backendResolution = "N/A";
-        
-        if (this.state.navigation && this.state.navigation.activeTile) {
-            const navTile = this.state.navigation.activeTile;
-            tileContent = navTile.content || "No content available";
-            backendResolution = navTile.resolution !== undefined ? navTile.resolution : "N/A";
-        }
-        
-        tileInfo.innerHTML = `
-            <p><strong>H3 Index:</strong> ${activeTile.id}</p>
-            <p><strong>Resolution (Backend):</strong> ${backendResolution}</p>
-            <p><strong>Resolution (Frontend):</strong> ${this.state.resolution}</p>
-            <p><strong>Zoom Level:</strong> ${this.state.zoomLevel}</p>
-            <p><strong>Grid Position:</strong> (${activeTile.col}, ${activeTile.row})</p>
-            <p><strong>Content:</strong> ${tileContent}</p>
-        `;
     }
 };
 

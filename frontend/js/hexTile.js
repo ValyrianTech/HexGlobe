@@ -29,6 +29,8 @@ class HexTile {
             borderStyle: "solid",
             fillColor: "#a3c9e9",
             activeFillColor: "#3498db",
+            selectedBorderColor: "#FF9800",
+            selectedFillColor: "#FFC107",
             ...visualProperties
         };
         
@@ -36,6 +38,7 @@ class HexTile {
         this.vertices = [];
         this.size = 0;
         this.isActive = false;
+        this.isSelected = false;
         
         // Use the placeholder image by default
         this.hexMapImage = placeholderImage;
@@ -161,30 +164,44 @@ class HexTile {
             } catch (error) {
                 console.error(`Error drawing image for tile ${this.id}:`, error);
                 // Fallback to solid color if image drawing fails
-                ctx.fillStyle = this.isActive ? 
-                    (this.visualProperties.activeFillColor || this.visualProperties.fillColor) : 
-                    this.visualProperties.fillColor;
-                ctx.fill();
+                this.drawFallbackFill(ctx);
             }
         } else {
             // Fallback to solid color if no images are loaded
-            ctx.fillStyle = this.isActive ? 
-                (this.visualProperties.activeFillColor || this.visualProperties.fillColor) : 
-                this.visualProperties.fillColor;
-            ctx.fill();
+            this.drawFallbackFill(ctx);
         }
         
         ctx.restore();
         
         // Draw the border
-        ctx.strokeStyle = this.visualProperties.borderColor;
-        ctx.lineWidth = this.visualProperties.borderThickness;
+        if (this.isSelected) {
+            ctx.strokeStyle = this.visualProperties.selectedBorderColor || "#FF9800";
+            ctx.lineWidth = this.visualProperties.borderThickness + 1;
+        } else {
+            ctx.strokeStyle = this.visualProperties.borderColor;
+            ctx.lineWidth = this.visualProperties.borderThickness;
+        }
         ctx.stroke();
         
         // Draw the H3 index in the center
         this.drawH3Index(ctx);
     }
     
+    /**
+     * Draw fallback fill color based on tile state
+     * @param {CanvasRenderingContext2D} ctx - The canvas rendering context
+     */
+    drawFallbackFill(ctx) {
+        if (this.isSelected) {
+            ctx.fillStyle = this.visualProperties.selectedFillColor || "#FFC107";
+        } else if (this.isActive) {
+            ctx.fillStyle = this.visualProperties.activeFillColor || this.visualProperties.fillColor;
+        } else {
+            ctx.fillStyle = this.visualProperties.fillColor;
+        }
+        ctx.fill();
+    }
+
     /**
      * Draw the H3 index on the hexagon
      * @param {CanvasRenderingContext2D} ctx - The canvas rendering context
@@ -256,5 +273,13 @@ class HexTile {
      */
     setActive(isActive) {
         this.isActive = isActive;
+    }
+    
+    /**
+     * Set the selected state of the tile
+     * @param {boolean} isSelected - Whether the tile is selected
+     */
+    setSelected(isSelected) {
+        this.isSelected = isSelected;
     }
 }
