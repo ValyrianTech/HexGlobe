@@ -421,9 +421,9 @@ def scale_polygon(vertices, scale_factor, center=None):
     return scaled_vertices
 
 
-def apply_vertical_scaling(image, pixel_vertices):
+def apply_vertical_scaling_and_skew(image, pixel_vertices):
     """
-    Apply vertical scaling to the image to make the H3 hexagon match a perfect hexagon.
+    Apply vertical scaling and horizontal skew to the image to make the H3 hexagon match a perfect hexagon.
     
     Args:
         image: PIL Image object
@@ -442,11 +442,22 @@ def apply_vertical_scaling(image, pixel_vertices):
         (768.0, 68.6)     # top right
     ]
     
-    # Calculate vertical scaling factor
-    # We'll use the top and bottom vertices to determine how much to scale
-    # Actual vertices are ordered differently from perfect hexagon reference points
+    # Map the actual vertices to match the perfect hexagon order
     # pixel_vertices order: top-right, top-left, left, bottom-left, bottom-right, right
+    # perfect_hexagon order: right, bottom-right, bottom-left, left, top-left, top-right
+    vertex_mapping = {
+        0: 5,  # top-right -> top-right
+        1: 4,  # top-left -> top-left
+        2: 3,  # left -> left
+        3: 2,  # bottom-left -> bottom-left
+        4: 1,  # bottom-right -> bottom-right
+        5: 0,  # right -> right
+    }
     
+    # Reorder actual vertices to match perfect hexagon order
+    mapped_vertices = [pixel_vertices[i] for i in range(len(pixel_vertices))]
+    
+    # Calculate vertical scaling factor
     # Get the average y-coordinate for top vertices
     actual_top_y_avg = (pixel_vertices[0][1] + pixel_vertices[1][1]) / 2
     perfect_top_y_avg = (perfect_hexagon[4][1] + perfect_hexagon[5][1]) / 2
@@ -459,52 +470,89 @@ def apply_vertical_scaling(image, pixel_vertices):
     actual_vertical_distance = actual_bottom_y_avg - actual_top_y_avg
     perfect_vertical_distance = perfect_bottom_y_avg - perfect_top_y_avg
     
-    # Calculate scaling factor
+    # Calculate vertical scaling factor
     vertical_scale_factor = perfect_vertical_distance / actual_vertical_distance
     
     # For PIL's transform method, we need to invert the scaling factor
-    # to get the desired effect (squashing instead of stretching)
-    applied_scale_factor = 1 / vertical_scale_factor
+    applied_vertical_scale = 1 / vertical_scale_factor
     
-    # Calculate vertical center for the transformation
-    vertical_center = CANVAS_SIZE / 2
+    # Calculate horizontal skew factor
+    # Get the x-offsets at the top
+    actual_top_left_x = pixel_vertices[1][0]
+    perfect_top_left_x = perfect_hexagon[4][0]
+    actual_top_right_x = pixel_vertices[0][0]
+    perfect_top_right_x = perfect_hexagon[5][0]
     
-    # Create a new image with the same size
-    adjusted_image = Image.new('RGBA', (CANVAS_SIZE, CANVAS_SIZE), (0, 0, 0, 0))
+    # Get the x-offsets at the bottom
+    actual_bottom_left_x = pixel_vertices[3][0]
+    perfect_bottom_left_x = perfect_hexagon[2][0]
+    actual_bottom_right_x = pixel_vertices[4][0]
+    perfect_bottom_right_x = perfect_hexagon[1][0]
     
+    # Calculate average offsets
+    top_offset = ((perfect_top_left_x - actual_top_left_x) + (perfect_top_right_x - actual_top_right_x)) / 2
+    bottom_offset = ((perfect_bottom_left_x - actual_bottom_left_x) + (perfect_bottom_right_x - actual_bottom_right_x)) / 2
+    
+    # Calculate vertical distance from center to top/bottom
+    vertical_distance = CANVAS_SIZE / 2
+    
+    # Calculate skew factor
+    skew_factor = (top_offset - bottom_offset) / (2 * vertical_distance)
+    
+    # Calculate centers for the transformations
+    center_x = CANVAS_SIZE / 2
+    center_y = CANVAS_SIZE / 2
+    
+    # First apply vertical scaling
     # Calculate the affine transformation matrix for vertical scaling
-    # This scales only in the y-direction, centered at the middle of the image
     scale_matrix = (
         1, 0, 0,
-        0, applied_scale_factor, (1 - applied_scale_factor) * vertical_center
+        0, applied_vertical_scale, (1 - applied_vertical_scale) * center_y
     )
     
-    # Apply the transformation
-    adjusted_image = image.transform(
+    # Apply the vertical scaling transformation
+    scaled_image = image.transform(
         (CANVAS_SIZE, CANVAS_SIZE),
         Image.AFFINE,
         scale_matrix,
         resample=Image.BICUBIC
     )
     
-    print(f"Applied vertical scaling with factor: {vertical_scale_factor:.4f} (applied as {applied_scale_factor:.4f})")
+    # Then apply horizontal skew
+    # Calculate the affine transformation matrix for horizontal skew
+    # This shifts x based on y-position: x_new = x + (y - center_y) * skew_factor
+    skew_matrix = (
+        1, skew_factor, -skew_factor * center_y,
+        0, 1, 0
+    )
     
-    return adjusted_image
+    # Apply the skew transformation
+    final_image = scaled_image.transform(
+        (CANVAS_SIZE, CANVAS_SIZE),
+        Image.AFFINE,
+        skew_matrix,
+        resample=Image.BICUBIC
+    )
+    
+    print(f"Applied vertical scaling with factor: {vertical_scale_factor:.4f} (applied as {applied_vertical_scale:.4f})")
+    print(f"Applied horizontal skew with factor: {skew_factor:.6f}")
+    
+    return final_image
 
 
 def create_hexagon_map(h3_index, zoom=None, rotate=True, debug=False, vertical_adjust=True):
     """
-    Create a map image with a hexagon boundary for the given H3 index.
+    Create a hexagon map image for the given H3 index.
     
     Args:
-        h3_index: H3 index of the tile
-        zoom: OpenStreetMap zoom level (optional)
-        rotate: Whether to rotate the image to flat-bottom orientation
+        h3_index: H3 index to create map for
+        zoom: Zoom level (optional)
+        rotate: Whether to rotate the image to align with the hexagon
         debug: Whether to enable debug mode
         vertical_adjust: Whether to apply vertical adjustment to match perfect hexagon
     
     Returns:
-        Tuple of (PIL Image object, list of vertex pixel coordinates)
+        PIL Image object and list of pixel vertices
     """
     # Validate the H3 index
     if not h3.h3_is_valid(h3_index):
@@ -779,9 +827,9 @@ def create_hexagon_map(h3_index, zoom=None, rotate=True, debug=False, vertical_a
         image = final_image
         pixel_vertices = final_vertices
     
-    # Apply vertical scaling if enabled
+    # Apply vertical scaling and horizontal skew if enabled
     if vertical_adjust:
-        image = apply_vertical_scaling(image, pixel_vertices)
+        image = apply_vertical_scaling_and_skew(image, pixel_vertices)
     
     return image, pixel_vertices
 
