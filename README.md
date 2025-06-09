@@ -24,6 +24,9 @@ HexGlobe provides a framework for visualizing and interacting with a hexagonal g
 - Multi-resolution tile mapping (same location at different H3 resolutions)
 - Flat-bottom hexagon orientation with proper grid alignment
 - Consistent coordinate system using (row, col) format
+- Calibrated hexagon map images with precise alignment
+- Transformation pipeline for correcting map projection distortion
+- Visual calibration aids for verification and debugging
 
 ## Technology Stack
 
@@ -115,11 +118,16 @@ HexGlobe/
 │   ├── static/             # Static tile data (H3 grid information)
 │   │   └── res_X/          # Organized by resolution level
 │   │       └── ...         # Nested directories by H3 index segments
-│   └── dynamic/            # Dynamic tile data (content and visual properties)
-│       └── default/        # Default mod/application
-│           └── res_X/      # Organized by resolution level
-│               └── ...     # Nested directories by H3 index segments
+│   ├── dynamic/            # Dynamic tile data (content and visual properties)
+│   │   └── default/        # Default mod/application
+│   │       └── res_X/      # Organized by resolution level
+│   │           └── ...     # Nested directories by H3 index segments
+│   └── hex_maps/           # Generated hexagon map images
+│       └── res_X/          # Organized by resolution level
+│           └── ...         # Nested directories by H3 index segments
 ├── frontend/
+│   ├── assets/
+│   │   └── generate_hex_map.py  # Map image generation script
 │   ├── css/
 │   │   └── styles.css      # Main stylesheet
 │   ├── js/
@@ -160,6 +168,16 @@ Manages tile navigation and backend communication:
 - Handles navigation between tiles
 - Provides fallback functionality when API is unavailable
 - Dispatches events when tile data changes
+
+### generate_hex_map.py
+Generates precisely calibrated hexagonal map images for H3 tiles:
+- Renders OpenStreetMap data for the geographic area of each H3 hexagon
+- Rotates and aligns maps to match flat-bottom hexagon orientation
+- Applies vertical scaling to correct for projection distortion
+- Applies horizontal skew to further improve vertex alignment
+- Draws calibration aids (concentric hexagons and reference dots)
+- Supports debug mode for displaying intermediate images and vertex coordinates
+- Ensures seamless boundaries between adjacent hexagon tiles
 
 ## H3 Integration
 

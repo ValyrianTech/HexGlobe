@@ -219,6 +219,26 @@ This geometry ensures that:
 - The hexagon is perfectly centered in the canvas
 - The flat-bottom orientation aligns with the H3 grid system's representation
 
+### 5.2.2 Hexagon Map Image Generation
+
+HexGlobe includes a map image generation script (`frontend/assets/generate_hex_map.py`) that creates precisely calibrated hexagonal map images for each H3 tile. These images are used as the background for hexagon tiles in the frontend visualization. The image generation process includes:
+
+- **Map Rendering**: Uses StaticMap to render OpenStreetMap data for the geographic area of each H3 hexagon
+- **Rotation and Alignment**: Rotates the map to align with flat-bottom hexagon orientation
+- **Vertical Scaling**: Applies a vertical scaling transformation to correct for projection distortion
+- **Horizontal Skew**: Applies a horizontal skew transformation to further improve vertex alignment
+- **Calibration Aids**: Draws three concentric hexagons (main green border, inner blue border, outer red border)
+- **Reference Dots**: Places black reference dots at the six vertices of a perfect hexagon for alignment verification
+- **Debug Options**: Supports debug mode for displaying intermediate images and vertex coordinates
+
+The generated images are stored in the backend directory structure under `data/hex_maps/res_<resolution>/...` and are accessed by the frontend via relative paths. The frontend clips these images to hexagonal shapes when rendering.
+
+The map generation process ensures that:
+- Hexagon vertices align perfectly with the frontend's hexagon rendering
+- Adjacent hexagon tiles have seamless boundaries
+- The visual representation matches the mathematical H3 hexagon boundaries
+- Calibration aids assist in verifying proper alignment
+
 ### 5.3 Interaction Flow
 
 1. User loads the application, which displays the default active tile
@@ -290,6 +310,10 @@ This geometry ensures that:
 - Corrected coordinate system to consistently use (row, col) format
 - Implemented flat-bottom hexagon orientation with proper vertex calculation
 - Added proper vertical offset for odd columns to maintain hexagonal grid alignment
+- Created hexagon map image generation script with precise calibration features
+- Implemented vertical scaling and horizontal skew transformations for accurate hexagon alignment
+- Added calibration aids (concentric hexagons and reference dots) to map images
+- Ensured seamless boundaries between adjacent hexagon tiles
 
 ### 6.2 In Progress
 - Enhancing frontend to utilize the ordered neighbor_ids for more intuitive navigation
