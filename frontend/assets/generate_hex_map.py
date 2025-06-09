@@ -55,6 +55,8 @@ def parse_arguments():
                         help='Skip rotation to flat-bottom orientation')
     parser.add_argument('--debug', action='store_true',
                         help='Enable debug mode (save intermediate images and print debug info)')
+    parser.add_argument('--no-vertical-adjust', action='store_true',
+                        help='Skip vertical adjustment')
     return parser.parse_args()
 
 
@@ -419,7 +421,78 @@ def scale_polygon(vertices, scale_factor, center=None):
     return scaled_vertices
 
 
-def create_hexagon_map(h3_index, zoom=None, rotate=True, debug=False):
+def apply_vertical_scaling(image, pixel_vertices):
+    """
+    Apply vertical scaling to the image to make the H3 hexagon match a perfect hexagon.
+    
+    Args:
+        image: PIL Image object
+        pixel_vertices: List of (x, y) tuples representing the hexagon vertices
+    
+    Returns:
+        Adjusted PIL Image object
+    """
+    # Perfect hexagon reference points (flat-bottom orientation)
+    perfect_hexagon = [
+        (1024.0, 512.0),  # right middle
+        (768.0, 955.4),   # bottom right
+        (256.0, 955.4),   # bottom left
+        (0.0, 512.0),     # left middle
+        (256.0, 68.6),    # top left
+        (768.0, 68.6)     # top right
+    ]
+    
+    # Calculate vertical scaling factor
+    # We'll use the top and bottom vertices to determine how much to scale
+    # Actual vertices are ordered differently from perfect hexagon reference points
+    # pixel_vertices order: top-right, top-left, left, bottom-left, bottom-right, right
+    
+    # Get the average y-coordinate for top vertices
+    actual_top_y_avg = (pixel_vertices[0][1] + pixel_vertices[1][1]) / 2
+    perfect_top_y_avg = (perfect_hexagon[4][1] + perfect_hexagon[5][1]) / 2
+    
+    # Get the average y-coordinate for bottom vertices
+    actual_bottom_y_avg = (pixel_vertices[3][1] + pixel_vertices[4][1]) / 2
+    perfect_bottom_y_avg = (perfect_hexagon[1][1] + perfect_hexagon[2][1]) / 2
+    
+    # Calculate the vertical distance in both cases
+    actual_vertical_distance = actual_bottom_y_avg - actual_top_y_avg
+    perfect_vertical_distance = perfect_bottom_y_avg - perfect_top_y_avg
+    
+    # Calculate scaling factor
+    vertical_scale_factor = perfect_vertical_distance / actual_vertical_distance
+    
+    # For PIL's transform method, we need to invert the scaling factor
+    # to get the desired effect (squashing instead of stretching)
+    applied_scale_factor = 1 / vertical_scale_factor
+    
+    # Calculate vertical center for the transformation
+    vertical_center = CANVAS_SIZE / 2
+    
+    # Create a new image with the same size
+    adjusted_image = Image.new('RGBA', (CANVAS_SIZE, CANVAS_SIZE), (0, 0, 0, 0))
+    
+    # Calculate the affine transformation matrix for vertical scaling
+    # This scales only in the y-direction, centered at the middle of the image
+    scale_matrix = (
+        1, 0, 0,
+        0, applied_scale_factor, (1 - applied_scale_factor) * vertical_center
+    )
+    
+    # Apply the transformation
+    adjusted_image = image.transform(
+        (CANVAS_SIZE, CANVAS_SIZE),
+        Image.AFFINE,
+        scale_matrix,
+        resample=Image.BICUBIC
+    )
+    
+    print(f"Applied vertical scaling with factor: {vertical_scale_factor:.4f} (applied as {applied_scale_factor:.4f})")
+    
+    return adjusted_image
+
+
+def create_hexagon_map(h3_index, zoom=None, rotate=True, debug=False, vertical_adjust=True):
     """
     Create a map image with a hexagon boundary for the given H3 index.
     
@@ -427,8 +500,9 @@ def create_hexagon_map(h3_index, zoom=None, rotate=True, debug=False):
         h3_index: H3 index of the tile
         zoom: OpenStreetMap zoom level (optional)
         rotate: Whether to rotate the image to flat-bottom orientation
-        debug: Whether to save intermediate debug images and print debug info
-        
+        debug: Whether to enable debug mode
+        vertical_adjust: Whether to apply vertical adjustment to match perfect hexagon
+    
     Returns:
         Tuple of (PIL Image object, list of vertex pixel coordinates)
     """
@@ -705,6 +779,10 @@ def create_hexagon_map(h3_index, zoom=None, rotate=True, debug=False):
         image = final_image
         pixel_vertices = final_vertices
     
+    # Apply vertical scaling if enabled
+    if vertical_adjust:
+        image = apply_vertical_scaling(image, pixel_vertices)
+    
     return image, pixel_vertices
 
 
@@ -759,7 +837,7 @@ def main():
     args = parse_arguments()
     
     # Create the hexagon map
-    image, vertices = create_hexagon_map(args.h3_index, args.zoom, not args.no_rotate, args.debug)
+    image, vertices = create_hexagon_map(args.h3_index, args.zoom, not args.no_rotate, args.debug, not args.no_vertical_adjust)
     
     # Determine the output path
     output_path = args.output
