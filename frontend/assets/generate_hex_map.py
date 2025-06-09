@@ -60,16 +60,31 @@ def parse_arguments():
     return parser.parse_args()
 
 
-def calculate_zoom_level(boundary):
+def calculate_zoom_level(boundary, h3_index=None):
     """
-    Calculate an appropriate zoom level based on the hexagon size.
+    Calculate an appropriate zoom level based on the hexagon size and H3 resolution.
     
     Args:
         boundary: List of [lat, lng] boundary points
+        h3_index: H3 index of the hexagon (optional)
         
     Returns:
         Zoom level (1-19)
     """
+    # If H3 index is provided, use resolution-based zoom calculation
+    if h3_index:
+        # Get the resolution of the H3 index
+        resolution = h3.h3_get_resolution(h3_index)
+        
+        # For resolution 10 and above, use maximum zoom level
+        # For each level below 10, decrease zoom level by 2
+        if resolution >= 10:
+            return 19
+        else:
+            # Calculate zoom level based on resolution (e.g., res 9 -> zoom 17, res 8 -> zoom 15)
+            return min(19, 19 - 2 * (10 - resolution))
+    
+    # Fall back to distance-based calculation if no H3 index provided
     # Calculate the maximum distance between any two points
     max_distance = 0
     for i in range(len(boundary)):
@@ -568,9 +583,11 @@ def create_hexagon_map(h3_index, zoom=None, rotate=True, debug=False, vertical_a
     
     # Calculate zoom level if not provided
     if zoom is None:
-        zoom = calculate_zoom_level(boundary)
-        # Increase zoom by 1 to make hexagon larger in the frame
-        zoom = min(max(zoom + 1, 1), 19)  # Ensure zoom is between 1 and 19
+        zoom = calculate_zoom_level(boundary, h3_index)
+        # Only increase zoom by 1 when using the distance-based calculation (not h3_index)
+        if h3_index is None:
+            zoom = min(max(zoom + 1, 1), 19)  # Ensure zoom is between 1 and 19
+        print(f"Calculated zoom level: {zoom}")
     
     # Create a static map centered on the hexagon
     m = StaticMap(CANVAS_SIZE, CANVAS_SIZE)
