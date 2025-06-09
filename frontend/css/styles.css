@@ -109,19 +109,33 @@ canvas {
 .action-button {
     display: block;
     width: 100%;
-    padding: 8px 12px;
-    margin-top: 10px;
-    background-color: #FF9800;
+    padding: 10px;
+    margin: 10px 0;
+    background-color: #4a90e2;
     color: white;
     border: none;
     border-radius: 4px;
-    cursor: pointer;
     font-weight: bold;
-    transition: background-color 0.3s;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
 }
 
 .action-button:hover {
-    background-color: #F57C00;
+    background-color: #357abd;
+}
+
+.action-button:active {
+    background-color: #2a5d8b;
+}
+
+/* Status message styles */
+.status-message {
+    margin: 10px 0;
+    padding: 5px;
+    font-size: 0.9em;
+    border-radius: 4px;
+    background-color: #f8f8f8;
+    min-height: 20px;
 }
 
 footer {

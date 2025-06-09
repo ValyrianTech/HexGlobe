@@ -597,6 +597,42 @@ async def get_resolutions(
         logger.error(f"[{datetime.now()}] Error getting resolutions for tile {tile_id}: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.post("/{tile_id}/generate-map")
+async def generate_map(
+    tile_id: str = Path(..., description="H3 index of the tile to generate map for")
+):
+    """Generate a map image for a specific tile."""
+    logger.info(f"[{datetime.now()}] POST request received to generate map for tile: {tile_id}")
+    try:
+        # Validate the H3 index
+        if not h3.h3_is_valid(tile_id):
+            logger.warning(f"[{datetime.now()}] Invalid H3 index: {tile_id}")
+            raise HTTPException(status_code=400, detail="Invalid H3 index")
+        
+        # Try to load the tile
+        tile = Tile.load(tile_id)
+        
+        # If not found in storage, create a new one
+        if tile is None:
+            logger.info(f"[{datetime.now()}] Tile {tile_id} not found in storage, creating new tile")
+            if h3.h3_is_pentagon(tile_id):
+                tile = PentagonTile(tile_id)
+            else:
+                tile = HexagonTile(tile_id)
+            
+            # Save the static data for the newly created tile
+            tile.save_static()
+        
+        # Generate the map
+        logger.info(f"[{datetime.now()}] Generating map for tile: {tile_id}")
+        tile.generate_hex_map()
+        
+        return {"status": "success", "message": f"Map generated for tile {tile_id}"}
+    
+    except Exception as e:
+        logger.error(f"[{datetime.now()}] Error generating map for tile {tile_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error generating map: {str(e)}")
+
 def _calculate_distance(point1, point2):
     """
     Calculate the squared distance between two points (lat, lng).

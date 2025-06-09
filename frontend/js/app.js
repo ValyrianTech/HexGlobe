@@ -652,6 +652,17 @@ window.hexGlobeApp = {
             `;
         }
         
+        // Create generate maps button HTML if any tiles are selected
+        let generateMapsButtonHtml = '';
+        if (this.state.selectedTiles.length > 0) {
+            generateMapsButtonHtml = `
+                <button id="generate-maps" class="action-button">
+                    Generate Maps for Selected Tiles
+                </button>
+                <div id="map-generation-status" class="status-message"></div>
+            `;
+        }
+        
         tileInfo.innerHTML = `
             <p><strong>H3 Index:</strong> ${activeTile.id}</p>
             <p><strong>Resolution (Backend):</strong> ${backendResolution}</p>
@@ -661,6 +672,7 @@ window.hexGlobeApp = {
             <p><strong>Content:</strong> ${tileContent}</p>
             ${selectedTilesHtml}
             ${navigationButtonHtml}
+            ${generateMapsButtonHtml}
         `;
         
         // Add event listener for navigation button if it exists
@@ -704,17 +716,73 @@ window.hexGlobeApp = {
                 }
             });
         }
+        
+        // Add event listener for generate maps button if it exists
+        const generateMapsButton = document.getElementById("generate-maps");
+        if (generateMapsButton) {
+            generateMapsButton.addEventListener("click", () => {
+                this.generateMapsForSelectedTiles();
+            });
+        }
     },
     
-    // Helper method to clear all selections
-    clearSelection: function() {
-        // Clear the selected tiles array
-        this.state.selectedTiles = [];
+    // Generate maps for selected tiles
+    generateMapsForSelectedTiles: function() {
+        if (!this.state.selectedTiles.length) {
+            return;
+        }
         
-        // Update the tile objects
-        for (const tile of this.state.tiles) {
-            if (tile.hexTile) {
-                tile.hexTile.setSelected(false);
+        const statusElement = document.getElementById("map-generation-status");
+        if (statusElement) {
+            statusElement.textContent = `Generating maps for ${this.state.selectedTiles.length} tiles...`;
+            statusElement.style.color = "#666";
+        }
+        
+        // Keep track of completed and failed generations
+        let completed = 0;
+        let failed = 0;
+        const totalTiles = this.state.selectedTiles.length;
+        
+        // Process each selected tile
+        this.state.selectedTiles.forEach(tileId => {
+            // Call the API to generate the map
+            fetch(`${this.state.navigation.apiBaseUrl}/tiles/${tileId}/generate-map`, {
+                method: 'POST',
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log(`Map generated for tile ${tileId}:`, data);
+                completed++;
+                this.updateMapGenerationStatus(completed, failed, totalTiles);
+            })
+            .catch(error => {
+                console.error(`Error generating map for tile ${tileId}:`, error);
+                failed++;
+                this.updateMapGenerationStatus(completed, failed, totalTiles);
+            });
+        });
+    },
+    
+    // Update the map generation status message
+    updateMapGenerationStatus: function(completed, failed, total) {
+        const statusElement = document.getElementById("map-generation-status");
+        if (statusElement) {
+            if (completed + failed === total) {
+                if (failed === 0) {
+                    statusElement.textContent = `Successfully generated ${completed} maps.`;
+                    statusElement.style.color = "green";
+                } else {
+                    statusElement.textContent = `Generated ${completed} maps, ${failed} failed.`;
+                    statusElement.style.color = "red";
+                }
+            } else {
+                statusElement.textContent = `Progress: ${completed + failed}/${total} tiles processed...`;
+                statusElement.style.color = "#666";
             }
         }
     },
@@ -814,6 +882,19 @@ window.hexGlobeApp = {
                 ctx.strokeStyle = tile.hexTile.visualProperties.borderColor;
                 ctx.lineWidth = tile.hexTile.visualProperties.borderThickness;
                 ctx.stroke();
+            }
+        }
+    },
+    
+    // Helper method to clear all selections
+    clearSelection: function() {
+        // Clear the selected tiles array
+        this.state.selectedTiles = [];
+        
+        // Update the tile objects
+        for (const tile of this.state.tiles) {
+            if (tile.hexTile) {
+                tile.hexTile.setSelected(false);
             }
         }
     }
