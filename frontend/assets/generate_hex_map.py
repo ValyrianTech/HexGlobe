@@ -722,6 +722,7 @@ def create_hexagon_map(h3_index, zoom=None, rotate=True, debug=False, vertical_a
         
         # Calculate rotation needed to make this edge horizontal
         rotation_angle = edge_angle
+        
         if debug:
             print(f"Rotation angle needed: {rotation_angle:.2f} degrees")
         
@@ -857,6 +858,44 @@ def create_hexagon_map(h3_index, zoom=None, rotate=True, debug=False, vertical_a
     # Apply vertical scaling and horizontal skew if enabled
     if vertical_adjust:
         image = apply_vertical_scaling_and_skew(image, pixel_vertices)
+    
+    # Apply additional 60-degree rotation for odd resolutions at the very end
+    if rotate and h3.h3_get_resolution(h3_index) % 2 == 1:
+        if debug:
+            print(f"Applying additional 60-degree rotation for odd resolution at the end")
+        
+        # Create a copy of the image before final rotation (for debugging)
+        if debug:
+            pre_final_rotation = image.copy()
+            pre_final_rotation.save(f"{h3_index}_before_final_rotation.png")
+            print(f"Image before final rotation saved to {h3_index}_before_final_rotation.png")
+        
+        # Create a new canvas with enough space for rotation without cropping
+        diagonal = int(math.sqrt(2) * CANVAS_SIZE)
+        temp_canvas = Image.new('RGB', (diagonal, diagonal), color='white')
+        
+        # Paste the original image in the center of this larger canvas
+        paste_x = (diagonal - CANVAS_SIZE) // 2
+        paste_y = (diagonal - CANVAS_SIZE) // 2
+        temp_canvas.paste(image, (paste_x, paste_y))
+        
+        # Apply the 60-degree rotation to the larger canvas
+        rotated = temp_canvas.rotate(60, resample=Image.BICUBIC, expand=False)
+        
+        # Create the final canvas of CANVAS_SIZE x CANVAS_SIZE
+        image = Image.new('RGB', (CANVAS_SIZE, CANVAS_SIZE), color='white')
+        
+        # Calculate the crop area to get back to CANVAS_SIZE
+        crop_x = (diagonal - CANVAS_SIZE) // 2
+        crop_y = (diagonal - CANVAS_SIZE) // 2
+        
+        # Crop the rotated image to the original size and paste it into the final image
+        cropped = rotated.crop((crop_x, crop_y, crop_x + CANVAS_SIZE, crop_y + CANVAS_SIZE))
+        image.paste(cropped, (0, 0))
+        
+        if debug:
+            image.save(f"{h3_index}_after_final_rotation.png")
+            print(f"Image after final rotation saved to {h3_index}_after_final_rotation.png")
     
     return image, pixel_vertices
 
