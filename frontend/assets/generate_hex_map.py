@@ -180,35 +180,38 @@ def calculate_bearing(lat1, lng1, lat2, lng2):
     return bearing
 
 
-def calculate_flat_bottom_rotation(vertices):
+def calculate_flat_bottom_rotation(vertices, h3_index=None):
     """
     Calculate the rotation angle needed to make the hexagon flat-bottomed
     based on the pixel coordinates of the vertices.
     
     Args:
         vertices: List of (x, y) vertex coordinates
+        h3_index: H3 index to determine if resolution is odd or even
         
     Returns:
         Rotation angle in degrees
     """
-    # A hexagon has 6 vertices and 6 edges
-    # We need to find which edge should be the bottom edge
+    # Find the vertex with the largest y-coordinate (closest to the equator)
+    southernmost_vertex_idx = max(range(len(vertices)), key=lambda i: vertices[i][1])
     
-    # For each pair of adjacent vertices, calculate the midpoint's y-coordinate
-    edge_midpoints = []
-    for i in range(len(vertices)):
-        next_i = (i + 1) % len(vertices)
-        v1 = vertices[i]
-        v2 = vertices[next_i]
-        midpoint = ((v1[0] + v2[0]) / 2, (v1[1] + v2[1]) / 2)
-        edge_midpoints.append((i, midpoint))
+    # Determine if we're dealing with an odd or even resolution
+    if h3_index:
+        resolution = h3.h3_get_resolution(h3_index)
+        is_odd_resolution = resolution % 2 == 1
+    else:
+        # Default to even resolution behavior if no h3_index is provided
+        is_odd_resolution = False
     
-    # Find the edge with the largest y-coordinate (lowest on screen)
-    bottom_edge_idx, bottom_midpoint = max(edge_midpoints, key=lambda x: x[1][1])
-    
-    # Get the two vertices of this edge
-    v1_idx = bottom_edge_idx
-    v2_idx = (bottom_edge_idx + 1) % len(vertices)
+    # Select the appropriate edge based on resolution
+    if is_odd_resolution:
+        # For odd resolutions, select the edge to the left of the southernmost vertex
+        v1_idx = (southernmost_vertex_idx - 1) % len(vertices)
+        v2_idx = southernmost_vertex_idx
+    else:
+        # For even resolutions, select the edge to the right of the southernmost vertex
+        v1_idx = southernmost_vertex_idx
+        v2_idx = (southernmost_vertex_idx + 1) % len(vertices)
     
     v1 = vertices[v1_idx]
     v2 = vertices[v2_idx]
@@ -677,43 +680,48 @@ def create_hexagon_map(h3_index, zoom=None, rotate=True, debug=False, vertical_a
     
     # If rotation is requested, we need to determine which edge should be at the bottom
     if rotate:
-        # For a flat-bottom hexagon, we need to find the bottom edge
-        # A flat-bottom hexagon should have two vertices with similar y-coordinates at the bottom
+        # Find the vertex with the largest y-coordinate (closest to the equator)
+        southernmost_vertex_idx = max(range(len(pixel_vertices)), key=lambda i: pixel_vertices[i][1])
         
-        # First, sort vertices by y-coordinate (descending)
-        vertices_by_y = sorted(enumerate(pixel_vertices), key=lambda x: x[1][1], reverse=True)
+        # Determine if we're dealing with an odd or even resolution (for debugging purposes)
+        resolution = h3.h3_get_resolution(h3_index)
+        is_odd_resolution = resolution % 2 == 1
         
-        # Get the two vertices with the largest y-coordinates (lowest on screen)
-        bottom_vertices_indices = [vertices_by_y[0][0], vertices_by_y[1][0]]
+        # Always select the edge to the right of the southernmost vertex
+        v1_idx = southernmost_vertex_idx
+        v2_idx = (southernmost_vertex_idx + 1) % len(pixel_vertices)
         
-        # Sort these two vertices by x-coordinate
-        bottom_vertices_indices.sort(key=lambda idx: pixel_vertices[idx][0])
+        # Get the vertices for the selected edge
+        v1 = pixel_vertices[v1_idx]
+        v2 = pixel_vertices[v2_idx]
         
-        bottom_left_idx = bottom_vertices_indices[0]
-        bottom_right_idx = bottom_vertices_indices[1]
-        
-        bottom_left = pixel_vertices[bottom_left_idx]
-        bottom_right = pixel_vertices[bottom_right_idx]
+        # Ensure v1 is to the left of v2
+        if v1[0] > v2[0]:
+            v1, v2 = v2, v1
+            # Also swap the indices
+            v1_idx, v2_idx = v2_idx, v1_idx
         
         # Draw the bottom edge in a different color if debug is enabled
         if debug:
             draw = ImageDraw.Draw(unrotated_image)
-            draw.line([bottom_left, bottom_right], fill="cyan", width=5)
+            draw.line([v1, v2], fill="cyan", width=5)
             unrotated_image.save(f"{h3_index}_bottom_edge.png")
             print(f"Image with bottom edge highlighted saved to {h3_index}_bottom_edge.png")
+            print(f"\nResolution: {resolution} ({'odd' if is_odd_resolution else 'even'})")
+            print(f"Southernmost vertex: {southernmost_vertex_idx}")
+            print(f"Selected edge: Vertex {v1_idx} to Vertex {v2_idx}")
         
-        # Calculate the angle of the bottom edge with the horizontal
-        dx = bottom_right[0] - bottom_left[0]
-        dy = bottom_right[1] - bottom_left[1]
+        # Calculate the angle of the selected edge with the horizontal
+        dx = v2[0] - v1[0]
+        dy = v2[1] - v1[1]
         edge_angle = math.degrees(math.atan2(dy, dx))
         
         if debug:
-            print(f"\nBottom edge: Vertex {bottom_left_idx} to Vertex {bottom_right_idx}")
-            print(f"Bottom edge coordinates: ({bottom_left[0]}, {bottom_left[1]}) to ({bottom_right[0]}, {bottom_right[1]})")
-            print(f"Bottom edge angle with horizontal: {edge_angle:.2f} degrees")
+            print(f"Selected edge coordinates: ({v1[0]}, {v1[1]}) to ({v2[0]}, {v2[1]})")
+            print(f"Selected edge angle with horizontal: {edge_angle:.2f} degrees")
         
         # Calculate rotation needed to make this edge horizontal
-        rotation_angle = edge_angle  # Changed from -edge_angle to edge_angle
+        rotation_angle = edge_angle
         if debug:
             print(f"Rotation angle needed: {rotation_angle:.2f} degrees")
         
