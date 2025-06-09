@@ -35,8 +35,9 @@ HEXAGON_BORDER_WIDTH = 5
 HEXAGON_BORDER_COLOR = "#00FF00"  # Green border for visibility
 OUTER_HEXAGON_COLOR = "#FF0000"   # Red for outer hexagon
 INNER_HEXAGON_COLOR = "#0000FF"   # Blue for inner hexagon
-OUTER_OFFSET_PIXELS = 10          # Pixels to offset outward
-INNER_OFFSET_PIXELS = 10          # Pixels to offset inward
+# Use percentage-based offsets to match frontend scaling
+OUTER_OFFSET_PERCENT = 0.05       # 5% offset outward
+INNER_OFFSET_PERCENT = 0.05       # 5% offset inward
 
 def parse_arguments():
     """Parse command line arguments."""
@@ -358,6 +359,63 @@ def line_intersection(line1_p1, line1_p2, line2_p1, line2_p2):
     return (x, y)
 
 
+def calculate_hexagon_vertices(center_x, center_y, size):
+    """
+    Calculate hexagon vertices using the same approach as the frontend.
+    
+    Args:
+        center_x: X coordinate of the center
+        center_y: Y coordinate of the center
+        size: Size of the hexagon (distance from center to vertex)
+        
+    Returns:
+        List of (x, y) vertex coordinates
+    """
+    vertices = []
+    
+    # Use the same approach as the frontend: start with angle 0 for flat-bottom orientation
+    for i in range(6):
+        angle = (math.pi / 3) * i  # No offset, start at 0
+        x = center_x + size * math.cos(angle)
+        y = center_y + size * math.sin(angle)
+        vertices.append((x, y))
+    
+    return vertices
+
+
+def scale_polygon(vertices, scale_factor, center=None):
+    """
+    Scale a polygon (list of vertices) by a given factor around a center point.
+    
+    Args:
+        vertices: List of (x, y) vertex coordinates
+        scale_factor: Factor to scale by (>1 for larger, <1 for smaller)
+        center: (x, y) center point to scale around (if None, uses centroid)
+        
+    Returns:
+        List of scaled (x, y) vertex coordinates
+    """
+    if center is None:
+        # Calculate centroid if no center is provided
+        center_x = sum(v[0] for v in vertices) / len(vertices)
+        center_y = sum(v[1] for v in vertices) / len(vertices)
+        center = (center_x, center_y)
+    
+    scaled_vertices = []
+    for x, y in vertices:
+        # Vector from center to vertex
+        dx = x - center[0]
+        dy = y - center[1]
+        
+        # Scale the vector
+        scaled_x = center[0] + dx * scale_factor
+        scaled_y = center[1] + dy * scale_factor
+        
+        scaled_vertices.append((scaled_x, scaled_y))
+    
+    return scaled_vertices
+
+
 def create_hexagon_map(h3_index, zoom=None, rotate=True, debug=False):
     """
     Create a map image with a hexagon boundary for the given H3 index.
@@ -420,36 +478,25 @@ def create_hexagon_map(h3_index, zoom=None, rotate=True, debug=False):
     center_y = sum(v[1] for v in pixel_vertices) / len(pixel_vertices)
     center_point = (center_x, center_y)
     
-    # Create outer and inner hexagons by offsetting edges
-    try:
-        outer_vertices = create_offset_polygon(pixel_vertices, OUTER_OFFSET_PIXELS)
-        inner_vertices = create_offset_polygon(pixel_vertices, -INNER_OFFSET_PIXELS)
-        
-        # Draw the outer hexagon (red)
-        for i in range(len(outer_vertices)):
-            next_i = (i + 1) % len(outer_vertices)
-            draw.line([outer_vertices[i], outer_vertices[next_i]], fill=OUTER_HEXAGON_COLOR, width=HEXAGON_BORDER_WIDTH)
-        
-        # Draw the inner hexagon (blue)
-        for i in range(len(inner_vertices)):
-            next_i = (i + 1) % len(inner_vertices)
-            draw.line([inner_vertices[i], inner_vertices[next_i]], fill=INNER_HEXAGON_COLOR, width=HEXAGON_BORDER_WIDTH)
-    except Exception as e:
-        if debug:
-            print(f"Error creating offset hexagons: {e}")
-            # Fallback to the scaling method
-            outer_vertices = scale_polygon(pixel_vertices, 1.05, center_point)
-            inner_vertices = scale_polygon(pixel_vertices, 0.95, center_point)
-            
-            # Draw the outer hexagon (red)
-            for i in range(len(outer_vertices)):
-                next_i = (i + 1) % len(outer_vertices)
-                draw.line([outer_vertices[i], outer_vertices[next_i]], fill=OUTER_HEXAGON_COLOR, width=HEXAGON_BORDER_WIDTH)
-            
-            # Draw the inner hexagon (blue)
-            for i in range(len(inner_vertices)):
-                next_i = (i + 1) % len(inner_vertices)
-                draw.line([inner_vertices[i], inner_vertices[next_i]], fill=INNER_HEXAGON_COLOR, width=HEXAGON_BORDER_WIDTH)
+    # Create outer and inner hexagons by scaling the original vertices
+    # This preserves the correct orientation and alignment
+    outer_vertices = scale_polygon(pixel_vertices, 1 + OUTER_OFFSET_PERCENT, center_point)
+    inner_vertices = scale_polygon(pixel_vertices, 1 - INNER_OFFSET_PERCENT, center_point)
+    
+    # Draw the outer hexagon (red)
+    for i in range(len(outer_vertices)):
+        next_i = (i + 1) % len(outer_vertices)
+        draw.line([outer_vertices[i], outer_vertices[next_i]], fill=OUTER_HEXAGON_COLOR, width=HEXAGON_BORDER_WIDTH)
+    
+    # Draw the inner hexagon (blue)
+    for i in range(len(inner_vertices)):
+        next_i = (i + 1) % len(inner_vertices)
+        draw.line([inner_vertices[i], inner_vertices[next_i]], fill=INNER_HEXAGON_COLOR, width=HEXAGON_BORDER_WIDTH)
+    
+    # Draw the main hexagon (green) - use the original vertices
+    for i in range(len(pixel_vertices)):
+        next_i = (i + 1) % len(pixel_vertices)
+        draw.line([pixel_vertices[i], pixel_vertices[next_i]], fill=HEXAGON_BORDER_COLOR, width=HEXAGON_BORDER_WIDTH)
     
     if debug:
         # Draw circles at all vertices
