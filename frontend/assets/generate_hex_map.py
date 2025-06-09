@@ -14,7 +14,7 @@ import argparse
 import h3
 import os
 import math
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont
 from staticmap import StaticMap, Line
 import numpy as np
 import json
@@ -38,6 +38,9 @@ INNER_HEXAGON_COLOR = "#0000FF"   # Blue for inner hexagon
 # Use percentage-based offsets to match frontend scaling
 OUTER_OFFSET_PERCENT = 0.05       # 5% offset outward
 INNER_OFFSET_PERCENT = 0.05       # 5% offset inward
+# Constants for reference points
+REFERENCE_DOT_COLOR = "#000000"   # Black dots for reference points
+REFERENCE_DOT_RADIUS = 10         # Size of the reference dots
 
 def parse_arguments():
     """Parse command line arguments."""
@@ -705,45 +708,80 @@ def create_hexagon_map(h3_index, zoom=None, rotate=True, debug=False):
     return image, pixel_vertices
 
 
+def save_final_image(image, output_path, debug=False):
+    """
+    Save the final image after adding reference dots at specific pixel coordinates.
+    
+    Args:
+        image: PIL Image object
+        output_path: Path to save the image to
+        debug: Whether to enable debug mode
+    """
+    # Create a copy of the image to draw on
+    final_image = image.copy()
+    draw = ImageDraw.Draw(final_image)
+    
+    # Draw reference dots at specific pixel coordinates
+    reference_points = [
+        (1024.0, 512.0),  # Vertex 1 (angle 0°): right middle
+        (768.0, 955.4),   # Vertex 2 (angle 60°): bottom right
+        (256.0, 955.4),   # Vertex 3 (angle 120°): bottom left
+        (0.0, 512.0),     # Vertex 4 (angle 180°): left middle
+        (256.0, 68.6),    # Vertex 5 (angle 240°): top left
+        (768.0, 68.6)     # Vertex 6 (angle 300°): top right
+    ]
+    
+    # Draw each reference point
+    for i, point in enumerate(reference_points):
+        x, y = point
+        # Draw a filled circle
+        draw.ellipse(
+            [(x - REFERENCE_DOT_RADIUS, y - REFERENCE_DOT_RADIUS), 
+             (x + REFERENCE_DOT_RADIUS, y + REFERENCE_DOT_RADIUS)], 
+            fill=REFERENCE_DOT_COLOR
+        )
+        
+        # Add a label if in debug mode
+        if debug:
+            font = ImageFont.load_default()
+            draw.text((x + REFERENCE_DOT_RADIUS + 5, y), f"V{i+1}", fill=REFERENCE_DOT_COLOR, font=font)
+    
+    # Ensure the directory exists
+    os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
+    
+    # Save the final image
+    final_image.save(output_path)
+    print(f"Map image saved to {output_path}")
+
+
 def main():
-    """Main function."""
+    """Main function to parse arguments and create the hexagon map."""
     args = parse_arguments()
     
-    try:
-        # Create the map image
-        img, vertices = create_hexagon_map(args.h3_index, args.zoom, not args.no_rotate, args.debug)
-        
-        # Determine output path - use get_hex_map_path as default
-        output_path = args.output if args.output else get_hex_map_path(args.h3_index)
-        
-        # Ensure the directory exists
-        os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
-        
-        # Save the image
-        img.save(output_path, format='PNG')
-        print(f"Map image saved to {output_path}")
-        
-        # Output vertex coordinates if requested
-        if args.vertices:
-            vertices_file = f"{os.path.splitext(output_path)[0]}_vertices.json"
-            with open(vertices_file, 'w') as f:
-                json.dump({
-                    'h3_index': args.h3_index,
-                    'image_size': CANVAS_SIZE,
-                    'vertices': vertices
-                }, f, indent=2)
-            print(f"Vertex coordinates saved to {vertices_file}")
-            
-            # Also print to console for convenience
-            print("\nHexagon Vertices (x, y):")
-            for i, (x, y) in enumerate(vertices):
-                print(f"Vertex {i}: ({x}, {y})")
-        
-    except Exception as e:
-        print(f"Error: {str(e)}")
-        return 1
+    # Create the hexagon map
+    image, vertices = create_hexagon_map(args.h3_index, args.zoom, not args.no_rotate, args.debug)
     
-    return 0
+    # Determine the output path
+    output_path = args.output
+    if not output_path:
+        try:
+            # Try to import the get_hex_map_path function from the backend
+            from hexglobe.models.tile import get_hex_map_path
+            output_path = get_hex_map_path(args.h3_index)
+            print(f"Using backend path: {output_path}")
+        except ImportError:
+            # Fall back to a default path if the import fails
+            print("Could not import get_hex_map_path from backend, using default path")
+            output_path = os.path.join(os.getcwd(), f"{args.h3_index}.png")
+    
+    # Save the final image with reference dots
+    save_final_image(image, output_path, args.debug)
+    
+    # If vertices flag is set, print the pixel vertices
+    if args.vertices:
+        print("Pixel vertices:")
+        for i, vertex in enumerate(vertices):
+            print(f"Vertex {i+1}: {vertex}")
 
 
 if __name__ == "__main__":
