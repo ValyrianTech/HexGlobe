@@ -663,6 +663,9 @@ window.hexGlobeApp = {
             `;
         }
         
+        // Store the current height of the tile info panel before updating
+        const prevHeight = tileInfo.offsetHeight;
+        
         tileInfo.innerHTML = `
             <p><strong>H3 Index:</strong> ${activeTile.id}</p>
             <p><strong>Resolution (Backend):</strong> ${backendResolution}</p>
@@ -674,6 +677,15 @@ window.hexGlobeApp = {
             ${navigationButtonHtml}
             ${generateMapsButtonHtml}
         `;
+        
+        // Check if the height changed and trigger a canvas resize if it did
+        if (prevHeight !== tileInfo.offsetHeight) {
+            // Use setTimeout to ensure the DOM has fully updated
+            setTimeout(() => {
+                this.resizeCanvas();
+                this.render();
+            }, 0);
+        }
         
         // Add event listener for navigation button if it exists
         const navigateButton = document.getElementById("navigate-to-selected");
