@@ -40,7 +40,7 @@ OUTER_OFFSET_PERCENT = 0.05       # 5% offset outward
 INNER_OFFSET_PERCENT = 0.05       # 5% offset inward
 # Constants for reference points
 REFERENCE_DOT_COLOR = "#000000"   # Black dots for reference points
-REFERENCE_DOT_RADIUS = 10         # Size of the reference dots
+REFERENCE_DOT_RADIUS = 20         # Size of the reference dots
 
 def parse_arguments():
     """Parse command line arguments."""
@@ -504,7 +504,7 @@ def create_hexagon_map(h3_index, zoom=None, rotate=True, debug=False):
     if debug:
         # Draw circles at all vertices
         colors = ["red", "orange", "yellow", "green", "blue", "purple"]
-        radius = 10
+        radius = REFERENCE_DOT_RADIUS
         
         for i, vertex in enumerate(pixel_vertices):
             draw.ellipse((vertex[0]-radius, vertex[1]-radius, vertex[0]+radius, vertex[1]+radius), fill=colors[i % len(colors)])
