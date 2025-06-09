@@ -33,7 +33,10 @@ except ImportError:
 CANVAS_SIZE = 1024
 HEXAGON_BORDER_WIDTH = 5
 HEXAGON_BORDER_COLOR = "#00FF00"  # Green border for visibility
-
+OUTER_HEXAGON_COLOR = "#FF0000"   # Red for outer hexagon
+INNER_HEXAGON_COLOR = "#0000FF"   # Blue for inner hexagon
+OUTER_SCALE_FACTOR = 1.05         # 5% larger than the main hexagon
+INNER_SCALE_FACTOR = 0.95         # 5% smaller than the main hexagon
 
 def parse_arguments():
     """Parse command line arguments."""
@@ -246,6 +249,39 @@ def rotate_image_and_vertices(image, vertices, angle, center=None):
     return rotated_image, rotated_vertices
 
 
+def scale_polygon(vertices, scale_factor, center=None):
+    """
+    Scale a polygon (list of vertices) by a given factor around a center point.
+    
+    Args:
+        vertices: List of (x, y) vertex coordinates
+        scale_factor: Factor to scale by (>1 for larger, <1 for smaller)
+        center: (x, y) center point to scale around (if None, uses centroid)
+        
+    Returns:
+        List of scaled (x, y) vertex coordinates
+    """
+    if center is None:
+        # Calculate centroid if no center is provided
+        center_x = sum(v[0] for v in vertices) / len(vertices)
+        center_y = sum(v[1] for v in vertices) / len(vertices)
+        center = (center_x, center_y)
+    
+    scaled_vertices = []
+    for x, y in vertices:
+        # Vector from center to vertex
+        dx = x - center[0]
+        dy = y - center[1]
+        
+        # Scale the vector
+        scaled_x = center[0] + dx * scale_factor
+        scaled_y = center[1] + dy * scale_factor
+        
+        scaled_vertices.append((scaled_x, scaled_y))
+    
+    return scaled_vertices
+
+
 def create_hexagon_map(h3_index, zoom=None, rotate=True, debug=False):
     """
     Create a map image with a hexagon boundary for the given H3 index.
@@ -303,6 +339,25 @@ def create_hexagon_map(h3_index, zoom=None, rotate=True, debug=False):
     from PIL import ImageDraw, ImageFont
     draw = ImageDraw.Draw(image)
     
+    # Create outer and inner hexagons
+    center_x = sum(v[0] for v in pixel_vertices) / len(pixel_vertices)
+    center_y = sum(v[1] for v in pixel_vertices) / len(pixel_vertices)
+    center_point = (center_x, center_y)
+    
+    # Scale the vertices to create outer and inner hexagons
+    outer_vertices = scale_polygon(pixel_vertices, OUTER_SCALE_FACTOR, center_point)
+    inner_vertices = scale_polygon(pixel_vertices, INNER_SCALE_FACTOR, center_point)
+    
+    # Draw the outer hexagon (red)
+    for i in range(len(outer_vertices)):
+        next_i = (i + 1) % len(outer_vertices)
+        draw.line([outer_vertices[i], outer_vertices[next_i]], fill=OUTER_HEXAGON_COLOR, width=HEXAGON_BORDER_WIDTH)
+    
+    # Draw the inner hexagon (blue)
+    for i in range(len(inner_vertices)):
+        next_i = (i + 1) % len(inner_vertices)
+        draw.line([inner_vertices[i], inner_vertices[next_i]], fill=INNER_HEXAGON_COLOR, width=HEXAGON_BORDER_WIDTH)
+    
     if debug:
         # Draw circles at all vertices
         colors = ["red", "orange", "yellow", "green", "blue", "purple"]
@@ -350,7 +405,6 @@ def create_hexagon_map(h3_index, zoom=None, rotate=True, debug=False):
         # Sort these two vertices by x-coordinate
         bottom_vertices_indices.sort(key=lambda idx: pixel_vertices[idx][0])
         
-        # Get the coordinates of the bottom vertices
         bottom_left_idx = bottom_vertices_indices[0]
         bottom_right_idx = bottom_vertices_indices[1]
         
