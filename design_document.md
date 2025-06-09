@@ -245,9 +245,13 @@ The map generation process ensures that:
 2. Neighboring tiles are visible around the active tile
 3. User can adjust the zoom level to see more or fewer tiles
 4. User can adjust the resolution to change the size of hexagons on Earth's surface
-5. User clicks on a neighboring tile
-6. The clicked tile becomes the active tile with a smooth transition
-7. The view updates to show the new active tile and its neighbors
+5. User clicks on a tile to select it
+   - Clicking a selected tile unselects it
+   - Multiple tiles can be selected simultaneously
+   - Selected tiles are visually highlighted with distinct styling
+6. When exactly one tile is selected, a navigation button appears
+7. Clicking the navigation button makes the selected tile the active tile
+8. The view updates to show the new active tile and its neighbors
 
 ### 5.4 Visualization Approach
 
@@ -255,6 +259,9 @@ The map generation process ensures that:
 - Pure Canvas-based hexagon rendering
 - Grid pattern inside hexagons to simulate map data
 - Tile information panel showing active tile details
+- Multi-selection of tiles with toggle behavior
+- Selected tiles list in the debug panel
+- Conditional navigation button when exactly one tile is selected
 - Zoom control to adjust visible hex tiles
 - Resolution control to adjust hexagon size on Earth's surface
 - Neighbor visualization with click navigation
@@ -314,6 +321,10 @@ The map generation process ensures that:
 - Implemented vertical scaling and horizontal skew transformations for accurate hexagon alignment
 - Added calibration aids (concentric hexagons and reference dots) to map images
 - Ensured seamless boundaries between adjacent hexagon tiles
+- Implemented multi-selection functionality for hexagon tiles
+- Added visual styling for selected tiles with orange border and yellow fill
+- Added selected tiles list to the debug panel
+- Implemented conditional navigation button when exactly one tile is selected
 
 ### 6.2 In Progress
 - Enhancing frontend to utilize the ordered neighbor_ids for more intuitive navigation

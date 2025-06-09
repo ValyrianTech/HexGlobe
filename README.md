@@ -11,6 +11,9 @@ HexGlobe provides a framework for visualizing and interacting with a hexagonal g
 - Hexagonal tile visualization using HTML5 Canvas
 - Dynamic grid sizing that fills the available space
 - Interactive tile navigation with click support
+- Multi-selection of tiles with toggle behavior
+- Selected tiles tracking and visual highlighting
+- Conditional navigation button for selected tiles
 - Neighbor visualization and highlighting
 - Customizable visual properties (border color, thickness, style)
 - Zoom control slider (1-10) to adjust visible hex tiles
@@ -154,6 +157,9 @@ Main application logic that:
 - Sets up the canvas and event listeners
 - Calculates grid dimensions to fill available space
 - Manages the active tile state
+- Tracks selected tiles and provides visual feedback
+- Implements tile selection toggle behavior
+- Shows a navigation button when exactly one tile is selected
 - Handles rendering and updates
 - Controls zoom level and H3 resolution
 - Converts between different H3 resolutions
@@ -224,6 +230,30 @@ The backend provides the following RESTful API endpoints:
   - Query parameter: `mod_name` (optional, default: "default")
 - `GET /api/tiles/{tile_id}/grid`: Get a 2D grid of H3 indexes centered around the specified tile
   - Query parameter: `mod_name` (optional, default: "default")
+
+## Usage
+
+### Basic Navigation
+
+1. When the application loads, you'll see a grid of hexagonal tiles with the active tile highlighted in the center.
+2. Click on any tile to select it. Selected tiles will be highlighted with an orange border and yellow fill.
+3. Click on a selected tile to unselect it.
+4. You can select multiple tiles to compare them.
+5. When exactly one tile is selected, a "Navigate to Selected Tile" button will appear in the debug panel.
+6. Click this button to make the selected tile the new active tile, which will center the grid on that tile.
+7. Use the zoom slider to adjust how many tiles are visible on screen.
+8. Use the resolution slider to change the size of the hexagons on Earth's surface.
+
+### Debug Panel
+
+The debug panel on the right side of the screen provides information about:
+- The active tile's H3 index
+- Resolution information (backend and frontend)
+- Current zoom level
+- Grid position of the active tile
+- Tile content (if available)
+- List of currently selected tiles
+- Navigation button (when exactly one tile is selected)
 
 ## Tile Data Structure
 
