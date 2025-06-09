@@ -774,8 +774,13 @@ window.hexGlobeApp = {
         if (statusElement) {
             if (completed + failed === total) {
                 if (failed === 0) {
-                    statusElement.textContent = `Successfully generated ${completed} maps.`;
+                    statusElement.textContent = `Successfully generated ${completed} maps. Refreshing page...`;
                     statusElement.style.color = "green";
+                    
+                    // Add a short delay before refreshing to let the user see the success message
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1500);
                 } else {
                     statusElement.textContent = `Generated ${completed} maps, ${failed} failed.`;
                     statusElement.style.color = "red";
