@@ -396,13 +396,7 @@ class Tile(ABC):
                 json.dump(static_data, f, indent=2)
             
             logger.info(f"Successfully saved static data for tile {self.id}")
-            
-            # Generate hex map if it doesn't exist
-            hex_map_path = get_hex_map_path(self.id)
-            if not os.path.exists(hex_map_path):
-                logger.info(f"Hex map doesn't exist for tile {self.id}, generating it")
-                self.generate_hex_map()
-        
+    
         except Exception as e:
             logger.error(f"Error saving static data for tile {self.id}: {str(e)}")
             raise
