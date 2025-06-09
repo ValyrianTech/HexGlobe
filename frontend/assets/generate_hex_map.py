@@ -608,15 +608,17 @@ def create_hexagon_map(h3_index, zoom=None, rotate=True, debug=False, vertical_a
     outer_vertices = scale_polygon(pixel_vertices, 1 + OUTER_OFFSET_PERCENT, center_point)
     inner_vertices = scale_polygon(pixel_vertices, 1 - INNER_OFFSET_PERCENT, center_point)
     
-    # Draw the outer hexagon (red)
-    for i in range(len(outer_vertices)):
-        next_i = (i + 1) % len(outer_vertices)
-        draw.line([outer_vertices[i], outer_vertices[next_i]], fill=OUTER_HEXAGON_COLOR, width=HEXAGON_BORDER_WIDTH)
-    
-    # Draw the inner hexagon (blue)
-    for i in range(len(inner_vertices)):
-        next_i = (i + 1) % len(inner_vertices)
-        draw.line([inner_vertices[i], inner_vertices[next_i]], fill=INNER_HEXAGON_COLOR, width=HEXAGON_BORDER_WIDTH)
+    # Draw the outer hexagon (red) and inner hexagon (blue) only if debug is enabled
+    if debug:
+        # Draw the outer hexagon (red)
+        for i in range(len(outer_vertices)):
+            next_i = (i + 1) % len(outer_vertices)
+            draw.line([outer_vertices[i], outer_vertices[next_i]], fill=OUTER_HEXAGON_COLOR, width=HEXAGON_BORDER_WIDTH)
+        
+        # Draw the inner hexagon (blue)
+        for i in range(len(inner_vertices)):
+            next_i = (i + 1) % len(inner_vertices)
+            draw.line([inner_vertices[i], inner_vertices[next_i]], fill=INNER_HEXAGON_COLOR, width=HEXAGON_BORDER_WIDTH)
     
     # Draw the main hexagon (green) - use the original vertices
     for i in range(len(pixel_vertices)):
@@ -857,18 +859,18 @@ def save_final_image(image, output_path, debug=False):
         (768.0, 68.6)     # Vertex 6 (angle 300°): top right
     ]
     
-    # Draw each reference point
-    for i, point in enumerate(reference_points):
-        x, y = point
-        # Draw a filled circle
-        draw.ellipse(
-            [(x - REFERENCE_DOT_RADIUS, y - REFERENCE_DOT_RADIUS), 
-             (x + REFERENCE_DOT_RADIUS, y + REFERENCE_DOT_RADIUS)], 
-            fill=REFERENCE_DOT_COLOR
-        )
-        
-        # Add a label if in debug mode
-        if debug:
+    # Draw each reference point only if debug is enabled
+    if debug:
+        for i, point in enumerate(reference_points):
+            x, y = point
+            # Draw a filled circle
+            draw.ellipse(
+                [(x - REFERENCE_DOT_RADIUS, y - REFERENCE_DOT_RADIUS), 
+                 (x + REFERENCE_DOT_RADIUS, y + REFERENCE_DOT_RADIUS)], 
+                fill=REFERENCE_DOT_COLOR
+            )
+            
+            # Add a label if in debug mode
             font = ImageFont.load_default()
             draw.text((x + REFERENCE_DOT_RADIUS + 5, y), f"V{i+1}", fill=REFERENCE_DOT_COLOR, font=font)
     
