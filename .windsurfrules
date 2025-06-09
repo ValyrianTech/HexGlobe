@@ -38,10 +38,13 @@ HexGlobe/
 │   ├── static/             # Static tile data (H3 grid information)
 │   │   └── res_X/          # Organized by resolution level
 │   │       └── ...         # Nested directories by H3 index segments
-│   └── dynamic/            # Dynamic tile data (content and visual properties)
-│       └── default/        # Default mod/application
-│           └── res_X/      # Organized by resolution level
-│               └── ...     # Nested directories by H3 index segments
+│   ├── dynamic/            # Dynamic tile data (content and visual properties)
+│   │   └── default/        # Default mod/application
+│   │       └── res_X/      # Organized by resolution level
+│   │           └── ...     # Nested directories by H3 index segments
+│   └── hex_maps/           # Generated hexagon map images
+│       └── res_X/          # Organized by resolution level
+│           └── ...         # Nested directories by H3 index segments
 ├── frontend/
 │   ├── css/
 │   │   └── styles.css      # Main stylesheet
@@ -52,3 +55,7 @@ HexGlobe/
 │   └── index.html          # Main HTML entry point
 ├── design_document.md      # Comprehensive design documentation
 └── README.md               # Project overview and setup instructions
+
+# Notes
+- Remember to activate the venv when executing a command. You must do this in a single line. e.g. `source venv/bin/activate && python3 run.py`
+
