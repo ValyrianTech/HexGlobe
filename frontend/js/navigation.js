@@ -14,11 +14,7 @@ class HexNavigation {
         this.activeTileId = options.initialTileId || "8828308280fffff"; // Default to a valid H3 index
         this.neighbors = [];
         this.showNeighbors = true;
-        this.apiBaseUrl = options.apiBaseUrl || "/api/tiles"; // Base URL for API calls
-        this.modName = options.modName || "default"; // Default mod name
-        
-        // Get the API server URL from configuration or use localhost:8000 as default
-        this.apiServerUrl = options.apiServerUrl || "http://localhost:8000";
+        this.apiBaseUrl = options.apiBaseUrl || "http://localhost:8000/api";
     }
 
     /**
@@ -43,33 +39,12 @@ class HexNavigation {
     }
 
     /**
-     * Get the API URL with mod_name parameter
-     * @param {string} endpoint - API endpoint
-     * @returns {string} - Full API URL with mod_name parameter
-     */
-    getApiUrl(endpoint) {
-        // Ensure endpoint starts with a slash if it's not empty
-        if (endpoint && !endpoint.startsWith('/')) {
-            endpoint = '/' + endpoint;
-        }
-        
-        // Build the full URL path with the server URL
-        let url = this.apiServerUrl + this.apiBaseUrl + endpoint;
-        
-        // Add the mod_name parameter
-        url += (url.includes('?') ? '&' : '?') + `mod_name=${this.modName}`;
-        
-        return url;
-    }
-
-    /**
      * Load the active tile from the API
      * @returns {Promise} - Promise that resolves when the tile is loaded
      */
     async loadActiveTile() {
         try {
-            const url = this.getApiUrl(`/${this.activeTileId}`);
-            const response = await fetch(url);
+            const response = await fetch(`${this.apiBaseUrl}/tiles/${this.activeTileId}`);
             
             if (!response.ok) {
                 throw new Error(`Failed to load tile: ${response.statusText}`);
@@ -127,8 +102,7 @@ class HexNavigation {
      */
     async loadNeighbors() {
         try {
-            const url = this.getApiUrl(`/${this.activeTileId}/neighbors`);
-            const response = await fetch(url);
+            const response = await fetch(`${this.apiBaseUrl}/tiles/${this.activeTileId}/neighbors`);
             
             if (!response.ok) {
                 throw new Error(`Failed to load neighbors: ${response.statusText}`);
@@ -255,8 +229,7 @@ class HexNavigation {
      */
     async fetchTileGrid(width, height) {
         try {
-            const url = this.getApiUrl(`/${this.activeTileId}/grid?width=${width}&height=${height}`);
-            const response = await fetch(url);
+            const response = await fetch(`${this.apiBaseUrl}/tiles/${this.activeTileId}/grid?width=${width}&height=${height}`);
             
             if (!response.ok) {
                 throw new Error(`Failed to load grid: ${response.statusText}`);
@@ -307,8 +280,7 @@ class HexNavigation {
      */
     async updateTileContent(content) {
         try {
-            const url = this.getApiUrl(`/${this.activeTileId}`);
-            const response = await fetch(url, {
+            const response = await fetch(`${this.apiBaseUrl}/tiles/${this.activeTileId}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -345,8 +317,7 @@ class HexNavigation {
      */
     async moveContent(targetTileId) {
         try {
-            const url = this.getApiUrl(`/${this.activeTileId}/move-content/${targetTileId}`);
-            const response = await fetch(url, {
+            const response = await fetch(`${this.apiBaseUrl}/tiles/${this.activeTileId}/move-content/${targetTileId}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

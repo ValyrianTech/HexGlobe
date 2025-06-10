@@ -32,9 +32,7 @@ window.hexGlobeApp = {
             fillColor: "#A5D6A7"     // Light green fill for focus tile
         },
         h3LibraryCheckMaxRetries: 20, // Increased maximum number of retries for H3 library check
-        h3LibraryCheckInterval: 200,  // Increased interval in ms between H3 library checks
-        apiBaseUrl: "/api/tiles",    // Base URL for API calls (updated to include /tiles)
-        apiServerUrl: "http://localhost:8000" // Backend server URL with port 8000
+        h3LibraryCheckInterval: 200   // Increased interval in ms between H3 library checks
     },
     
     // State
@@ -47,157 +45,65 @@ window.hexGlobeApp = {
         resolution: 7, // Default H3 resolution (0-15)
         navigation: null, // Will hold the HexNavigation instance
         selectedTiles: [], // Array to store selected tile IDs
-        focusTileId: null, // ID of the last selected tile (focus)
-        modName: null // Current mod name (will be set during initialization)
+        focusTileId: null // ID of the last selected tile (focus)
     },
     
     // Initialize the application
-    init: async function() {
+    init: function() {
         console.log("Initializing HexGlobe application...");
         
-        try {
-            // Initialize the mod loader first
-            await this.initModLoader();
-            
-            // Set up the canvas
-            this.setupCanvas();
-            
-            // Get H3 index from URL query parameter or set default based on resolution
-            this.getH3IndexFromUrl();
-            
-            console.log(`After URL parsing, active tile ID is: ${this.state.activeTileId}`);
-            
-            // Initialize zoom slider with current zoom level
-            document.getElementById("zoom-value").textContent = this.state.zoomLevel;
-            document.getElementById("zoom-slider").value = this.state.zoomLevel;
-            
-            // Initialize resolution dropdown with current resolution if no URL parameter is provided
-            const urlParams = new URLSearchParams(window.location.search);
-            const h3Index = urlParams.get('h3');
-            if (!h3Index) {
-                document.getElementById("resolution-dropdown").value = this.state.resolution;
-            }
-            
-            // Initialize the navigation system
-            await this.initNavigation();
-            
-            // Set up event listeners
-            this.setupEventListeners();
-            
-            // Generate the initial grid
-            await this.generateGrid();
+        // Set up the canvas
+        this.setupCanvas();
+        
+        // Get H3 index from URL query parameter or set default based on resolution
+        this.getH3IndexFromUrl();
+        
+        console.log(`After URL parsing, active tile ID is: ${this.state.activeTileId}`);
+        
+        // Initialize zoom slider with current zoom level
+        document.getElementById("zoom-value").textContent = this.state.zoomLevel;
+        document.getElementById("zoom-slider").value = this.state.zoomLevel;
+        
+        // Initialize resolution dropdown with current resolution if no URL parameter is provided
+        const urlParams = new URLSearchParams(window.location.search);
+        const h3Index = urlParams.get('h3');
+        if (!h3Index) {
+            document.getElementById("resolution-dropdown").value = this.state.resolution;
+        }
+        
+        // Initialize the navigation system
+        this.initNavigation();
+        
+        // Set up event listeners
+        this.setupEventListeners();
+        
+        // Generate the initial grid
+        this.generateGrid().then(() => {
             this.render();
             this.updateDebugPanel();
-            
-            // Dispatch event that the app is initialized
-            document.dispatchEvent(new CustomEvent('hexglobe:app:initialized'));
-            console.log("HexGlobe application initialized successfully");
-        } catch (error) {
-            console.error("Error during application initialization:", error);
-        }
-    },
-    
-    /**
-     * Initialize the mod loader
-     * @returns {Promise} Resolves when mod is loaded
-     */
-    initModLoader: async function() {
-        try {
-            console.log("Initializing mod loader...");
-            
-            // Initialize the mod loader
-            await window.hexGlobeModLoader.init();
-            
-            // Store the current mod name in our state
-            this.state.modName = window.hexGlobeModLoader.getCurrentModName();
-            
-            console.log(`Mod '${this.state.modName}' initialized`);
-            
-            // Add mod information to the debug panel
-            this.updateModInfo();
-            
-            return true;
-        } catch (error) {
-            console.error(`Error initializing mod: ${error.message}`);
-            // Set default mod name if mod loading fails
-            this.state.modName = "default";
-            return false;
-        }
-    },
-    
-    /**
-     * Update the debug panel with mod information
-     */
-    updateModInfo: function() {
-        if (!window.hexGlobeModLoader.isLoaded()) {
-            console.log("Mod loader not loaded, skipping mod info update");
-            return;
-        }
-        
-        const manifest = window.hexGlobeModLoader.getModManifest();
-        if (!manifest) {
-            console.log("No mod manifest available, skipping mod info update");
-            return;
-        }
-        
-        console.log("Updating mod info in debug panel", manifest);
-        
-        // Create or update mod info in debug panel
-        const debugPanel = document.querySelector('.debug-panel');
-        if (debugPanel) {
-            let modInfoSection = document.getElementById('mod-info-section');
-            
-            if (!modInfoSection) {
-                // Create a new section for mod info
-                modInfoSection = document.createElement('div');
-                modInfoSection.id = 'mod-info-section';
-                modInfoSection.className = 'debug-controls-group';
-                
-                const heading = document.createElement('h3');
-                heading.textContent = 'Mod Information';
-                modInfoSection.appendChild(heading);
-                
-                // Add to the beginning of the debug panel
-                debugPanel.insertBefore(modInfoSection, debugPanel.firstChild);
-            }
-            
-            // Update the mod info content
-            const modInfo = document.createElement('p');
-            modInfo.innerHTML = `
-                <strong>Name:</strong> ${manifest.name}<br>
-                <strong>Version:</strong> ${manifest.version}<br>
-                <strong>Description:</strong> ${manifest.description}
-            `;
-            
-            // Clear existing content and add new info
-            while (modInfoSection.childNodes.length > 1) {
-                modInfoSection.removeChild(modInfoSection.lastChild);
-            }
-            modInfoSection.appendChild(modInfo);
-        }
+        });
     },
     
     // Initialize the navigation system
-    initNavigation: async function() {
+    initNavigation: function() {
         console.log("Initializing navigation system...");
         
-        // Create a new navigation instance with the active tile ID
+        // Create a new HexNavigation instance with the active tile ID
         this.state.navigation = new HexNavigation({
             initialTileId: this.state.activeTileId,
-            apiBaseUrl: this.config.apiBaseUrl,
-            apiServerUrl: this.config.apiServerUrl,
-            modName: this.state.modName || "default"
+            apiBaseUrl: "http://localhost:8000/api"
         });
         
+        console.log(`Navigation system initialized with tile ID: ${this.state.activeTileId}`);
+        
         // Initialize the navigation system
-        try {
-            await this.state.navigation.initialize();
-            console.log("Navigation system initialized");
-            return true;
-        } catch (error) {
-            console.error("Failed to initialize navigation:", error);
-            return false;
-        }
+        this.state.navigation.initialize().then(success => {
+            if (success) {
+                console.log("Navigation system initialized successfully");
+            } else {
+                console.warn("Navigation system initialization failed, using fallback");
+            }
+        });
     },
     
     // Get H3 index from URL query parameter
@@ -406,7 +312,7 @@ window.hexGlobeApp = {
             gotoButton.disabled = true;
             
             // Call our backend geocoding API
-            const apiUrl = `${this.config.apiServerUrl}/api/geocode/?address=${encodeURIComponent(input)}&resolution=${this.state.resolution}`;
+            const apiUrl = `http://localhost:8000/api/geocode/?address=${encodeURIComponent(input)}&resolution=${this.state.resolution}`;
             
             fetch(apiUrl)
                 .then(response => {
