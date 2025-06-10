@@ -737,6 +737,18 @@ window.hexGlobeApp = {
         let focusTileContainerHtml = '';
         if (this.state.focusTileId) {
             focusTileContainerHtml = `<div class="focus-tile-container"><span>Focus: </span><a href="#" id="navigate-to-focus" class="focus-tile-link" title="Click to navigate to this tile"><span style="color: ${focusColor};">${this.state.focusTileId}</span></a></div>`;
+            
+            // Insert the focus tile container at the top of the debug panel
+            const focusContainer = document.getElementById("focus-container");
+            if (focusContainer) {
+                focusContainer.innerHTML = focusTileContainerHtml;
+            }
+        } else {
+            // Clear the focus container if there's no focus tile
+            const focusContainer = document.getElementById("focus-container");
+            if (focusContainer) {
+                focusContainer.innerHTML = '';
+            }
         }
         
         // Create focus tile HTML for the selected tiles section
@@ -758,7 +770,7 @@ window.hexGlobeApp = {
         // Store the current height of the tile info panel before updating
         const prevHeight = tileInfo.offsetHeight;
         
-        tileInfo.innerHTML = `${focusTileContainerHtml}<p><strong>H3 Index:</strong> ${activeTile.id}</p><div class="content-edit-container"><p><strong>Content:</strong></p><textarea id="tile-content-editor" class="tile-content-editor">${tileContent}</textarea><button id="update-content-button" class="action-button">Update Content</button><div id="update-content-status" class="status-message"></div></div>${moveContentHtml}${selectedTilesHtml}${generateMapsButtonHtml}`;
+        tileInfo.innerHTML = `<p><strong>H3 Index:</strong> ${activeTile.id}</p><div class="content-edit-container"><p><strong>Content:</strong></p><textarea id="tile-content-editor" class="tile-content-editor">${tileContent}</textarea><button id="update-content-button" class="action-button">Update Content</button><div id="update-content-status" class="status-message"></div></div>${moveContentHtml}${selectedTilesHtml}${generateMapsButtonHtml}`;
         
         // Check if the height changed and trigger a canvas resize if it did
         if (prevHeight !== tileInfo.offsetHeight) {
