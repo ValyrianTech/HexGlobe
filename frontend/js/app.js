@@ -27,9 +27,9 @@ window.hexGlobeApp = {
             fillColor: "#FFC107"     // Yellow-ish fill for selected tiles
         },
         focusTileStyles: {
-            borderColor: "#9C27B0",  // Purple border for focus tile
-            borderThickness: 2,      // Medium border for focus tile
-            fillColor: "#E1BEE7"     // Light purple fill for focus tile
+            borderColor: "#4CAF50",  // Green border for focus tile
+            borderThickness: 4,      // Thicker border for focus tile
+            fillColor: "#A5D6A7"     // Light green fill for focus tile
         },
         h3LibraryCheckMaxRetries: 20, // Increased maximum number of retries for H3 library check
         h3LibraryCheckInterval: 200   // Increased interval in ms between H3 library checks
@@ -719,6 +719,9 @@ window.hexGlobeApp = {
             backendResolution = navTile.resolution !== undefined ? navTile.resolution : "N/A";
         }
         
+        // Get focus tile color from config
+        const focusColor = this.config.focusTileStyles.borderColor;
+        
         // Create selected tiles list HTML
         let selectedTilesHtml = '';
         if (this.state.selectedTiles.length > 0) {
@@ -727,7 +730,7 @@ window.hexGlobeApp = {
                 <ul style="max-height: 100px; overflow-y: auto; margin-top: 5px;">
                     ${this.state.selectedTiles.map(tileId => {
                         const isFocus = tileId === this.state.focusTileId;
-                        return `<li>${tileId}${isFocus ? ' <span style="color: #9C27B0; font-weight: bold;">(Focus)</span>' : ''}</li>`;
+                        return `<li>${tileId}${isFocus ? ` <span style="color: ${focusColor}; font-weight: bold;">(Focus)</span>` : ''}</li>`;
                     }).join('')}
                 </ul>
             `;
@@ -738,7 +741,7 @@ window.hexGlobeApp = {
         // Create focus tile HTML
         let focusTileHtml = '';
         if (this.state.focusTileId) {
-            focusTileHtml = `<p><strong>Focus Tile:</strong> ${this.state.focusTileId}</p>`;
+            focusTileHtml = `<p><strong>Focus Tile:</strong> <span style="color: ${focusColor};">${this.state.focusTileId}</span></p>`;
         }
         
         // Create navigation button HTML if exactly one tile is selected
@@ -975,15 +978,15 @@ window.hexGlobeApp = {
             // Create a HexTile object with appropriate visual properties
             let visualProperties;
             
-            if (this.state.selectedTiles.includes(tile.id)) {
+            if (this.state.focusTileId === tile.id) {
+                // Focus tile styling (highest priority)
+                visualProperties = this.config.focusTileStyles;
+            } else if (this.state.selectedTiles.includes(tile.id)) {
                 // Selected tile styling
                 visualProperties = this.config.selectedTileStyles;
             } else if (tile.isActive) {
                 // Active tile styling
                 visualProperties = this.config.activeTileStyles;
-            } else if (this.state.focusTileId === tile.id) {
-                // Focus tile styling
-                visualProperties = this.config.focusTileStyles;
             } else {
                 // Normal tile styling
                 visualProperties = this.config.normalTileStyles;
