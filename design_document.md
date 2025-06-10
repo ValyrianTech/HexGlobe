@@ -360,18 +360,86 @@ HexGlobe supports multiple mods or applications using the same underlying hexago
 - **Data Storage**:
   - Static data (H3 grid information) is shared across all mods
   - Dynamic data (content and visual properties) is stored separately for each mod
-  - Directory structure: `/data/dynamic/{mod_name}/res_X/.../{tile_id}.json`
+  - Directory structure: `/data/dynamic/{mod_name}/res_X/aa/bb/cc/.../{tile_id}.json`
 - **Storage Optimization**:
   - Dynamic data files are only created when there's actual content or non-default visual properties
   - Empty or default tiles don't create dynamic data files, improving storage efficiency
   - When a tile's content and visual properties are reset to defaults, the dynamic file is removed
 
-### 7.3 Benefits
+### 7.3 Frontend Mod System
+
+#### 7.3.1 ModLoader
+
+The frontend includes a ModLoader system that dynamically loads mods based on URL parameters:
+
+- **ModLoader.js**: Core module responsible for loading mod assets
+  - Parses URL parameters to determine which mod to load (`?mod_name=mod_name`)
+  - Loads the mod's manifest.json file
+  - Dynamically loads CSS and JavaScript files specified in the manifest
+  - Falls back to the default mod if loading fails
+  - Dispatches a `modLoaded` event when initialization is complete
+  - Provides utility methods for constructing API URLs with the mod_name parameter
+
+#### 7.3.2 Mod Structure
+
+Each mod follows a standard directory structure:
+
+```
+mods/
+├── default/             # Default mod (fallback)
+│   ├── manifest.json    # Mod metadata and configuration
+│   ├── css/
+│   │   └── theme.css    # Theme CSS that can be customized
+│   ├── js/
+│   │   └── mod.js       # Mod logic and event handlers
+│   └── README.md        # Documentation
+└── custom_mod/          # Custom mod example
+    ├── manifest.json
+    ├── css/
+    │   └── theme.css
+    ├── js/
+    │   └── mod.js
+    └── README.md
+```
+
+#### 7.3.3 Manifest Format
+
+Each mod must include a manifest.json file with the following structure:
+
+```json
+{
+  "name": "Mod Name",
+  "version": "1.0.0",
+  "description": "Description of the mod",
+  "author": "Author Name",
+  "theme": "css/theme.css",
+  "script": "js/mod.js"
+}
+```
+
+#### 7.3.4 API Integration
+
+- All API calls include the mod_name parameter to ensure data separation
+- The ModLoader provides a `getModName()` method to retrieve the current mod name
+- The navigation.js module uses this method to construct API URLs with the correct mod_name parameter
+
+#### 7.3.5 Event System
+
+The mod system uses a custom event system to notify the application when a mod is loaded:
+
+- `modLoaded`: Dispatched when a mod is successfully loaded, includes mod name and manifest
+- Mod JavaScript files listen for this event to initialize themselves
+
+### 7.4 Benefits
 
 - **Resource Efficiency**: Static H3 grid data is shared, reducing storage requirements
 - **Separation of Concerns**: Different applications can use the same grid without interfering with each other
 - **Storage Optimization**: Only tiles with actual content create files, minimizing disk usage
 - **Scalability**: The system can support many different mods without duplicating the underlying grid structure
+- **Dynamic Loading**: Mods can be loaded at runtime without requiring application restart
+- **Fallback Mechanism**: If a mod fails to load, the system falls back to the default mod
+- **Customization**: Mods can customize both visual appearance and behavior
+- **Isolation**: Each mod's data is isolated from other mods
 
 ## 8. Technology Stack
 

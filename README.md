@@ -32,6 +32,7 @@ HexGlobe provides a framework for visualizing and interacting with a hexagonal g
 - Transformation pipeline for correcting map projection distortion
 - Visual calibration aids for verification and debugging
 - "Go To" navigation for direct access to locations by H3 index or address
+- Mod system for creating custom applications on the same grid infrastructure
 
 ## Technology Stack
 
@@ -137,8 +138,21 @@ HexGlobe/
 │   ├── js/
 │   │   ├── app.js          # Main application logic
 │   │   ├── hexTile.js      # Canvas-based hexagon rendering module
-│   │   └── navigation.js   # Tile navigation and API communication
-│   └── index.html          # Main HTML entry point
+│   │   ├── navigation.js   # Tile navigation and API communication
+│   │   └── modLoader.js    # Mod loading and management
+│   ├── index.html          # Main HTML entry point
+│   └── mods/               # Symbolic link to root mods directory
+├── mods/                   # Mod directory containing all available mods
+│   ├── default/            # Default mod (fallback)
+│   │   ├── manifest.json   # Mod metadata
+│   │   ├── css/            # Mod-specific CSS
+│   │   ├── js/             # Mod-specific JavaScript
+│   │   └── README.md       # Mod documentation
+│   └── test/               # Test mod for verification
+│       ├── manifest.json   # Mod metadata
+│       ├── css/            # Mod-specific CSS
+│       ├── js/             # Mod-specific JavaScript
+│       └── README.md       # Mod documentation
 └── README.md               # This file
 ```
 
@@ -177,6 +191,16 @@ Manages tile navigation and backend communication:
 - Handles navigation between tiles
 - Provides fallback functionality when API is unavailable
 - Dispatches events when tile data changes
+- Includes mod_name parameter in all API calls
+
+### modLoader.js
+Handles the loading and management of mods:
+- Parses URL parameters to determine which mod to load
+- Dynamically loads mod assets (CSS and JavaScript)
+- Provides a global interface for accessing the current mod name
+- Falls back to the default mod if loading fails
+- Dispatches events when a mod is loaded
+- Provides utility methods for API URL construction
 
 ### generate_hex_map.py
 Generates precisely calibrated hexagonal map images for H3 tiles:
@@ -233,6 +257,94 @@ The backend provides the following RESTful API endpoints:
   - Query parameter: `mod_name` (optional, default: "default")
 - `GET /api/tiles/{tile_id}/grid`: Get a 2D grid of H3 indexes centered around the specified tile
   - Query parameter: `mod_name` (optional, default: "default")
+
+## Using the Mod System
+
+HexGlobe includes a mod system that allows you to create custom applications on top of the same hexagonal grid infrastructure. Each mod can have its own visual styling, behavior, and data storage.
+
+### Loading a Mod
+
+To load a specific mod, add the `mod_name` parameter to the URL:
+
+```
+http://localhost:8080/?mod_name=test
+```
+
+If no mod_name parameter is provided, the default mod will be loaded.
+
+### Available Mods
+
+- **default**: The standard HexGlobe experience with black borders and white backgrounds
+- **test**: A test mod with purple borders and light blue backgrounds
+
+### Creating a New Mod
+
+To create a new mod:
+
+1. Copy the default mod directory:
+   ```bash
+   cp -r mods/default mods/your_mod_name
+   ```
+
+2. Edit the manifest.json file:
+   ```json
+   {
+     "name": "Your Mod Name",
+     "version": "1.0.0",
+     "description": "Description of your mod",
+     "author": "Your Name",
+     "theme": "css/theme.css",
+     "script": "js/mod.js"
+   }
+   ```
+
+3. Customize the CSS in `css/theme.css` to change the visual appearance
+4. Modify the JavaScript in `js/mod.js` to implement custom behavior
+5. Update the README.md to document your mod
+
+### Mod Structure
+
+Each mod follows a standard directory structure:
+
+```
+your_mod_name/
+├── manifest.json    # Mod metadata and configuration
+├── css/
+│   └── theme.css    # Theme CSS that can be customized
+├── js/
+│   └── mod.js       # Mod logic and event handlers
+└── README.md        # Documentation
+```
+
+### Event Handling
+
+Your mod's JavaScript can listen for the following events:
+
+```javascript
+// Initialize when the mod is loaded
+document.addEventListener('DOMContentLoaded', () => {
+  // Your initialization code here
+});
+
+// Listen for tile selection events
+document.addEventListener('tileSelected', (event) => {
+  const tileId = event.detail.tileId;
+  // Your tile selection handling code here
+});
+
+// Listen for active tile changes
+document.addEventListener('activeTileChanged', (event) => {
+  const tileId = event.detail.tileId;
+  // Your active tile change handling code here
+});
+
+// Listen for tile content updates
+document.addEventListener('tileContentUpdated', (event) => {
+  const tileId = event.detail.tileId;
+  const content = event.detail.content;
+  // Your content update handling code here
+});
+```
 
 ## Usage
 
