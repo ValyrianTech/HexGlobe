@@ -1,0 +1,8 @@
+{
+  "name": "Test Mod",
+  "version": "1.0.0",
+  "description": "Test mod with different visual styles for testing the mod system",
+  "author": "HexGlobe Team",
+  "theme": "css/theme.css",
+  "script": "js/mod.js"
+}

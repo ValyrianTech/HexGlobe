@@ -1,0 +1,89 @@
+/* Test Mod Theme CSS
+ * This is a test theme with distinctive colors for testing the mod system
+ */
+
+/* Global Color Variables */
+:root {
+    /* Base UI colors */
+    --text-color: #333;
+    --body-bg: #e6f7ff;  /* Light blue background */
+    --header-bg: #6a0dad;  /* Purple header */
+    --header-text: #fff;
+    --footer-bg: #6a0dad;  /* Purple footer */
+    --footer-text: #fff;
+    
+    /* UI Component colors */
+    --button-bg: #ff6b6b;  /* Coral buttons */
+    --button-text: white;
+    --button-hover-bg: #ff4757;
+    --action-button-bg: #ff9f43;  /* Orange action buttons */
+    --action-button-text: white;
+    --action-button-hover-bg: #ff7f00;
+    --action-button-active-bg: #e67300;
+    
+    /* Panel and container colors */
+    --canvas-bg: #fff;
+    --debug-panel-bg: #f0f0ff;  /* Light purple debug panel */
+    --control-group-bg: #e6e6fa;  /* Lavender control groups */
+    --heading-color: #6a0dad;  /* Purple headings */
+    --label-color: #555;
+    
+    /* Form element colors */
+    --input-bg: #fff;
+    --input-focus-border: #ff9f43;  /* Orange focus border */
+    --input-focus-shadow: rgba(255, 159, 67, 0.3);
+    
+    /* Status message base */
+    --status-bg: #f8f8f8;
+    
+    /* Status message variants */
+    --status-updating-bg: #e8f4fd;
+    --status-updating-color: #0c5460;
+    --status-success-bg: #d4edda;
+    --status-success-color: #155724;
+    --status-error-bg: #f8d7da;
+    --status-error-color: #721c24;
+    
+    /* Focus tile container */
+    --focus-container-bg: #fff0f5;  /* Lavender blush */
+    
+    /* Hexagon Visual Properties */
+    --hex-border-color: #6a0dad;  /* Purple borders */
+    --hex-border-thickness: 2px;  /* Thicker borders */
+    --hex-border-style: solid;
+    
+    /* Fill properties */
+    --hex-fill-color: #e6f7ff;  /* Light blue fill */
+    --hex-fill-opacity: 0.8;
+    
+    /* Selected hexagon styling */
+    --hex-selected-border-color: #ff6b6b;  /* Coral */
+    --hex-selected-border-thickness: 3px;
+    --hex-selected-fill-color: rgba(255, 107, 107, 0.3);  /* Coral with transparency */
+    
+    /* Focus hexagon styling (last selected) */
+    --hex-focus-border-color: #ff9f43;  /* Orange */
+    --hex-focus-border-thickness: 4px;
+    --hex-focus-fill-color: rgba(255, 159, 67, 0.4);  /* Orange with transparency */
+}
+
+/* Status message variants - colors only */
+.status-updating {
+    background-color: var(--status-updating-bg);
+    color: var(--status-updating-color);
+}
+
+.status-success {
+    background-color: var(--status-success-bg);
+    color: var(--status-success-color);
+}
+
+.status-error {
+    background-color: var(--status-error-bg);
+    color: var(--status-error-color);
+}
+
+/* Focus tile container styles - colors only */
+.focus-tile-container {
+    background-color: var(--focus-container-bg);
+}
