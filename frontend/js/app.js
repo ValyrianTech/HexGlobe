@@ -57,8 +57,12 @@ window.hexGlobeApp = {
             document.getElementById("zoom-value").textContent = this.state.zoomLevel;
             document.getElementById("zoom-slider").value = this.state.zoomLevel;
             
-            // Initialize resolution dropdown with current resolution
-            document.getElementById("resolution-dropdown").value = this.state.resolution;
+            // Initialize resolution dropdown with current resolution if no URL parameter is provided
+            const urlParams = new URLSearchParams(window.location.search);
+            const h3Index = urlParams.get('h3');
+            if (!h3Index) {
+                document.getElementById("resolution-dropdown").value = this.state.resolution;
+            }
             
             // Initialize the navigation system
             this.initNavigation();
@@ -213,10 +217,9 @@ window.hexGlobeApp = {
                     this.state.resolution = newResolution;
                     
                     // Update UI to reflect the new resolution
-                    const resolutionSlider = document.getElementById("resolution-slider");
-                    if (resolutionSlider) {
-                        resolutionSlider.value = newResolution;
-                        document.getElementById("resolution-value").textContent = newResolution;
+                    const resolutionDropdown = document.getElementById("resolution-dropdown");
+                    if (resolutionDropdown) {
+                        resolutionDropdown.value = newResolution;
                     }
                 }
             }
