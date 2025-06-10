@@ -63,7 +63,7 @@ HexGlobe is a web application framework that implements a global hexagonal grid 
 
 - **Methods**:
   - `get_neighbors()`: Returns neighboring tiles
-  - `move_content_to(target_tile)`: Moves content to a neighboring tile
+  - `move_content_to(target_tile)`: Moves content to any tile
   - `get_parent()`: Returns the parent tile
   - `get_children()`: Returns child tiles
   - `set_visual_property(property, value)`: Sets a visual property
