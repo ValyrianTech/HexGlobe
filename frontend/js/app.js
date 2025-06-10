@@ -50,16 +50,29 @@ window.hexGlobeApp = {
     
     // Initialize the application
     init: function() {
+        console.log("Initializing HexGlobe application...");
+        
         // Set up the canvas
         this.setupCanvas();
         
         // Get H3 index from URL query parameter or set default based on resolution
         this.getH3IndexFromUrl();
         
-        // Set up navigation
-        this.state.navigation = new HexNavigation({
-            initialTileId: this.state.activeTileId
-        });
+        console.log(`After URL parsing, active tile ID is: ${this.state.activeTileId}`);
+        
+        // Initialize zoom slider with current zoom level
+        document.getElementById("zoom-value").textContent = this.state.zoomLevel;
+        document.getElementById("zoom-slider").value = this.state.zoomLevel;
+        
+        // Initialize resolution dropdown with current resolution if no URL parameter is provided
+        const urlParams = new URLSearchParams(window.location.search);
+        const h3Index = urlParams.get('h3');
+        if (!h3Index) {
+            document.getElementById("resolution-dropdown").value = this.state.resolution;
+        }
+        
+        // Initialize the navigation system
+        this.initNavigation();
         
         // Set up event listeners
         this.setupEventListeners();
