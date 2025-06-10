@@ -108,6 +108,23 @@ canvas {
     margin-top: 0.5rem;
 }
 
+/* Resolution dropdown styles */
+.resolution-dropdown {
+    width: 100%;
+    padding: 8px;
+    margin-top: 0.5rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background-color: #fff;
+    font-size: 14px;
+}
+
+.resolution-dropdown:focus {
+    outline: none;
+    border-color: #4a90e2;
+    box-shadow: 0 0 3px rgba(74, 144, 226, 0.3);
+}
+
 /* Action button styles */
 .action-button {
     display: block;

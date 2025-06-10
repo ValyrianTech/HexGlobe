@@ -53,13 +53,12 @@ window.hexGlobeApp = {
             
             console.log(`After URL parsing, active tile ID is: ${this.state.activeTileId}`);
             
-            // Initialize resolution slider with current resolution
-            document.getElementById("resolution-value").textContent = this.state.resolution;
-            document.getElementById("resolution-slider").value = this.state.resolution;
-            
             // Initialize zoom slider with current zoom level
             document.getElementById("zoom-value").textContent = this.state.zoomLevel;
             document.getElementById("zoom-slider").value = this.state.zoomLevel;
+            
+            // Initialize resolution dropdown with current resolution
+            document.getElementById("resolution-dropdown").value = this.state.resolution;
             
             // Initialize the navigation system
             this.initNavigation();
@@ -231,21 +230,20 @@ window.hexGlobeApp = {
             this.state.zoomLevel = parseInt(event.target.value);
             document.getElementById("zoom-value").textContent = this.state.zoomLevel;
             
-            // Generate grid with new zoom level
+            // Generate grid and wait for it to complete before rendering
             this.generateGrid().then(() => {
                 this.render();
                 this.updateDebugPanel();
             });
         });
 
-        // Handle resolution slider changes
-        document.getElementById("resolution-slider").addEventListener("input", (event) => {
+        // Handle resolution dropdown changes
+        document.getElementById("resolution-dropdown").addEventListener("change", (event) => {
             const newResolution = parseInt(event.target.value);
             
             // Only update if resolution actually changed
             if (newResolution !== this.state.resolution) {
                 this.state.resolution = newResolution;
-                document.getElementById("resolution-value").textContent = this.state.resolution;
                 
                 // Check if we have resolution_ids from the API
                 if (this.state.navigation && 
@@ -262,24 +260,7 @@ window.hexGlobeApp = {
                     // Update URL to reflect the new H3 index
                     const url = new URL(window.location);
                     url.searchParams.set('h3', newIndex);
-                    window.history.replaceState({}, '', url);
-                    
-                    // Update the navigation system with the new active tile ID
-                    if (this.state.navigation) {
-                        this.state.navigation.navigateTo(newIndex).then(() => {
-                            // Generate grid and wait for it to complete before rendering
-                            this.generateGrid().then(() => {
-                                this.render();
-                                this.updateDebugPanel();
-                            });
-                        });
-                    } else {
-                        // Generate grid and wait for it to complete before rendering
-                        this.generateGrid().then(() => {
-                            this.render();
-                            this.updateDebugPanel();
-                        });
-                    }
+                    window.location.href = url.toString(); // This will reload the page with the new URL
                 } else {
                     // Fallback to H3 library or default index if resolution_ids not available
                     if (window.h3 && typeof window.h3.h3ToGeo === 'function' && typeof window.h3.geoToH3 === 'function') {
@@ -296,55 +277,28 @@ window.hexGlobeApp = {
                             // Update URL to reflect the new H3 index
                             const url = new URL(window.location);
                             url.searchParams.set('h3', newIndex);
-                            window.history.replaceState({}, '', url);
-                            
-                            // Update the navigation system with the new active tile ID
-                            if (this.state.navigation) {
-                                this.state.navigation.navigateTo(newIndex).then(() => {
-                                    // Generate grid and wait for it to complete before rendering
-                                    this.generateGrid().then(() => {
-                                        this.render();
-                                        this.updateDebugPanel();
-                                    });
-                                });
-                            } else {
-                                // Generate grid and wait for it to complete before rendering
-                                this.generateGrid().then(() => {
-                                    this.render();
-                                    this.updateDebugPanel();
-                                });
-                            }
+                            window.location.href = url.toString(); // This will reload the page with the new URL
                         } catch (error) {
                             console.error("Error updating H3 resolution:", error);
                             // Fall back to a default index for this resolution
                             this.state.activeTileId = this.getDefaultH3IndexForResolution(this.state.resolution);
                             
-                            // Generate grid and wait for it to complete before rendering
-                            this.generateGrid().then(() => {
-                                this.render();
-                                this.updateDebugPanel();
-                            });
+                            // Update URL and reload the page
+                            const url = new URL(window.location);
+                            url.searchParams.set('h3', this.state.activeTileId);
+                            window.location.href = url.toString(); // This will reload the page with the new URL
                         }
                     } else {
                         // If H3 functions aren't available, use default index
                         this.state.activeTileId = this.getDefaultH3IndexForResolution(this.state.resolution);
                         
-                        // Generate grid and wait for it to complete before rendering
-                        this.generateGrid().then(() => {
-                            this.render();
-                            this.updateDebugPanel();
-                        });
+                        // Update URL and reload the page
+                        const url = new URL(window.location);
+                        url.searchParams.set('h3', this.state.activeTileId);
+                        window.location.href = url.toString(); // This will reload the page with the new URL
                     }
                 }
             }
-        });
-
-        // Add a change event listener to handle when the slider interaction is complete
-        document.getElementById("resolution-slider").addEventListener("change", (event) => {
-            // Update URL and reload the page to reflect the new resolution
-            const url = new URL(window.location);
-            url.searchParams.set('h3', this.state.activeTileId);
-            window.location.href = url.toString(); // This will reload the page with the new URL
         });
     },
     
@@ -711,8 +665,6 @@ window.hexGlobeApp = {
         
         tileInfo.innerHTML = `
             <p><strong>H3 Index:</strong> ${activeTile.id}</p>
-            <p><strong>Resolution (Backend):</strong> ${backendResolution}</p>
-            <p><strong>Resolution (Frontend):</strong> ${this.state.resolution}</p>
             <p><strong>Zoom Level:</strong> ${this.state.zoomLevel}</p>
             <p><strong>Grid Position:</strong> (${activeTile.col}, ${activeTile.row})</p>
             <p><strong>Content:</strong> ${tileContent}</p>
