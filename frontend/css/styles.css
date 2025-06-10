@@ -222,6 +222,41 @@ canvas {
     margin-right: 10px;
 }
 
+/* Focus tile link styles */
+.focus-tile-link {
+    text-decoration: none;
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    border: none;
+    background: transparent;
+    padding: 0;
+    margin: 0;
+    line-height: 1;
+}
+
+.focus-tile-link span {
+    display: inline-block;
+    border-bottom: 1px solid transparent;
+    transition: border-color 0.2s ease;
+}
+
+.focus-tile-link:hover span {
+    border-bottom: 1px solid currentColor;
+}
+
+.focus-tile-link:after {
+    content: '→';
+    display: inline-block;
+    margin-left: 5px;
+    font-size: 14px;
+    transition: transform 0.2s ease;
+}
+
+.focus-tile-link:hover:after {
+    transform: translateX(3px);
+}
+
 /* Status message variants */
 .status-updating {
     background-color: #e8f4fd;

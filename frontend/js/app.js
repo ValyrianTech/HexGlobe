@@ -743,13 +743,10 @@ window.hexGlobeApp = {
         if (this.state.focusTileId) {
             focusTileContainerHtml = `
                 <div class="focus-tile-container">
-                    <div class="focus-tile-info">
-                        <span>Focus: </span>
+                    <span>Focus: </span>
+                    <a href="#" id="navigate-to-focus" class="focus-tile-link" title="Click to navigate to this tile">
                         <span style="color: ${focusColor};">${this.state.focusTileId}</span>
-                    </div>
-                    <button id="navigate-to-focus" class="action-button">
-                        Navigate
-                    </button>
+                    </a>
                 </div>
             `;
         }
@@ -851,9 +848,12 @@ window.hexGlobeApp = {
         }
         
         // Add event listener for navigation button if it exists
-        const navigateButton = document.getElementById("navigate-to-focus");
-        if (navigateButton && this.state.focusTileId) {
-            navigateButton.addEventListener("click", () => {
+        const navigateLink = document.getElementById("navigate-to-focus");
+        if (navigateLink && this.state.focusTileId) {
+            navigateLink.addEventListener("click", (event) => {
+                // Prevent default link behavior
+                event.preventDefault();
+                
                 const focusTileId = this.state.focusTileId;
                 
                 // Update the active tile ID
