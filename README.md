@@ -12,6 +12,7 @@ HexGlobe provides a framework for visualizing and interacting with a hexagonal g
 - Dynamic grid sizing that fills the available space
 - Interactive tile navigation with click support
 - Multi-selection of tiles with toggle behavior
+- Focus tile tracking (last selected tile) with distinct visual styling
 - Selected tiles tracking and visual highlighting
 - Conditional navigation button for selected tiles
 - Neighbor visualization and highlighting
@@ -30,6 +31,7 @@ HexGlobe provides a framework for visualizing and interacting with a hexagonal g
 - Calibrated hexagon map images with precise alignment
 - Transformation pipeline for correcting map projection distortion
 - Visual calibration aids for verification and debugging
+- "Go To" navigation for direct access to locations by H3 index or address
 
 ## Technology Stack
 
@@ -158,6 +160,7 @@ Main application logic that:
 - Calculates grid dimensions to fill available space
 - Manages the active tile state
 - Tracks selected tiles and provides visual feedback
+- Maintains a focus tile (last selected tile) with distinct visual styling
 - Implements tile selection toggle behavior
 - Shows a navigation button when exactly one tile is selected
 - Handles rendering and updates
@@ -166,6 +169,7 @@ Main application logic that:
 - Integrates with the navigation system for API calls
 - Implements proper coordinate system using (row, col) format
 - Applies correct vertical offset for odd columns to maintain hexagonal grid alignment
+- Provides "Go To" functionality for navigating to locations by H3 index or address
 
 ### navigation.js
 Manages tile navigation and backend communication:

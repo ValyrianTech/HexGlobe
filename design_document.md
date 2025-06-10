@@ -258,6 +258,8 @@ The map generation process ensures that:
    - Clicking a selected tile unselects it
    - Multiple tiles can be selected simultaneously
    - Selected tiles are visually highlighted with distinct styling
+   - The most recently selected tile becomes the "focus" tile with a special visual style
+   - When a tile is unselected, focus shifts to the last selected tile (if any)
 6. When exactly one tile is selected, a navigation button appears
 7. Clicking the navigation button makes the selected tile the active tile
 8. The view updates to show the new active tile and its neighbors
@@ -269,6 +271,7 @@ The map generation process ensures that:
 - Grid pattern inside hexagons to simulate map data
 - Tile information panel showing active tile details
 - Multi-selection of tiles with toggle behavior
+- Focus tile tracking (last selected tile) with distinct visual styling
 - Selected tiles list in the debug panel
 - Conditional navigation button when exactly one tile is selected
 - Zoom control to adjust visible hex tiles
