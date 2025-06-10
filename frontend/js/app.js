@@ -26,6 +26,11 @@ window.hexGlobeApp = {
             borderThickness: 2,      // Medium border for selected tiles
             fillColor: "#FFC107"     // Yellow-ish fill for selected tiles
         },
+        focusTileStyles: {
+            borderColor: "#9C27B0",  // Purple border for focus tile
+            borderThickness: 2,      // Medium border for focus tile
+            fillColor: "#E1BEE7"     // Light purple fill for focus tile
+        },
         h3LibraryCheckMaxRetries: 20, // Increased maximum number of retries for H3 library check
         h3LibraryCheckInterval: 200   // Increased interval in ms between H3 library checks
     },
@@ -39,7 +44,8 @@ window.hexGlobeApp = {
         zoomLevel: 1, // Default zoom level (1-10)
         resolution: 7, // Default H3 resolution (0-15)
         navigation: null, // Will hold the HexNavigation instance
-        selectedTiles: [] // Array to store selected tile IDs
+        selectedTiles: [], // Array to store selected tile IDs
+        focusTileId: null // ID of the last selected tile (focus)
     },
     
     // Initialize the application
@@ -662,11 +668,22 @@ window.hexGlobeApp = {
                     this.state.selectedTiles.splice(selectedIndex, 1);
                     tile.hexTile.setSelected(false);
                     console.log(`Unselected tile: ${tile.id}`);
+                    
+                    // If we unselected the focus tile, set focus to the last selected tile or null if none
+                    if (this.state.focusTileId === tile.id) {
+                        this.state.focusTileId = this.state.selectedTiles.length > 0 ? 
+                            this.state.selectedTiles[this.state.selectedTiles.length - 1] : null;
+                        console.log(`Focus tile updated to: ${this.state.focusTileId}`);
+                    }
                 } else {
                     // Tile is not selected, select it
                     this.state.selectedTiles.push(tile.id);
                     tile.hexTile.setSelected(true);
                     console.log(`Selected tile: ${tile.id}`);
+                    
+                    // Set this as the focus tile (last selected)
+                    this.state.focusTileId = tile.id;
+                    console.log(`Focus tile set to: ${this.state.focusTileId}`);
                 }
                 
                 // Re-render the canvas to show selection changes
@@ -708,11 +725,20 @@ window.hexGlobeApp = {
             selectedTilesHtml = `
                 <p><strong>Selected Tiles (${this.state.selectedTiles.length}):</strong></p>
                 <ul style="max-height: 100px; overflow-y: auto; margin-top: 5px;">
-                    ${this.state.selectedTiles.map(tileId => `<li>${tileId}</li>`).join('')}
+                    ${this.state.selectedTiles.map(tileId => {
+                        const isFocus = tileId === this.state.focusTileId;
+                        return `<li>${tileId}${isFocus ? ' <span style="color: #9C27B0; font-weight: bold;">(Focus)</span>' : ''}</li>`;
+                    }).join('')}
                 </ul>
             `;
         } else {
             selectedTilesHtml = '<p><strong>Selected Tiles:</strong> None</p>';
+        }
+        
+        // Create focus tile HTML
+        let focusTileHtml = '';
+        if (this.state.focusTileId) {
+            focusTileHtml = `<p><strong>Focus Tile:</strong> ${this.state.focusTileId}</p>`;
         }
         
         // Create navigation button HTML if exactly one tile is selected
@@ -747,6 +773,7 @@ window.hexGlobeApp = {
                 <button id="update-content-button" class="action-button">Update Content</button>
                 <div id="update-content-status" class="status-message"></div>
             </div>
+            ${focusTileHtml}
             ${selectedTilesHtml}
             ${navigationButtonHtml}
             ${generateMapsButtonHtml}
@@ -954,6 +981,9 @@ window.hexGlobeApp = {
             } else if (tile.isActive) {
                 // Active tile styling
                 visualProperties = this.config.activeTileStyles;
+            } else if (this.state.focusTileId === tile.id) {
+                // Focus tile styling
+                visualProperties = this.config.focusTileStyles;
             } else {
                 // Normal tile styling
                 visualProperties = this.config.normalTileStyles;
@@ -1036,7 +1066,10 @@ window.hexGlobeApp = {
         // Clear the selected tiles array
         this.state.selectedTiles = [];
         
-        // Update the tile objects
+        // Clear the focus tile
+        this.state.focusTileId = null;
+        
+        // Update the visual state of all tiles
         for (const tile of this.state.tiles) {
             if (tile.hexTile) {
                 tile.hexTile.setSelected(false);
