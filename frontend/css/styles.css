@@ -7,7 +7,7 @@
 
 body {
     font-family: 'Arial', sans-serif;
-    line-height: 1.6;
+    line-height: 1.5;
     color: #333;
     background-color: #f4f4f4;
     display: flex;
@@ -19,7 +19,7 @@ body {
 header {
     background-color: #2c3e50;
     color: #fff;
-    padding: 1rem;
+    padding: 0.6rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -27,16 +27,16 @@ header {
 
 header h1 {
     margin: 0;
-    font-size: 1.8rem;
+    font-size: 1.6rem;
 }
 
 .controls {
     display: flex;
-    gap: 10px;
+    gap: 8px;
 }
 
 button {
-    padding: 0.5rem 1rem;
+    padding: 0.4rem 0.8rem;
     background-color: #3498db;
     color: white;
     border: none;
@@ -52,15 +52,15 @@ button:hover {
 main {
     flex: 1;
     display: flex;
-    padding: 1rem;
-    gap: 1rem;
+    padding: 0.5rem;
+    gap: 0.5rem;
     overflow: hidden;
 }
 
 .canvas-container {
     flex: 1;
     background-color: #fff;
-    border-radius: 5px;
+    border-radius: 4px;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
     overflow: hidden;
 }
@@ -74,72 +74,72 @@ canvas {
 .debug-panel {
     width: 300px;
     background-color: #fff;
-    padding: 1rem;
-    border-radius: 5px;
+    padding: 0.5rem;
+    border-radius: 4px;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
     overflow-y: auto;
-    max-height: calc(100vh - 130px);
+    max-height: calc(100vh - 110px);
 }
 
 .debug-panel h3 {
-    margin-bottom: 0.75rem;
-    padding-bottom: 0.5rem;
+    margin-bottom: 0.4rem;
+    padding-bottom: 0.2rem;
     border-bottom: 2px solid #eee;
-    font-size: 1.1rem;
+    font-size: 1rem;
     color: #2c3e50;
 }
 
 #tile-info {
     font-family: monospace;
     white-space: pre-wrap;
+    font-size: 0.85rem;
 }
 
 /* Group related controls together with less spacing */
 .debug-controls-group {
-    margin-bottom: 0.75rem;
-    padding: 0.5rem;
+    margin-bottom: 0.4rem;
+    padding: 0.3rem;
     background-color: #f9f9f9;
     border-radius: 4px;
 }
 
 .slider-container {
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.2rem;
 }
 
 .slider-container:last-child {
     margin-bottom: 0;
-    border-bottom: none;
 }
 
 .slider-container label {
     display: block;
-    margin-bottom: 0.25rem;
-    font-size: 0.9rem;
+    margin-bottom: 0.1rem;
+    font-size: 0.85rem;
     color: #555;
 }
 
 .goto-container {
-    margin-bottom: 0.75rem;
+    margin-bottom: 0.3rem;
 }
 
 .goto-container label {
     display: block;
-    margin-bottom: 0.25rem;
-    font-size: 0.9rem;
+    margin-bottom: 0.1rem;
+    font-size: 0.85rem;
     color: #555;
 }
 
 .goto-input-group {
     display: flex;
-    gap: 8px;
+    gap: 4px;
 }
 
 #goto-input {
     flex: 1;
-    padding: 8px;
+    padding: 4px 6px;
     border: 1px solid #ccc;
-    border-radius: 4px;
-    font-size: 14px;
+    border-radius: 3px;
+    font-size: 0.85rem;
 }
 
 #goto-input:focus {
@@ -149,13 +149,13 @@ canvas {
 }
 
 #goto-button {
-    padding: 8px 16px;
+    padding: 4px 8px;
     background-color: #4a90e2;
     color: white;
     border: none;
-    border-radius: 4px;
+    border-radius: 3px;
     cursor: pointer;
-    font-size: 14px;
+    font-size: 0.85rem;
     transition: background-color 0.3s;
 }
 
@@ -169,18 +169,19 @@ canvas {
 
 #zoom-slider {
     width: 100%;
-    margin-top: 0.25rem;
+    margin-top: 0.1rem;
+    height: 5px;
 }
 
 /* Resolution dropdown styles */
 .resolution-dropdown {
     width: 100%;
-    padding: 8px;
-    margin-top: 0.25rem;
+    padding: 4px 6px;
+    margin-top: 0.1rem;
     border: 1px solid #ccc;
-    border-radius: 4px;
+    border-radius: 3px;
     background-color: #fff;
-    font-size: 14px;
+    font-size: 0.85rem;
 }
 
 .resolution-dropdown:focus {
@@ -193,16 +194,16 @@ canvas {
 .action-button {
     display: block;
     width: 100%;
-    padding: 8px;
-    margin: 8px 0;
+    padding: 5px;
+    margin: 4px 0;
     background-color: #4a90e2;
     color: white;
     border: none;
-    border-radius: 4px;
+    border-radius: 3px;
     font-weight: bold;
     cursor: pointer;
     transition: background-color 0.3s ease;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
 }
 
 .action-button:hover {
@@ -215,28 +216,28 @@ canvas {
 
 /* Status message styles */
 .status-message {
-    margin: 8px 0;
-    padding: 5px;
-    font-size: 0.85em;
-    border-radius: 4px;
+    margin: 4px 0;
+    padding: 3px;
+    font-size: 0.8em;
+    border-radius: 3px;
     background-color: #f8f8f8;
-    min-height: 20px;
+    min-height: 16px;
 }
 
 /* Focus tile container styles */
 .focus-tile-container {
     display: flex;
     align-items: center;
-    margin-bottom: 0.5rem;
-    padding: 0.5rem;
+    margin-bottom: 0.3rem;
+    padding: 0.3rem;
     background-color: #f0f7ff;
-    border-radius: 4px;
+    border-radius: 3px;
 }
 
 .focus-tile-info {
     flex-grow: 1;
     font-weight: bold;
-    margin-right: 10px;
+    margin-right: 6px;
 }
 
 /* Focus tile link styles */
@@ -265,13 +266,13 @@ canvas {
 .focus-tile-link:after {
     content: '→';
     display: inline-block;
-    margin-left: 5px;
-    font-size: 14px;
+    margin-left: 4px;
+    font-size: 12px;
     transition: transform 0.2s ease;
 }
 
 .focus-tile-link:hover:after {
-    transform: translateX(3px);
+    transform: translateX(2px);
 }
 
 /* Status message variants */
@@ -292,28 +293,28 @@ canvas {
 
 /* Tile content editor styles */
 .content-edit-container {
-    margin-bottom: 0.75rem;
-    padding: 0.5rem;
+    margin-bottom: 0.4rem;
+    padding: 0.3rem;
     background-color: #f9f9f9;
-    border-radius: 4px;
+    border-radius: 3px;
 }
 
 .content-edit-container p {
-    margin-bottom: 0.25rem;
-    font-size: 0.9rem;
+    margin-bottom: 0.1rem;
+    font-size: 0.85rem;
     color: #555;
 }
 
 .tile-content-editor {
     width: 100%;
-    min-height: 80px;
-    padding: 8px;
-    margin: 4px 0;
+    min-height: 60px;
+    padding: 4px 6px;
+    margin: 2px 0;
     border: 1px solid #ccc;
-    border-radius: 4px;
+    border-radius: 3px;
     font-family: monospace;
     resize: vertical;
-    font-size: 14px;
+    font-size: 0.85rem;
 }
 
 .tile-content-editor:focus {
@@ -324,29 +325,29 @@ canvas {
 
 /* Content move container styles */
 .content-move-container {
-    margin-bottom: 0.75rem;
-    padding: 0.5rem;
+    margin-bottom: 0.4rem;
+    padding: 0.3rem;
     background-color: #f9f9f9;
-    border-radius: 4px;
+    border-radius: 3px;
 }
 
 .content-move-container p {
-    margin-bottom: 0.25rem;
-    font-size: 0.9rem;
+    margin-bottom: 0.1rem;
+    font-size: 0.85rem;
     color: #555;
 }
 
 .move-input-group {
     display: flex;
-    gap: 8px;
+    gap: 4px;
 }
 
 .move-content-target {
     flex: 1;
-    padding: 8px;
+    padding: 4px 6px;
     border: 1px solid #ccc;
-    border-radius: 4px;
-    font-size: 14px;
+    border-radius: 3px;
+    font-size: 0.85rem;
 }
 
 .move-content-target:focus {
@@ -357,13 +358,13 @@ canvas {
 
 /* Selected tiles section */
 #tile-info ul {
-    margin: 0.25rem 0;
-    padding-left: 1.25rem;
-    font-size: 0.85rem;
+    margin: 0.1rem 0;
+    padding-left: 1rem;
+    font-size: 0.8rem;
 }
 
 #tile-info p {
-    margin: 0.25rem 0;
+    margin: 0.1rem 0;
 }
 
 #tile-info strong {
@@ -374,9 +375,9 @@ footer {
     background-color: #2c3e50;
     color: #fff;
     text-align: center;
-    padding: 0.75rem;
+    padding: 0.4rem;
     margin-top: auto;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
 }
 
 /* Responsive adjustments */
@@ -392,10 +393,10 @@ footer {
     
     header {
         flex-direction: column;
-        padding: 0.75rem;
+        padding: 0.4rem;
     }
     
     header h1 {
-        margin-bottom: 0.5rem;
+        margin-bottom: 0.2rem;
     }
 }
