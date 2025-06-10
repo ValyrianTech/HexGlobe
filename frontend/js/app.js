@@ -741,8 +741,6 @@ window.hexGlobeApp = {
         
         tileInfo.innerHTML = `
             <p><strong>H3 Index:</strong> ${activeTile.id}</p>
-            <p><strong>Zoom Level:</strong> ${this.state.zoomLevel}</p>
-            <p><strong>Grid Position:</strong> (${activeTile.col}, ${activeTile.row})</p>
             <p><strong>Content:</strong> ${tileContent}</p>
             ${selectedTilesHtml}
             ${navigationButtonHtml}
