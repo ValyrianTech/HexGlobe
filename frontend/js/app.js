@@ -725,15 +725,10 @@ window.hexGlobeApp = {
         // Create selected tiles list HTML
         let selectedTilesHtml = '';
         if (this.state.selectedTiles.length > 0) {
-            selectedTilesHtml = `
-                <p><strong>Selected Tiles (${this.state.selectedTiles.length}):</strong></p>
-                <ul style="max-height: 100px; overflow-y: auto; margin-top: 5px;">
-                    ${this.state.selectedTiles.map(tileId => {
-                        const isFocus = tileId === this.state.focusTileId;
-                        return `<li>${tileId}${isFocus ? ` <span style="color: ${focusColor}; font-weight: bold;">(Focus)</span>` : ''}</li>`;
-                    }).join('')}
-                </ul>
-            `;
+            selectedTilesHtml = `<p><strong>Selected Tiles (${this.state.selectedTiles.length}):</strong></p><ul style="max-height: 100px; overflow-y: auto; margin-top: 5px;">${this.state.selectedTiles.map(tileId => {
+                const isFocus = tileId === this.state.focusTileId;
+                return `<li>${tileId}${isFocus ? ` <span style="color: ${focusColor}; font-weight: bold;">(Focus)</span>` : ''}</li>`;
+            }).join('')}</ul>`;
         } else {
             selectedTilesHtml = '<p><strong>Selected Tiles:</strong> None</p>';
         }
@@ -741,14 +736,7 @@ window.hexGlobeApp = {
         // Create focus tile container HTML at the top of the debug panel
         let focusTileContainerHtml = '';
         if (this.state.focusTileId) {
-            focusTileContainerHtml = `
-                <div class="focus-tile-container">
-                    <span>Focus: </span>
-                    <a href="#" id="navigate-to-focus" class="focus-tile-link" title="Click to navigate to this tile">
-                        <span style="color: ${focusColor};">${this.state.focusTileId}</span>
-                    </a>
-                </div>
-            `;
+            focusTileContainerHtml = `<div class="focus-tile-container"><span>Focus: </span><a href="#" id="navigate-to-focus" class="focus-tile-link" title="Click to navigate to this tile"><span style="color: ${focusColor};">${this.state.focusTileId}</span></a></div>`;
         }
         
         // Create focus tile HTML for the selected tiles section
@@ -760,43 +748,17 @@ window.hexGlobeApp = {
         // Create generate maps button HTML if any tiles are selected
         let generateMapsButtonHtml = '';
         if (this.state.selectedTiles.length > 0) {
-            generateMapsButtonHtml = `
-                <button id="generate-maps" class="action-button">
-                    Generate Maps for Selected Tiles
-                </button>
-                <div id="map-generation-status" class="status-message"></div>
-            `;
+            generateMapsButtonHtml = `<button id="generate-maps" class="action-button">Generate Maps for Selected Tiles</button><div id="map-generation-status" class="status-message"></div>`;
         }
         
         // Create move content HTML
         let moveContentHtml = '';
-        moveContentHtml = `
-            <div class="content-move-container">
-                <p><strong>Move Content To:</strong></p>
-                <div class="move-input-group">
-                    <input type="text" id="move-content-target" class="move-content-target" placeholder="Target H3 index">
-                    <button id="move-content-button" class="action-button">Move Content</button>
-                </div>
-                <div id="move-content-status" class="status-message"></div>
-            </div>
-        `;
+        moveContentHtml = `<div class="content-move-container"><p><strong>Move Content To:</strong></p><div class="move-input-group"><input type="text" id="move-content-target" class="move-content-target" placeholder="Target H3 index"><button id="move-content-button" class="action-button">Move Content</button></div><div id="move-content-status" class="status-message"></div></div>`;
         
         // Store the current height of the tile info panel before updating
         const prevHeight = tileInfo.offsetHeight;
         
-        tileInfo.innerHTML = `
-            ${focusTileContainerHtml}
-            <p><strong>H3 Index:</strong> ${activeTile.id}</p>
-            <div class="content-edit-container">
-                <p><strong>Content:</strong></p>
-                <textarea id="tile-content-editor" class="tile-content-editor">${tileContent}</textarea>
-                <button id="update-content-button" class="action-button">Update Content</button>
-                <div id="update-content-status" class="status-message"></div>
-            </div>
-            ${moveContentHtml}
-            ${selectedTilesHtml}
-            ${generateMapsButtonHtml}
-        `;
+        tileInfo.innerHTML = `${focusTileContainerHtml}<p><strong>H3 Index:</strong> ${activeTile.id}</p><div class="content-edit-container"><p><strong>Content:</strong></p><textarea id="tile-content-editor" class="tile-content-editor">${tileContent}</textarea><button id="update-content-button" class="action-button">Update Content</button><div id="update-content-status" class="status-message"></div></div>${moveContentHtml}${selectedTilesHtml}${generateMapsButtonHtml}`;
         
         // Check if the height changed and trigger a canvas resize if it did
         if (prevHeight !== tileInfo.offsetHeight) {

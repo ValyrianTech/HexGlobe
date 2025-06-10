@@ -71,21 +71,23 @@ canvas {
     height: 100%;
 }
 
+/* Debug panel - UPDATED for more compact layout */
 .debug-panel {
     width: 300px;
     background-color: #fff;
-    padding: 0.3rem;
+    padding: 0.2rem;
     border-radius: 3px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     overflow-y: auto;
     max-height: calc(100vh - 100px);
+    font-size: 0.8rem;
 }
 
 .debug-panel h3 {
-    margin-bottom: 0.2rem;
+    margin-bottom: 0.1rem;
     padding-bottom: 0.1rem;
     border-bottom: 1px solid #eee;
-    font-size: 0.95rem;
+    font-size: 0.9rem;
     color: #2c3e50;
 }
 
@@ -97,14 +99,14 @@ canvas {
 
 /* Group related controls together with minimal spacing */
 .debug-controls-group {
-    margin-bottom: 0.2rem;
-    padding: 0.2rem;
+    margin-bottom: 0.1rem;
+    padding: 0.1rem;
     background-color: #f9f9f9;
     border-radius: 3px;
 }
 
 .slider-container {
-    margin-bottom: 0.1rem;
+    margin-bottom: 0.05rem;
 }
 
 .slider-container:last-child {
@@ -113,30 +115,30 @@ canvas {
 
 .slider-container label {
     display: block;
-    margin-bottom: 0.05rem;
+    margin-bottom: 0;
     font-size: 0.8rem;
     color: #555;
 }
 
 .goto-container {
-    margin-bottom: 0.1rem;
+    margin-bottom: 0.05rem;
 }
 
 .goto-container label {
     display: block;
-    margin-bottom: 0.05rem;
+    margin-bottom: 0;
     font-size: 0.8rem;
     color: #555;
 }
 
 .goto-input-group {
     display: flex;
-    gap: 3px;
+    gap: 2px;
 }
 
 #goto-input {
     flex: 1;
-    padding: 3px 4px;
+    padding: 2px 3px;
     border: 1px solid #ccc;
     border-radius: 2px;
     font-size: 0.8rem;
@@ -149,7 +151,7 @@ canvas {
 }
 
 #goto-button {
-    padding: 3px 6px;
+    padding: 2px 5px;
     background-color: #4a90e2;
     color: white;
     border: none;
@@ -176,7 +178,7 @@ canvas {
 /* Resolution dropdown styles */
 .resolution-dropdown {
     width: 100%;
-    padding: 3px 4px;
+    padding: 2px 3px;
     margin-top: 0.05rem;
     border: 1px solid #ccc;
     border-radius: 2px;
@@ -194,8 +196,8 @@ canvas {
 .action-button {
     display: block;
     width: 100%;
-    padding: 4px;
-    margin: 2px 0;
+    padding: 3px;
+    margin: 1px 0;
     background-color: #4a90e2;
     color: white;
     border: none;
@@ -216,20 +218,20 @@ canvas {
 
 /* Status message styles */
 .status-message {
-    margin: 2px 0;
-    padding: 2px;
+    margin: 1px 0;
+    padding: 1px;
     font-size: 0.75em;
     border-radius: 2px;
     background-color: #f8f8f8;
-    min-height: 14px;
+    min-height: 12px;
 }
 
 /* Focus tile container styles */
 .focus-tile-container {
     display: flex;
     align-items: center;
-    margin-bottom: 0.1rem;
-    padding: 0.15rem;
+    margin: 0;
+    padding: 0;
     background-color: #f0f7ff;
     border-radius: 2px;
 }
@@ -237,7 +239,17 @@ canvas {
 .focus-tile-info {
     flex-grow: 1;
     font-weight: bold;
-    margin-right: 4px;
+    margin-right: 2px;
+}
+
+/* Specific adjustment for the H3 Index paragraph that follows the focus container */
+.focus-tile-container + p {
+    margin-top: 2px;
+}
+
+/* Restore original paragraph styling for other paragraphs */
+#tile-info p {
+    margin: 0.05rem 0;
 }
 
 /* Focus tile link styles */
@@ -293,22 +305,22 @@ canvas {
 
 /* Tile content editor styles */
 .content-edit-container {
-    margin-bottom: 0.2rem;
-    padding: 0.2rem;
+    margin-bottom: 0.1rem;
+    padding: 0.1rem;
     background-color: #f9f9f9;
     border-radius: 2px;
 }
 
 .content-edit-container p {
-    margin-bottom: 0.05rem;
+    margin-bottom: 0;
     font-size: 0.8rem;
     color: #555;
 }
 
 .tile-content-editor {
     width: 100%;
-    min-height: 50px;
-    padding: 3px 4px;
+    min-height: 40px;
+    padding: 2px 3px;
     margin: 1px 0;
     border: 1px solid #ccc;
     border-radius: 2px;
@@ -325,26 +337,26 @@ canvas {
 
 /* Content move container styles */
 .content-move-container {
-    margin-bottom: 0.2rem;
-    padding: 0.2rem;
+    margin-bottom: 0.1rem;
+    padding: 0.1rem;
     background-color: #f9f9f9;
     border-radius: 2px;
 }
 
 .content-move-container p {
-    margin-bottom: 0.05rem;
+    margin-bottom: 0;
     font-size: 0.8rem;
     color: #555;
 }
 
 .move-input-group {
     display: flex;
-    gap: 3px;
+    gap: 2px;
 }
 
 .move-content-target {
     flex: 1;
-    padding: 3px 4px;
+    padding: 2px 3px;
     border: 1px solid #ccc;
     border-radius: 2px;
     font-size: 0.8rem;
@@ -359,8 +371,9 @@ canvas {
 /* Selected tiles section */
 #tile-info ul {
     margin: 0.05rem 0;
-    padding-left: 0.8rem;
+    padding-left: 0.6rem;
     font-size: 0.75rem;
+    max-height: 80px;
 }
 
 #tile-info p {
