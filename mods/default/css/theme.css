@@ -1,0 +1,90 @@
+/* Default Mod Theme CSS
+ * This is the default theme for HexGlobe
+ * Copy this file as a starting point when creating a new mod
+ */
+
+/* Global Color Variables */
+:root {
+    /* Base UI colors */
+    --text-color: #333;
+    --body-bg: #f4f4f4;
+    --header-bg: #2c3e50;
+    --header-text: #fff;
+    --footer-bg: #2c3e50;
+    --footer-text: #fff;
+    
+    /* UI Component colors */
+    --button-bg: #3498db;
+    --button-text: white;
+    --button-hover-bg: #2980b9;
+    --action-button-bg: #4a90e2;
+    --action-button-text: white;
+    --action-button-hover-bg: #357abd;
+    --action-button-active-bg: #2a5d8b;
+    
+    /* Panel and container colors */
+    --canvas-bg: #fff;
+    --debug-panel-bg: #fff;
+    --control-group-bg: #f9f9f9;
+    --heading-color: #2c3e50;
+    --label-color: #555;
+    
+    /* Form element colors */
+    --input-bg: #fff;
+    --input-focus-border: #4a90e2;
+    --input-focus-shadow: rgba(74, 144, 226, 0.3);
+    
+    /* Status message base */
+    --status-bg: #f8f8f8;
+    
+    /* Status message variants */
+    --status-updating-bg: #e8f4fd;
+    --status-updating-color: #0c5460;
+    --status-success-bg: #d4edda;
+    --status-success-color: #155724;
+    --status-error-bg: #f8d7da;
+    --status-error-color: #721c24;
+    
+    /* Focus tile container */
+    --focus-container-bg: #f0f7ff;
+    
+    /* Hexagon Visual Properties */
+    --hex-border-color: #333;
+    --hex-border-thickness: 1px;
+    --hex-border-style: solid;
+    
+    /* Fill properties */
+    --hex-fill-color: #FFFFFF;
+    --hex-fill-opacity: 0.7;
+    
+    /* Selected hexagon styling */
+    --hex-selected-border-color: #FF8C00;  /* Orange */
+    --hex-selected-border-thickness: 2px;
+    --hex-selected-fill-color: rgba(255, 255, 0, 0.3);  /* Yellow with transparency */
+    
+    /* Focus hexagon styling (last selected) */
+    --hex-focus-border-color: #FF4500;  /* OrangeRed */
+    --hex-focus-border-thickness: 3px;
+    --hex-focus-fill-color: rgba(255, 215, 0, 0.4);  /* Gold with transparency */
+}
+
+/* Status message variants - colors only */
+.status-updating {
+    background-color: var(--status-updating-bg);
+    color: var(--status-updating-color);
+}
+
+.status-success {
+    background-color: var(--status-success-bg);
+    color: var(--status-success-color);
+}
+
+.status-error {
+    background-color: var(--status-error-bg);
+    color: var(--status-error-color);
+}
+
+/* Focus tile container styles - colors only */
+.focus-tile-container {
+    background-color: var(--focus-container-bg);
+}

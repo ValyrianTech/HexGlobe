@@ -1,0 +1,8 @@
+{
+  "name": "Default",
+  "version": "1.0.0",
+  "description": "Default HexGlobe experience and template for new mods",
+  "author": "HexGlobe Team",
+  "theme": "css/theme.css",
+  "script": "js/mod.js"
+}
