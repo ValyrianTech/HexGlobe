@@ -44,7 +44,6 @@ HexGlobe provides a framework for visualizing and interacting with a hexagonal g
 ### Frontend
 - Vanilla JavaScript
 - HTML5 Canvas for rendering
-- h3-js for hexagonal grid calculations
 - HTML5/CSS3
 - Fetch API for backend communication
 

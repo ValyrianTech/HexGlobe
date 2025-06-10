@@ -300,10 +300,7 @@ The map generation process ensures that:
   - LocalStorage for persisting state between sessions
 
 - **H3 Integration**:
-  - h3-js library used for frontend hexagonal grid calculations
-  - Neighbor calculation and resolution management
-  - Coordinate conversion for proper hexagon rendering
-  - Resolution conversion for adjusting hexagon size
+  - Removed from frontend, now handled by backend API
 
 ## 6. Implementation Progress
 
@@ -379,7 +376,7 @@ HexGlobe supports multiple mods or applications using the same underlying hexago
 ## 8. Technology Stack
 
 - **Backend**: Python 3.12, FastAPI, H3 Python bindings
-- **Frontend**: HTML5, CSS3, JavaScript, Canvas API, h3-js
+- **Frontend**: HTML5, CSS3, JavaScript, Canvas API
 - **Data Storage**: File-based JSON
 - **Development Tools**: Git, Poetry (dependency management)
 
