@@ -58,4 +58,5 @@ HexGlobe/
 
 # Notes
 - Remember to activate the venv when executing a command. You must do this in a single line. e.g. `source venv/bin/activate && python3 run.py`
+- When reading the design document, always read all of it, not just the first 200 lines.
 
