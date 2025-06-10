@@ -1,4 +1,7 @@
 /* Base Styles */
+/* Import hex theme for customizable visual properties */
+@import url('hex-theme.css');
+
 * {
     margin: 0;
     padding: 0;
@@ -8,21 +11,21 @@
 body {
     font-family: 'Arial', sans-serif;
     line-height: 1.4;
-    color: #333;
-    background-color: #f4f4f4;
     display: flex;
     flex-direction: column;
     height: 100vh;
     overflow: hidden;
+    color: var(--text-color);
+    background-color: var(--body-bg);
 }
 
 header {
-    background-color: #2c3e50;
-    color: #fff;
     padding: 0.5rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    background-color: var(--header-bg);
+    color: var(--header-text);
 }
 
 header h1 {
@@ -37,16 +40,16 @@ header h1 {
 
 button {
     padding: 0.3rem 0.6rem;
-    background-color: #3498db;
-    color: white;
     border: none;
     border-radius: 3px;
     cursor: pointer;
     transition: background-color 0.3s;
+    background-color: var(--button-bg);
+    color: var(--button-text);
 }
 
 button:hover {
-    background-color: #2980b9;
+    background-color: var(--button-hover-bg);
 }
 
 main {
@@ -59,10 +62,10 @@ main {
 
 .canvas-container {
     flex: 1;
-    background-color: #fff;
     border-radius: 3px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     overflow: hidden;
+    background-color: var(--canvas-bg);
 }
 
 canvas {
@@ -74,13 +77,13 @@ canvas {
 /* Debug panel - UPDATED for more compact layout */
 .debug-panel {
     width: 300px;
-    background-color: #fff;
     padding: 0.2rem;
     border-radius: 3px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     overflow-y: auto;
     max-height: calc(100vh - 100px);
     font-size: 0.8rem;
+    background-color: var(--debug-panel-bg);
 }
 
 .debug-panel h3 {
@@ -88,7 +91,7 @@ canvas {
     padding-bottom: 0.1rem;
     border-bottom: 1px solid #eee;
     font-size: 0.9rem;
-    color: #2c3e50;
+    color: var(--heading-color);
 }
 
 #tile-info {
@@ -101,7 +104,7 @@ canvas {
 .debug-controls-group {
     margin-bottom: 0.1rem;
     padding: 0.1rem;
-    background-color: #f9f9f9;
+    background-color: var(--control-group-bg);
     border-radius: 3px;
 }
 
@@ -117,7 +120,7 @@ canvas {
     display: block;
     margin-bottom: 0;
     font-size: 0.8rem;
-    color: #555;
+    color: var(--label-color);
 }
 
 .goto-container {
@@ -128,7 +131,7 @@ canvas {
     display: block;
     margin-bottom: 0;
     font-size: 0.8rem;
-    color: #555;
+    color: var(--label-color);
 }
 
 .goto-input-group {
@@ -146,27 +149,27 @@ canvas {
 
 #goto-input:focus {
     outline: none;
-    border-color: #4a90e2;
-    box-shadow: 0 0 2px rgba(74, 144, 226, 0.3);
+    border-color: var(--input-focus-border);
+    box-shadow: 0 0 2px var(--input-focus-shadow);
 }
 
 #goto-button {
     padding: 2px 5px;
-    background-color: #4a90e2;
-    color: white;
     border: none;
     border-radius: 2px;
     cursor: pointer;
     font-size: 0.8rem;
     transition: background-color 0.3s;
+    background-color: var(--action-button-bg);
+    color: var(--action-button-text);
 }
 
 #goto-button:hover {
-    background-color: #357abd;
+    background-color: var(--action-button-hover-bg);
 }
 
 #goto-button:active {
-    background-color: #2a5d8b;
+    background-color: var(--action-button-active-bg);
 }
 
 #zoom-slider {
@@ -182,14 +185,14 @@ canvas {
     margin-top: 0.05rem;
     border: 1px solid #ccc;
     border-radius: 2px;
-    background-color: #fff;
     font-size: 0.8rem;
+    background-color: var(--input-bg);
 }
 
 .resolution-dropdown:focus {
     outline: none;
-    border-color: #4a90e2;
-    box-shadow: 0 0 2px rgba(74, 144, 226, 0.3);
+    border-color: var(--input-focus-border);
+    box-shadow: 0 0 2px var(--input-focus-shadow);
 }
 
 /* Action button styles */
@@ -198,22 +201,22 @@ canvas {
     width: 100%;
     padding: 3px;
     margin: 1px 0;
-    background-color: #4a90e2;
-    color: white;
     border: none;
     border-radius: 2px;
     font-weight: bold;
     cursor: pointer;
     transition: background-color 0.3s ease;
     font-size: 0.8rem;
+    background-color: var(--action-button-bg);
+    color: var(--action-button-text);
 }
 
 .action-button:hover {
-    background-color: #357abd;
+    background-color: var(--action-button-hover-bg);
 }
 
 .action-button:active {
-    background-color: #2a5d8b;
+    background-color: var(--action-button-active-bg);
 }
 
 /* Status message styles */
@@ -222,8 +225,8 @@ canvas {
     padding: 1px;
     font-size: 0.75em;
     border-radius: 2px;
-    background-color: #f8f8f8;
     min-height: 12px;
+    background-color: var(--status-bg);
 }
 
 /* Focus container at the top of the debug panel */
@@ -231,13 +234,12 @@ canvas {
     margin: 0 0 4px 0;
 }
 
-/* Focus tile container styles */
+/* Focus tile container styles - structure only */
 .focus-tile-container {
     display: flex;
     align-items: center;
     margin: 0;
     padding: 0;
-    background-color: #f0f7ff;
     border-radius: 2px;
 }
 
@@ -292,34 +294,21 @@ canvas {
     transform: translateX(1px);
 }
 
-/* Status message variants */
-.status-updating {
-    background-color: #e8f4fd;
-    color: #0c5460;
-}
-
-.status-success {
-    background-color: #d4edda;
-    color: #155724;
-}
-
-.status-error {
-    background-color: #f8d7da;
-    color: #721c24;
-}
+/* Status message variants - structure is kept here, colors moved to hex-theme.css */
+/* The color definitions for these classes are in hex-theme.css */
 
 /* Tile content editor styles */
 .content-edit-container {
     margin-bottom: 0.1rem;
     padding: 0.1rem;
-    background-color: #f9f9f9;
+    background-color: var(--control-group-bg);
     border-radius: 2px;
 }
 
 .content-edit-container p {
     margin-bottom: 0;
     font-size: 0.8rem;
-    color: #555;
+    color: var(--label-color);
 }
 
 .tile-content-editor {
@@ -336,22 +325,22 @@ canvas {
 
 .tile-content-editor:focus {
     outline: none;
-    border-color: #4a90e2;
-    box-shadow: 0 0 2px rgba(74, 144, 226, 0.3);
+    border-color: var(--input-focus-border);
+    box-shadow: 0 0 2px var(--input-focus-shadow);
 }
 
 /* Content move container styles */
 .content-move-container {
     margin-bottom: 0.1rem;
     padding: 0.1rem;
-    background-color: #f9f9f9;
+    background-color: var(--control-group-bg);
     border-radius: 2px;
 }
 
 .content-move-container p {
     margin-bottom: 0;
     font-size: 0.8rem;
-    color: #555;
+    color: var(--label-color);
 }
 
 .move-input-group {
@@ -369,8 +358,8 @@ canvas {
 
 .move-content-target:focus {
     outline: none;
-    border-color: #4a90e2;
-    box-shadow: 0 0 2px rgba(74, 144, 226, 0.3);
+    border-color: var(--input-focus-border);
+    box-shadow: 0 0 2px var(--input-focus-shadow);
 }
 
 /* Selected tiles section */
@@ -386,16 +375,16 @@ canvas {
 }
 
 #tile-info strong {
-    color: #2c3e50;
+    font-weight: bold;
 }
 
 footer {
-    background-color: #2c3e50;
-    color: #fff;
-    text-align: center;
     padding: 0.3rem;
     margin-top: auto;
     font-size: 0.8rem;
+    background-color: var(--footer-bg);
+    color: var(--footer-text);
+    text-align: center;
 }
 
 /* Responsive adjustments */
