@@ -120,41 +120,20 @@ class HexNavigation {
             console.error("Error loading neighbors:", error);
             
             // If the API fails, create fallback neighbors for development
-            // Use h3-js to calculate neighbors if available
             let fallbackNeighbors = [];
             
-            if (window.h3) {
-                try {
-                    const neighborIndices = window.h3.kRing(this.activeTileId, 1).filter(
-                        index => index !== this.activeTileId
-                    );
-                    
-                    fallbackNeighbors = neighborIndices.map(id => ({
-                        id: id,
-                        content: `Fallback neighbor ${id}`,
-                        visual_properties: {
-                            border_color: "#0000FF",
-                            border_thickness: 1,
-                            border_style: "solid",
-                            fill_color: "#F0F0F0"
-                        }
-                    }));
-                } catch (h3Error) {
-                    console.error("Error calculating neighbors with h3-js:", h3Error);
-                    // Create 6 dummy neighbors if h3-js fails
-                    for (let i = 0; i < 6; i++) {
-                        fallbackNeighbors.push({
-                            id: `dummy-neighbor-${i}`,
-                            content: `Fallback neighbor ${i}`,
-                            visual_properties: {
-                                border_color: "#0000FF",
-                                border_thickness: 1,
-                                border_style: "solid",
-                                fill_color: "#F0F0F0"
-                            }
-                        });
+            // Create 6 dummy neighbors as fallback if API fails
+            for (let i = 0; i < 6; i++) {
+                fallbackNeighbors.push({
+                    id: `dummy-neighbor-${i}`,
+                    content: `Fallback neighbor ${i}`,
+                    visual_properties: {
+                        border_color: "#0000FF",
+                        border_thickness: 1,
+                        border_style: "solid",
+                        fill_color: "#F0F0F0"
                     }
-                }
+                });
             }
             
             this.neighbors = fallbackNeighbors;

@@ -50,40 +50,24 @@ window.hexGlobeApp = {
     
     // Initialize the application
     init: function() {
-        console.log("Initializing HexGlobe application...");
+        // Set up the canvas
+        this.setupCanvas();
         
-        // Check if H3 library is available before proceeding
-        this.ensureH3LibraryLoaded(() => {
-            // Get H3 index from URL query parameter or set default based on resolution
-            this.getH3IndexFromUrl();
-            
-            console.log(`After URL parsing, active tile ID is: ${this.state.activeTileId}`);
-            
-            // Initialize zoom slider with current zoom level
-            document.getElementById("zoom-value").textContent = this.state.zoomLevel;
-            document.getElementById("zoom-slider").value = this.state.zoomLevel;
-            
-            // Initialize resolution dropdown with current resolution if no URL parameter is provided
-            const urlParams = new URLSearchParams(window.location.search);
-            const h3Index = urlParams.get('h3');
-            if (!h3Index) {
-                document.getElementById("resolution-dropdown").value = this.state.resolution;
-            }
-            
-            // Initialize the navigation system
-            this.initNavigation();
-            
-            // Set up the canvas
-            this.setupCanvas();
-            
-            // Set up event listeners
-            this.setupEventListeners();
-            
-            // Generate and render the grid
-            this.generateGrid().then(() => {
-                this.render();
-                this.updateDebugPanel();
-            });
+        // Get H3 index from URL query parameter or set default based on resolution
+        this.getH3IndexFromUrl();
+        
+        // Set up navigation
+        this.state.navigation = new HexNavigation({
+            initialTileId: this.state.activeTileId
+        });
+        
+        // Set up event listeners
+        this.setupEventListeners();
+        
+        // Generate the initial grid
+        this.generateGrid().then(() => {
+            this.render();
+            this.updateDebugPanel();
         });
     },
     
@@ -107,14 +91,6 @@ window.hexGlobeApp = {
                 console.warn("Navigation system initialization failed, using fallback");
             }
         });
-    },
-    
-    // Ensure the H3 library is loaded before proceeding
-    ensureH3LibraryLoaded: function(callback, retryCount = 0) {
-        // H3 library is disabled, so we'll proceed without it
-        console.log("H3 library is disabled. Proceeding with backend-only functionality.");
-        callback();
-        return;
     },
     
     // Get H3 index from URL query parameter
@@ -271,41 +247,13 @@ window.hexGlobeApp = {
                     url.searchParams.set('h3', newIndex);
                     window.location.href = url.toString(); // This will reload the page with the new URL
                 } else {
-                    // Fallback to H3 library or default index if resolution_ids not available
-                    if (window.h3 && typeof window.h3.h3ToGeo === 'function' && typeof window.h3.geoToH3 === 'function') {
-                        try {
-                            // Get the lat/lng of the current index
-                            const latLng = window.h3.h3ToGeo(this.state.activeTileId);
-                            
-                            // Convert to the new resolution
-                            const newIndex = window.h3.geoToH3(latLng[0], latLng[1], this.state.resolution);
-                            this.state.activeTileId = newIndex;
-                            
-                            console.log(`Updated H3 index to resolution ${this.state.resolution} using H3 library: ${newIndex}`);
-                            
-                            // Update URL to reflect the new H3 index
-                            const url = new URL(window.location);
-                            url.searchParams.set('h3', newIndex);
-                            window.location.href = url.toString(); // This will reload the page with the new URL
-                        } catch (error) {
-                            console.error("Error updating H3 resolution:", error);
-                            // Fall back to a default index for this resolution
-                            this.state.activeTileId = this.getDefaultH3IndexForResolution(this.state.resolution);
-                            
-                            // Update URL and reload the page
-                            const url = new URL(window.location);
-                            url.searchParams.set('h3', this.state.activeTileId);
-                            window.location.href = url.toString(); // This will reload the page with the new URL
-                        }
-                    } else {
-                        // If H3 functions aren't available, use default index
-                        this.state.activeTileId = this.getDefaultH3IndexForResolution(this.state.resolution);
-                        
-                        // Update URL and reload the page
-                        const url = new URL(window.location);
-                        url.searchParams.set('h3', this.state.activeTileId);
-                        window.location.href = url.toString(); // This will reload the page with the new URL
-                    }
+                    // Use default index if resolution_ids not available
+                    this.state.activeTileId = this.getDefaultH3IndexForResolution(this.state.resolution);
+                    
+                    // Update URL and reload the page
+                    const url = new URL(window.location);
+                    url.searchParams.set('h3', this.state.activeTileId);
+                    window.location.href = url.toString(); // This will reload the page with the new URL
                 }
             }
         });
