@@ -293,4 +293,41 @@ class HexNavigation {
             return fallbackGrid;
         }
     }
+
+    /**
+     * Update the content of the active tile
+     * @param {string} content - The new content for the tile
+     * @returns {Promise} - Promise that resolves when the update is complete
+     */
+    async updateTileContent(content) {
+        try {
+            const response = await fetch(`${this.apiBaseUrl}/tiles/${this.activeTileId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    content: content
+                })
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Failed to update tile content: ${response.statusText}`);
+            }
+            
+            const updatedTileData = await response.json();
+            this.activeTile = updatedTileData.tile;
+            
+            // Dispatch an event to notify that the tile content has been updated
+            const event = new CustomEvent('tileContentUpdated', { 
+                detail: updatedTileData.tile
+            });
+            window.dispatchEvent(event);
+            
+            return updatedTileData.tile;
+        } catch (error) {
+            console.error("Error updating tile content:", error);
+            throw error;
+        }
+    }
 }

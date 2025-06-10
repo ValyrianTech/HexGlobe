@@ -741,7 +741,12 @@ window.hexGlobeApp = {
         
         tileInfo.innerHTML = `
             <p><strong>H3 Index:</strong> ${activeTile.id}</p>
-            <p><strong>Content:</strong> ${tileContent}</p>
+            <div class="content-edit-container">
+                <p><strong>Content:</strong></p>
+                <textarea id="tile-content-editor" class="tile-content-editor">${tileContent}</textarea>
+                <button id="update-content-button" class="action-button">Update Content</button>
+                <div id="update-content-status" class="status-message"></div>
+            </div>
             ${selectedTilesHtml}
             ${navigationButtonHtml}
             ${generateMapsButtonHtml}
@@ -754,6 +759,60 @@ window.hexGlobeApp = {
                 this.resizeCanvas();
                 this.render();
             }, 0);
+        }
+        
+        // Add event listener for the update content button
+        const updateContentButton = document.getElementById("update-content-button");
+        if (updateContentButton) {
+            updateContentButton.addEventListener("click", () => {
+                const contentEditor = document.getElementById("tile-content-editor");
+                const newContent = contentEditor.value;
+                const statusElement = document.getElementById("update-content-status");
+                
+                // Show loading status
+                statusElement.textContent = "Updating...";
+                statusElement.classList.add("status-updating");
+                
+                // Use the navigation system to update the tile content
+                if (this.state.navigation) {
+                    this.state.navigation.updateTileContent(newContent)
+                        .then(updatedTile => {
+                            // Show success status
+                            statusElement.textContent = "Content updated successfully!";
+                            statusElement.classList.remove("status-updating");
+                            statusElement.classList.add("status-success");
+                            
+                            // Clear the status message after a delay
+                            setTimeout(() => {
+                                statusElement.textContent = "";
+                                statusElement.classList.remove("status-success");
+                            }, 3000);
+                        })
+                        .catch(error => {
+                            // Show error status
+                            statusElement.textContent = `Error: ${error.message}`;
+                            statusElement.classList.remove("status-updating");
+                            statusElement.classList.add("status-error");
+                            
+                            // Clear the error message after a delay
+                            setTimeout(() => {
+                                statusElement.textContent = "";
+                                statusElement.classList.remove("status-error");
+                            }, 5000);
+                        });
+                } else {
+                    // Show error if navigation system is not available
+                    statusElement.textContent = "Error: Navigation system not initialized";
+                    statusElement.classList.remove("status-updating");
+                    statusElement.classList.add("status-error");
+                    
+                    // Clear the error message after a delay
+                    setTimeout(() => {
+                        statusElement.textContent = "";
+                        statusElement.classList.remove("status-error");
+                    }, 5000);
+                }
+            });
         }
         
         // Add event listener for navigation button if it exists

@@ -207,6 +207,47 @@ canvas {
     min-height: 20px;
 }
 
+/* Status message variants */
+.status-updating {
+    background-color: #e8f4fd;
+    color: #0c5460;
+}
+
+.status-success {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.status-error {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+/* Tile content editor styles */
+.content-edit-container {
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #eee;
+}
+
+.tile-content-editor {
+    width: 100%;
+    min-height: 100px;
+    padding: 8px;
+    margin: 8px 0;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-family: monospace;
+    resize: vertical;
+    font-size: 14px;
+}
+
+.tile-content-editor:focus {
+    outline: none;
+    border-color: #4a90e2;
+    box-shadow: 0 0 3px rgba(74, 144, 226, 0.3);
+}
+
 footer {
     background-color: #2c3e50;
     color: #fff;
