@@ -207,6 +207,21 @@ canvas {
     min-height: 20px;
 }
 
+/* Focus tile container styles */
+.focus-tile-container {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #eee;
+}
+
+.focus-tile-info {
+    flex-grow: 1;
+    font-weight: bold;
+    margin-right: 10px;
+}
+
 /* Status message variants */
 .status-updating {
     background-color: #e8f4fd;

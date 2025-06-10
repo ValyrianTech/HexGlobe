@@ -738,20 +738,26 @@ window.hexGlobeApp = {
             selectedTilesHtml = '<p><strong>Selected Tiles:</strong> None</p>';
         }
         
-        // Create focus tile HTML
+        // Create focus tile container HTML at the top of the debug panel
+        let focusTileContainerHtml = '';
+        if (this.state.focusTileId) {
+            focusTileContainerHtml = `
+                <div class="focus-tile-container">
+                    <div class="focus-tile-info">
+                        <span>Focus: </span>
+                        <span style="color: ${focusColor};">${this.state.focusTileId}</span>
+                    </div>
+                    <button id="navigate-to-focus" class="action-button">
+                        Navigate
+                    </button>
+                </div>
+            `;
+        }
+        
+        // Create focus tile HTML for the selected tiles section
         let focusTileHtml = '';
         if (this.state.focusTileId) {
             focusTileHtml = `<p><strong>Focus Tile:</strong> <span style="color: ${focusColor};">${this.state.focusTileId}</span></p>`;
-        }
-        
-        // Create navigation button HTML if exactly one tile is selected
-        let navigationButtonHtml = '';
-        if (this.state.selectedTiles.length === 1) {
-            navigationButtonHtml = `
-                <button id="navigate-to-selected" class="action-button">
-                    Navigate to Selected Tile
-                </button>
-            `;
         }
         
         // Create generate maps button HTML if any tiles are selected
@@ -769,6 +775,7 @@ window.hexGlobeApp = {
         const prevHeight = tileInfo.offsetHeight;
         
         tileInfo.innerHTML = `
+            ${focusTileContainerHtml}
             <p><strong>H3 Index:</strong> ${activeTile.id}</p>
             <div class="content-edit-container">
                 <p><strong>Content:</strong></p>
@@ -776,9 +783,7 @@ window.hexGlobeApp = {
                 <button id="update-content-button" class="action-button">Update Content</button>
                 <div id="update-content-status" class="status-message"></div>
             </div>
-            ${focusTileHtml}
             ${selectedTilesHtml}
-            ${navigationButtonHtml}
             ${generateMapsButtonHtml}
         `;
         
@@ -846,23 +851,23 @@ window.hexGlobeApp = {
         }
         
         // Add event listener for navigation button if it exists
-        const navigateButton = document.getElementById("navigate-to-selected");
-        if (navigateButton) {
+        const navigateButton = document.getElementById("navigate-to-focus");
+        if (navigateButton && this.state.focusTileId) {
             navigateButton.addEventListener("click", () => {
-                const selectedTileId = this.state.selectedTiles[0];
+                const focusTileId = this.state.focusTileId;
                 
                 // Update the active tile ID
-                this.state.activeTileId = selectedTileId;
+                this.state.activeTileId = focusTileId;
                 
                 // Update URL with the new H3 index without refreshing the page
                 const url = new URL(window.location);
-                url.searchParams.set('h3', selectedTileId);
+                url.searchParams.set('h3', focusTileId);
                 window.history.pushState({}, '', url);
                 
                 // Use the navigation system to navigate to the new tile
                 if (this.state.navigation) {
-                    console.log(`Navigating to tile: ${selectedTileId} via API`);
-                    this.state.navigation.navigateTo(selectedTileId).then(() => {
+                    console.log(`Navigating to focus tile: ${focusTileId} via API`);
+                    this.state.navigation.navigateTo(focusTileId).then(() => {
                         // Clear the selection
                         this.clearSelection();
                         
