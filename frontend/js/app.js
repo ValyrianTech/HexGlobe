@@ -303,6 +303,31 @@ window.hexGlobeApp = {
                 }
             }
         });
+        
+        // Handle Go To button clicks
+        document.getElementById("goto-button").addEventListener("click", () => {
+            const input = document.getElementById("goto-input").value.trim();
+            
+            if (!input) {
+                alert("Please enter an H3 index or address");
+                return;
+            }
+            
+            // Check if input is an H3 index (hexadecimal characters only)
+            const isH3Index = /^[0-9a-fA-F]+$/.test(input);
+            
+            if (isH3Index) {
+                console.log(`Navigating to H3 index: ${input}`);
+                // Update URL to navigate to the H3 index
+                const url = new URL(window.location);
+                url.searchParams.set('h3', input);
+                window.location.href = url.toString(); // This will reload the page with the new URL
+            } else {
+                // For now, just display a message that geocoding will be implemented later
+                console.log(`Address entered: ${input}`);
+                alert(`Geocoding for addresses will be implemented soon. You entered: ${input}`);
+            }
+        });
     },
     
     // Calculate grid dimensions based on canvas size and zoom level

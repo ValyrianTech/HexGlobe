@@ -25,6 +25,13 @@
         
         <div id="debug-panel" class="debug-panel">
             <h3>Tile Information</h3>
+            <div class="goto-container">
+                <label for="goto-input">Go To:</label>
+                <div class="goto-input-group">
+                    <input type="text" id="goto-input" placeholder="H3 index or address">
+                    <button id="goto-button">Go</button>
+                </div>
+            </div>
             <div class="slider-container">
                 <label for="zoom-slider">Zoom Level: <span id="zoom-value">1</span></label>
                 <input type="range" id="zoom-slider" min="1" max="10" value="1" step="1">

@@ -103,6 +103,55 @@ canvas {
     margin-bottom: 0.5rem;
 }
 
+.goto-container {
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #eee;
+}
+
+.goto-container label {
+    display: block;
+    margin-bottom: 0.5rem;
+}
+
+.goto-input-group {
+    display: flex;
+    gap: 8px;
+}
+
+#goto-input {
+    flex: 1;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+#goto-input:focus {
+    outline: none;
+    border-color: #4a90e2;
+    box-shadow: 0 0 3px rgba(74, 144, 226, 0.3);
+}
+
+#goto-button {
+    padding: 8px 16px;
+    background-color: #4a90e2;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.3s;
+}
+
+#goto-button:hover {
+    background-color: #357abd;
+}
+
+#goto-button:active {
+    background-color: #2a5d8b;
+}
+
 #zoom-slider {
     width: 100%;
     margin-top: 0.5rem;
