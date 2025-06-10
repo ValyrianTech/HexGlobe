@@ -693,12 +693,12 @@ window.hexGlobeApp = {
         const tileInfo = document.getElementById("tile-info");
         
         // Try to get tile data from the navigation system
-        let tileContent = "No content available";
+        let tileContent = "";
         let backendResolution = "N/A";
         
         if (this.state.navigation && this.state.navigation.activeTile) {
             const navTile = this.state.navigation.activeTile;
-            tileContent = navTile.content || "No content available";
+            tileContent = navTile.content || "";
             backendResolution = navTile.resolution !== undefined ? navTile.resolution : "N/A";
         }
         
