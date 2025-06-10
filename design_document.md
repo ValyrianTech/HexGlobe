@@ -178,6 +178,15 @@ HexGlobe is a web application framework that implements a global hexagonal grid 
 - `GET /api/tiles/{tile_id}/grid`: Get a 2D grid of H3 indexes centered around the specified tile
   - Query parameter: `mod_name` (optional, default: "default")
 
+#### Geocoding Operations
+- `GET /api/geocode/`: Convert an address or coordinates to an H3 index
+  - Query parameters:
+    - `address` (optional): String containing the address to geocode
+    - `lat` (optional): Latitude coordinate
+    - `lng` (optional): Longitude coordinate
+    - `resolution` (optional, default: 9): H3 resolution level
+  - Returns: H3 index, coordinates, and address information
+
 #### Visual Operations
 - `PUT /api/tiles/{tile_id}/visual`: Update visual properties
   - Query parameter: `mod_name` (optional, default: "default")
