@@ -306,28 +306,76 @@ window.hexGlobeApp = {
         
         // Handle Go To button clicks
         document.getElementById("goto-button").addEventListener("click", () => {
-            const input = document.getElementById("goto-input").value.trim();
-            
-            if (!input) {
-                alert("Please enter an H3 index or address");
-                return;
-            }
-            
-            // Check if input is an H3 index (hexadecimal characters only)
-            const isH3Index = /^[0-9a-fA-F]+$/.test(input);
-            
-            if (isH3Index) {
-                console.log(`Navigating to H3 index: ${input}`);
-                // Update URL to navigate to the H3 index
-                const url = new URL(window.location);
-                url.searchParams.set('h3', input);
-                window.location.href = url.toString(); // This will reload the page with the new URL
-            } else {
-                // For now, just display a message that geocoding will be implemented later
-                console.log(`Address entered: ${input}`);
-                alert(`Geocoding for addresses will be implemented soon. You entered: ${input}`);
+            this.handleGoToInput();
+        });
+        
+        // Also handle Enter key in the input field
+        document.getElementById("goto-input").addEventListener("keypress", (event) => {
+            if (event.key === "Enter") {
+                this.handleGoToInput();
             }
         });
+    },
+    
+    // Handle Go To input processing
+    handleGoToInput: function() {
+        const input = document.getElementById("goto-input").value.trim();
+        
+        if (!input) {
+            alert("Please enter an H3 index or address");
+            return;
+        }
+        
+        // Check if input is an H3 index (hexadecimal characters only)
+        const isH3Index = /^[0-9a-fA-F]+$/.test(input);
+        
+        if (isH3Index) {
+            console.log(`Navigating to H3 index: ${input}`);
+            // Update URL to navigate to the H3 index
+            const url = new URL(window.location);
+            url.searchParams.set('h3', input);
+            window.location.href = url.toString(); // This will reload the page with the new URL
+        } else {
+            console.log(`Geocoding address: ${input}`);
+            
+            // Show loading indicator
+            const gotoButton = document.getElementById("goto-button");
+            const originalButtonText = gotoButton.textContent;
+            gotoButton.textContent = "Loading...";
+            gotoButton.disabled = true;
+            
+            // Call our backend geocoding API
+            const apiUrl = `http://localhost:8000/api/geocode/?address=${encodeURIComponent(input)}&resolution=${this.state.resolution}`;
+            
+            fetch(apiUrl)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log("Geocoding successful:", data);
+                    
+                    if (data.h3_index) {
+                        // Navigate to the returned H3 index
+                        const url = new URL(window.location);
+                        url.searchParams.set('h3', data.h3_index);
+                        window.location.href = url.toString();
+                    } else {
+                        throw new Error("No H3 index returned from geocoding service");
+                    }
+                })
+                .catch(error => {
+                    console.error("Error geocoding address:", error);
+                    alert(`Error geocoding address: ${error.message}`);
+                })
+                .finally(() => {
+                    // Reset button state
+                    gotoButton.textContent = originalButtonText;
+                    gotoButton.disabled = false;
+                });
+        }
     },
     
     // Calculate grid dimensions based on canvas size and zoom level

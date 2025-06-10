@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import logging
 from datetime import datetime
 
-from .api import tiles
+from .api import tiles, geocode
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -42,6 +42,7 @@ async def log_requests(request: Request, call_next):
 
 # Include routers
 app.include_router(tiles.router)
+app.include_router(geocode.router)
 
 @app.get("/")
 async def root():
