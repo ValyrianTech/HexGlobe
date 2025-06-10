@@ -44,7 +44,8 @@ class HexNavigation {
      */
     async loadActiveTile() {
         try {
-            const response = await fetch(`${this.apiBaseUrl}/tiles/${this.activeTileId}`);
+            const modName = window.modLoader ? window.modLoader.getModName() : 'default';
+            const response = await fetch(`${this.apiBaseUrl}/tiles/${this.activeTileId}?mod_name=${modName}`);
             
             if (!response.ok) {
                 throw new Error(`Failed to load tile: ${response.statusText}`);
@@ -102,7 +103,8 @@ class HexNavigation {
      */
     async loadNeighbors() {
         try {
-            const response = await fetch(`${this.apiBaseUrl}/tiles/${this.activeTileId}/neighbors`);
+            const modName = window.modLoader ? window.modLoader.getModName() : 'default';
+            const response = await fetch(`${this.apiBaseUrl}/tiles/${this.activeTileId}/neighbors?mod_name=${modName}`);
             
             if (!response.ok) {
                 throw new Error(`Failed to load neighbors: ${response.statusText}`);
@@ -229,7 +231,8 @@ class HexNavigation {
      */
     async fetchTileGrid(width, height) {
         try {
-            const response = await fetch(`${this.apiBaseUrl}/tiles/${this.activeTileId}/grid?width=${width}&height=${height}`);
+            const modName = window.modLoader ? window.modLoader.getModName() : 'default';
+            const response = await fetch(`${this.apiBaseUrl}/tiles/${this.activeTileId}/grid?width=${width}&height=${height}&mod_name=${modName}`);
             
             if (!response.ok) {
                 throw new Error(`Failed to load grid: ${response.statusText}`);
@@ -280,7 +283,8 @@ class HexNavigation {
      */
     async updateTileContent(content) {
         try {
-            const response = await fetch(`${this.apiBaseUrl}/tiles/${this.activeTileId}`, {
+            const modName = window.modLoader ? window.modLoader.getModName() : 'default';
+            const response = await fetch(`${this.apiBaseUrl}/tiles/${this.activeTileId}?mod_name=${modName}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -317,7 +321,8 @@ class HexNavigation {
      */
     async moveContent(targetTileId) {
         try {
-            const response = await fetch(`${this.apiBaseUrl}/tiles/${this.activeTileId}/move-content/${targetTileId}`, {
+            const modName = window.modLoader ? window.modLoader.getModName() : 'default';
+            const response = await fetch(`${this.apiBaseUrl}/tiles/${this.activeTileId}/move-content/${targetTileId}?mod_name=${modName}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
