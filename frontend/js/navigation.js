@@ -330,4 +330,44 @@ class HexNavigation {
             throw error;
         }
     }
+
+    /**
+     * Move content from the active tile to another tile
+     * @param {string} targetTileId - The ID of the target tile to move content to
+     * @returns {Promise} - Promise that resolves when the move is complete
+     */
+    async moveContent(targetTileId) {
+        try {
+            const response = await fetch(`${this.apiBaseUrl}/tiles/${this.activeTileId}/move-content/${targetTileId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Failed to move tile content: ${response.statusText}`);
+            }
+            
+            const responseData = await response.json();
+            
+            // Reload the active tile to reflect the content change
+            await this.loadActiveTile();
+            
+            // Dispatch an event to notify that the tile content has been moved
+            const event = new CustomEvent('tileContentMoved', { 
+                detail: {
+                    sourceTileId: this.activeTileId,
+                    targetTileId: targetTileId,
+                    result: responseData
+                }
+            });
+            window.dispatchEvent(event);
+            
+            return responseData;
+        } catch (error) {
+            console.error("Error moving tile content:", error);
+            throw error;
+        }
+    }
 }

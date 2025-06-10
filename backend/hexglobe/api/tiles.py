@@ -303,14 +303,20 @@ async def move_content(
             logger.warning(f"[{datetime.now()}] Content could not be moved from {tile_id} to {target_id}")
             raise HTTPException(
                 status_code=400,
-                detail="Content could not be moved. Tiles may not be neighbors."
+                detail="Content could not be moved. There may be an issue with the target tile."
             )
         
         logger.info(f"[{datetime.now()}] Content successfully moved from {tile_id} to {target_id}")
         return {
             "message": "Content moved successfully",
-            "source_tile": source_tile.to_dict(),
-            "target_tile": target_tile.to_dict()
+            "source_tile": {
+                "id": source_tile.id,
+                "content": source_tile.content
+            },
+            "target_tile": {
+                "id": target_tile.id,
+                "content": target_tile.content
+            }
         }
     except HTTPException:
         raise

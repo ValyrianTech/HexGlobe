@@ -298,6 +298,36 @@ canvas {
     box-shadow: 0 0 3px rgba(74, 144, 226, 0.3);
 }
 
+/* Content move container styles */
+.content-move-container {
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #eee;
+}
+
+.content-move-container p {
+    margin-bottom: 0.5rem;
+}
+
+.move-input-group {
+    display: flex;
+    gap: 8px;
+}
+
+.move-content-target {
+    flex: 1;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.move-content-target:focus {
+    outline: none;
+    border-color: #4a90e2;
+    box-shadow: 0 0 3px rgba(74, 144, 226, 0.3);
+}
+
 footer {
     background-color: #2c3e50;
     color: #fff;

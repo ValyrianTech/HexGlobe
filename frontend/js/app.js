@@ -768,6 +768,19 @@ window.hexGlobeApp = {
             `;
         }
         
+        // Create move content HTML
+        let moveContentHtml = '';
+        moveContentHtml = `
+            <div class="content-move-container">
+                <p><strong>Move Content To:</strong></p>
+                <div class="move-input-group">
+                    <input type="text" id="move-content-target" class="move-content-target" placeholder="Target H3 index">
+                    <button id="move-content-button" class="action-button">Move Content</button>
+                </div>
+                <div id="move-content-status" class="status-message"></div>
+            </div>
+        `;
+        
         // Store the current height of the tile info panel before updating
         const prevHeight = tileInfo.offsetHeight;
         
@@ -780,6 +793,7 @@ window.hexGlobeApp = {
                 <button id="update-content-button" class="action-button">Update Content</button>
                 <div id="update-content-status" class="status-message"></div>
             </div>
+            ${moveContentHtml}
             ${selectedTilesHtml}
             ${generateMapsButtonHtml}
         `;
@@ -897,6 +911,64 @@ window.hexGlobeApp = {
         if (generateMapsButton) {
             generateMapsButton.addEventListener("click", () => {
                 this.generateMapsForSelectedTiles();
+            });
+        }
+        
+        // Add event listener for move content button if it exists
+        const moveContentButton = document.getElementById("move-content-button");
+        if (moveContentButton) {
+            moveContentButton.addEventListener("click", () => {
+                const targetInput = document.getElementById("move-content-target");
+                const targetH3Index = targetInput.value.trim();
+                
+                if (!targetH3Index) {
+                    alert("Please enter a target H3 index");
+                    return;
+                }
+                
+                // Use the navigation system to move the content
+                if (this.state.navigation) {
+                    const contentEditor = document.getElementById("tile-content-editor");
+                    const content = contentEditor.value;
+                    
+                    this.state.navigation.moveContent(targetH3Index)
+                        .then(() => {
+                            console.log(`Content moved to ${targetH3Index}`);
+                            
+                            // Show success status
+                            const statusElement = document.getElementById("move-content-status");
+                            statusElement.textContent = "Content moved successfully!";
+                            statusElement.classList.remove("status-updating");
+                            statusElement.classList.add("status-success");
+                            
+                            // Clear the status message after a delay
+                            setTimeout(() => {
+                                statusElement.textContent = "";
+                                statusElement.classList.remove("status-success");
+                            }, 3000);
+                            
+                            // Clear the input field
+                            targetInput.value = "";
+                        })
+                        .catch(error => {
+                            console.error(`Error moving content: ${error}`);
+                            
+                            // Show error status
+                            const statusElement = document.getElementById("move-content-status");
+                            statusElement.textContent = `Error: ${error.message}`;
+                            statusElement.classList.remove("status-updating");
+                            statusElement.classList.add("status-error");
+                            
+                            // Clear the status message after a delay
+                            setTimeout(() => {
+                                statusElement.textContent = "";
+                                statusElement.classList.remove("status-error");
+                            }, 5000);
+                        });
+                } else {
+                    console.error("Navigation system not initialized");
+                    alert("Error: Navigation system not initialized");
+                }
             });
         }
     },

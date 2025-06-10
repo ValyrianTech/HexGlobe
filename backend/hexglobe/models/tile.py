@@ -269,20 +269,9 @@ class Tile(ABC):
                 neighbors.append(HexagonTile(idx))
         return neighbors
     
-    def move_content_to(self, target_id: str) -> bool:
+    def move_content_to(self, target_tile: "Tile") -> bool:
         """Move content to another tile."""
-        # Check if target is a neighbor
-        if target_id not in self.neighbor_ids.values():
-            return False
-        
-        target_tile = None
-        for position, idx in self.neighbor_ids.items():
-            if idx == target_id:
-                if h3.h3_is_pentagon(idx):
-                    target_tile = PentagonTile(idx)
-                else:
-                    target_tile = HexagonTile(idx)
-                break
+        # No longer checking if target is a neighbor - allow moving to any tile
         
         if target_tile is None:
             return False
