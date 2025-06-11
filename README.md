@@ -33,6 +33,8 @@ HexGlobe provides a framework for visualizing and interacting with a hexagonal g
 - Visual calibration aids for verification and debugging
 - "Go To" navigation for direct access to locations by H3 index or address
 - Mod system for creating custom applications on the same grid infrastructure
+- Timestamp-based versioning system for hex map images
+- Automatic retrieval and display of the latest map version for each tile
 
 ## Technology Stack
 
@@ -50,6 +52,10 @@ HexGlobe provides a framework for visualizing and interacting with a hexagonal g
 
 ### Data Storage
 - File-based JSON storage
+- Split storage architecture:
+  - Static data: Grid structure and relationships
+  - Dynamic data: Content and visual properties
+  - Map images: Timestamped versions for historical tracking
 
 ## Getting Started
 
@@ -257,6 +263,7 @@ The backend provides the following RESTful API endpoints:
   - Query parameter: `mod_name` (optional, default: "default")
 - `GET /api/tiles/{tile_id}/grid`: Get a 2D grid of H3 indexes centered around the specified tile
   - Query parameter: `mod_name` (optional, default: "default")
+- `POST /api/tiles/{tile_id}/generate-map`: Generate a map image for a specific tile (with timestamp)
 
 ## Using the Mod System
 

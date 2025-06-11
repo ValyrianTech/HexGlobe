@@ -90,12 +90,18 @@ HexGlobe is a web application framework that implements a global hexagonal grid 
 - Directory structure:
   - Static data: `/data/static/res_X/aa/bb/cc/.../{tile_id}.json`
   - Dynamic data: `/data/dynamic/{mod_name}/res_X/aa/bb/cc/.../{tile_id}.json`
+  - Hex map images: `/data/hex_maps/res_X/aa/bb/cc/.../{tile_id}_{timestamp}.png`
   - Where:
     - `res_X` is the H3 resolution level
     - `aa/bb/cc/...` are two-digit segments of the H3 index for efficient file organization
     - `mod_name` is the name of the mod/application (default: "default")
+    - `timestamp` is an ISO 8601 formatted timestamp (with colons replaced by hyphens)
 - Dynamic data files are only created when there's actual content or non-default visual properties
-- Helper functions `get_static_path()` and `get_dynamic_path()` calculate the appropriate file paths
+- Helper functions `get_static_path()`, `get_dynamic_path()`, and `get_hex_map_path()` calculate the appropriate file paths
+- Hex map images use timestamp-based versioning to maintain a history of changes over time
+  - Each new map generation creates a new file with the current timestamp
+  - The API automatically returns the path to the most recent version
+  - The frontend displays the latest map image for each tile
 
 #### 3.2.1 Static Data JSON Structure
 ```json
@@ -239,14 +245,16 @@ HexGlobe includes a map image generation script (`frontend/assets/generate_hex_m
 - **Calibration Aids**: Draws three concentric hexagons (main green border, inner blue border, outer red border)
 - **Reference Dots**: Places black reference dots at the six vertices of a perfect hexagon for alignment verification
 - **Debug Options**: Supports debug mode for displaying intermediate images and vertex coordinates
+- **Timestamp Versioning**: Each generated map is saved with a timestamp to maintain a history of changes
 
-The generated images are stored in the backend directory structure under `data/hex_maps/res_<resolution>/...` and are accessed by the frontend via relative paths. The frontend clips these images to hexagonal shapes when rendering.
+The generated images are stored in the backend directory structure under `data/hex_maps/res_<resolution>/...` with timestamps in the filenames, and are accessed by the frontend via relative paths. The frontend clips these images to hexagonal shapes when rendering.
 
 The map generation process ensures that:
 - Hexagon vertices align perfectly with the frontend's hexagon rendering
 - Adjacent hexagon tiles have seamless boundaries
 - The visual representation matches the mathematical H3 hexagon boundaries
 - Calibration aids assist in verifying proper alignment
+- Historical versions of maps are preserved with timestamp-based filenames
 
 ### 5.3 Interaction Flow
 
@@ -334,6 +342,8 @@ The map generation process ensures that:
 - Added visual styling for selected tiles with orange border and yellow fill
 - Added selected tiles list to the debug panel
 - Implemented conditional navigation button when exactly one tile is selected
+- Implemented timestamp-based versioning system for hex map images
+- Added automatic retrieval of the latest map version for each tile
 
 ### 6.2 In Progress
 - Enhancing frontend to utilize the ordered neighbor_ids for more intuitive navigation
