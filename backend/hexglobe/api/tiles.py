@@ -572,6 +572,29 @@ async def get_tile_grid(
             }
         }
         
+        # Add tile data for all tiles in the grid
+        tile_data = {}
+        for h3_index in set(serializable_grid.values()):
+            if h3_index is not None:
+                # Load the tile data
+                grid_tile = Tile.load(h3_index, mod_name)
+                if grid_tile:
+                    # Get the tile data
+                    grid_tile_data = grid_tile.to_dict()
+                    
+                    # Get the latest map path
+                    latest_map_path = get_latest_hex_map_path(h3_index)
+                    if latest_map_path:
+                        # Convert to relative path for frontend use
+                        relative_path = os.path.relpath(latest_map_path, os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))))
+                        grid_tile_data["latest_map"] = relative_path
+                    
+                    # Add to the tile data dictionary
+                    tile_data[h3_index] = grid_tile_data
+        
+        # Add the tile data to the response
+        response["tile_data"] = tile_data
+        
         return response
     
     except Exception as e:
