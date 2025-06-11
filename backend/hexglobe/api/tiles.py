@@ -3,8 +3,9 @@ from typing import Dict, List, Optional
 import h3
 import logging
 from datetime import datetime
+import os
 
-from ..models.tile import Tile, HexagonTile, PentagonTile, VisualProperties
+from ..models.tile import Tile, HexagonTile, PentagonTile, VisualProperties, get_latest_hex_map_path
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -67,7 +68,17 @@ async def get_tile(
         else:
             logger.info(f"[{datetime.now()}] Tile {tile_id} loaded from storage")
         
-        return tile.to_dict()
+        # Get the tile data
+        tile_data = tile.to_dict()
+        
+        # Get the latest map image path
+        latest_map_path = get_latest_hex_map_path(tile_id)
+        if latest_map_path:
+            # Convert to relative path for frontend use
+            relative_path = os.path.relpath(latest_map_path, os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))))
+            tile_data["latest_map"] = relative_path
+        
+        return tile_data
     except Exception as e:
         logger.error(f"[{datetime.now()}] Error processing request for tile {tile_id}: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
