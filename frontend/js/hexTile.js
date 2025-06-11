@@ -18,11 +18,13 @@ class HexTile {
      * Create a new HexTile instance
      * @param {string} id - The H3 index of the tile
      * @param {Object} visualProperties - Visual properties for rendering
+     * @param {Object} tileData - Optional tile data from the API
      * @param {Function} onImageLoad - Optional callback when the image loads
      */
-    constructor(id, visualProperties = {}, onImageLoad = null) {
+    constructor(id, visualProperties = {}, tileData = null, onImageLoad = null) {
         this.id = id;
-        this.content = id;
+        this.tileData = tileData;
+        this.content = tileData?.content || id;
         this.visualProperties = {
             borderColor: "#000000",
             borderThickness: 2,
@@ -81,9 +83,15 @@ class HexTile {
                 // Keep using the placeholder (already set in constructor)
             };
             
-            // Construct the path to the hex map image
-            // Use a path relative to the frontend directory, similar to the placeholder
-            const hexMapPath = `data/hex_maps/res_${resolution}/${this.id.substring(0, 2)}/${this.id.substring(2, 4)}/${this.id.substring(4, 6)}/${this.id.substring(6, 8)}/${this.id.substring(8, 10)}/${this.id.substring(10, 12)}/${this.id.substring(12, 14)}/${this.id}.png`;
+            // Use the latest_map path if available in the tile data
+            let hexMapPath;
+            if (this.tileData && this.tileData.latest_map) {
+                hexMapPath = this.tileData.latest_map;
+                console.log(`Using latest map path from tile data: ${hexMapPath}`);
+            } else {
+                // Fall back to the constructed path
+                hexMapPath = `data/hex_maps/res_${resolution}/${this.id.substring(0, 2)}/${this.id.substring(2, 4)}/${this.id.substring(4, 6)}/${this.id.substring(6, 8)}/${this.id.substring(8, 10)}/${this.id.substring(10, 12)}/${this.id.substring(12, 14)}/${this.id}.png`;
+            }
             
             // Log the path we're trying to load
             console.log(`Attempting to load hex map image from: ${hexMapPath}`);

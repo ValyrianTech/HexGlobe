@@ -513,6 +513,16 @@ window.hexGlobeApp = {
                 // Calculate if this is the center/active tile
                 const isCenter = (h3Index === gridData.center_tile_id);
                 
+                // Get the tile data from the API response if available
+                let tileData = null;
+                if (isCenter && gridData.center_tile_data) {
+                    // If this is the center tile and we have center tile data
+                    tileData = gridData.center_tile_data;
+                } else if (gridData.tile_data && gridData.tile_data[h3Index]) {
+                    // If we have tile data for this specific H3 index
+                    tileData = gridData.tile_data[h3Index];
+                }
+                
                 // Create the tile object
                 const tile = {
                     id: h3Index,
@@ -521,7 +531,8 @@ window.hexGlobeApp = {
                     x: x,
                     y: y,
                     isActive: isCenter,
-                    isPentagon: isPentagon
+                    isPentagon: isPentagon,
+                    tileData: tileData
                 };
                 
                 // Add the tile to the array
@@ -1015,7 +1026,12 @@ window.hexGlobeApp = {
                 console.log(`Redrawing tile ${tile.id} with loaded image`);
             };
             
-            const hexTile = new HexTile(tile.id, visualProperties, onImageLoad);
+            const hexTile = new HexTile(
+                tile.id, 
+                visualProperties, 
+                tile.tileData, // Pass the tile data
+                onImageLoad
+            );
             hexTile.calculateVertices(tile.x, tile.y, hexSize);
             
             // Set the H3 index as content to display
