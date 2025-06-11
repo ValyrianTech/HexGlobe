@@ -77,13 +77,31 @@ def calculate_zoom_level(boundary, h3_index=None):
         resolution = h3.h3_get_resolution(h3_index)
         
         # For resolution 10 and above, use maximum zoom level
-        # For each level below 10, decrease zoom level by 2
+        # For each level below 10, use specified levels
         if resolution >= 10:
             return 19
-        else:
-            # Calculate zoom level based on resolution (e.g., res 9 -> zoom 17, res 8 -> zoom 15)
-            return min(19, 19 - 2 * (10 - resolution))
-    
+        if resolution == 9:
+            return 17
+        if resolution == 8:
+            return 16
+        if resolution == 7:
+            return 15
+        if resolution == 6:
+            return 13
+        if resolution == 5:
+            return 12
+        if resolution == 4:
+            return 10
+        if resolution == 3:
+            return 9
+        if resolution == 2:
+            return 8
+        if resolution == 1:
+            return 6
+        if resolution == 0:
+            return 5
+
+
     # Fall back to distance-based calculation if no H3 index provided
     # Calculate the maximum distance between any two points
     max_distance = 0
@@ -91,7 +109,7 @@ def calculate_zoom_level(boundary, h3_index=None):
         for j in range(i+1, len(boundary)):
             lat1, lng1 = boundary[i]
             lat2, lng2 = boundary[j]
-            
+
             # Haversine formula for distance
             R = 6371  # Earth radius in km
             dlat = math.radians(lat2 - lat1)
@@ -99,9 +117,9 @@ def calculate_zoom_level(boundary, h3_index=None):
             a = math.sin(dlat/2)**2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlng/2)**2
             c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
             distance = R * c
-            
+
             max_distance = max(max_distance, distance)
-    
+
     # Estimate zoom level based on distance - increased zoom levels for better detail
     if max_distance > 1000:  # > 1000 km
         return 5  # Was 3
