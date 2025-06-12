@@ -460,79 +460,171 @@ async def get_tile_grid(
                 center_tile = HexagonTile(tile_id)
             center_tile.save_static()
         
-        # Track which tiles have been placed and their positions
-        position_map = {tile_id: center_coords}
+        # Check if we need to use the geographic coordinate-based algorithm
+        # We'll use it if the center tile is a pentagon or if we detect pentagons in the k-ring
+        use_geographic_algorithm = h3.h3_is_pentagon(tile_id)
         
-        # Step 3: Place immediate neighbors of the center tile
-        # This establishes the center tile as the single source of truth
-        for position, neighbor_id in center_tile.neighbor_ids.items():
-            if neighbor_id == "pentagon":
-                continue
+        if not use_geographic_algorithm:
+            # Check if there are any pentagons in the k-ring
+            k_ring_size = max(width, height) // 2 + 1
+            k_ring = h3.k_ring(tile_id, k_ring_size)
+            for h3_index in k_ring:
+                if h3.h3_is_pentagon(h3_index):
+                    use_geographic_algorithm = True
+                    break
+        
+        if use_geographic_algorithm:
+            # Geographic coordinate-based algorithm for grids with pentagons
+            logger.info(f"Pentagon detected in grid. Using geographic coordinate-based algorithm.")
+            
+            # Get the k-ring of tiles around the center
+            k_ring_size = max(width, height) // 2 + 1
+            k_ring = h3.k_ring(tile_id, k_ring_size)
+            
+            # Get geographic coordinates for all tiles in the k-ring
+            tile_coords = {}
+            for h3_index in k_ring:
+                lat, lng = h3.h3_to_geo(h3_index)
+                tile_coords[h3_index] = (lat, lng)
+            
+            # Get center tile coordinates
+            center_lat, center_lng = tile_coords[tile_id]
+            
+            # Group tiles by latitude (rows)
+            # First, sort all tiles by latitude
+            sorted_by_lat = sorted(tile_coords.items(), key=lambda x: x[1][0], reverse=True)  # reverse=True for north-to-south
+            
+            # Determine the number of latitude buckets (rows)
+            num_rows = height
+            
+            # Calculate the latitude range
+            min_lat = min(lat for _, (lat, _) in sorted_by_lat)
+            max_lat = max(lat for _, (lat, _) in sorted_by_lat)
+            lat_range = max_lat - min_lat
+            
+            # Create latitude buckets
+            lat_buckets = []
+            if lat_range > 0:
+                bucket_size = lat_range / num_rows
+                for i in range(num_rows):
+                    bucket_min = max_lat - (i + 1) * bucket_size
+                    bucket_max = max_lat - i * bucket_size
+                    lat_buckets.append((bucket_min, bucket_max))
+            else:
+                # If all tiles have the same latitude, create a single bucket
+                lat_buckets.append((min_lat, max_lat))
+            
+            # Assign tiles to buckets
+            rows = [[] for _ in range(len(lat_buckets))]
+            for h3_index, (lat, lng) in tile_coords.items():
+                for i, (bucket_min, bucket_max) in enumerate(lat_buckets):
+                    if bucket_min <= lat <= bucket_max or (i == 0 and lat > bucket_max) or (i == len(lat_buckets) - 1 and lat < bucket_min):
+                        rows[i].append((h3_index, lng))
+                        break
+            
+            # Sort tiles within each row by longitude (west to east)
+            for i in range(len(rows)):
+                rows[i].sort(key=lambda x: x[1])
+            
+            # Calculate grid coordinates
+            center_row_idx = len(rows) // 2
+            
+            # Find the column of the center tile in its row
+            center_col_idx = None
+            for i, row in enumerate(rows):
+                for j, (h3_index, _) in enumerate(row):
+                    if h3_index == tile_id:
+                        center_row_idx = i
+                        center_col_idx = j
+                        break
+                if center_col_idx is not None:
+                    break
+            
+            # If center tile wasn't found in any row, default to middle position
+            if center_col_idx is None:
+                center_col_idx = 0
                 
-            if position in relative_coords_for_even_columns:
-                row_offset, col_offset = relative_coords_for_even_columns[position]
-                neighbor_coords = (center_coords[0] + row_offset, center_coords[1] + col_offset)
-                
-                # Place the neighbor in the grid
-                grid_dict[neighbor_coords] = neighbor_id
-                position_map[neighbor_id] = neighbor_coords
-
-        # Step 4: Initialize processing
-        done_tiles = {(0, 0)}  # Set of processed tile coordinates
-
-        n_rings = int(max([width, height])/2 + 1)
-
-        # Step 5: Process neighbors
-        for i in range(n_rings):
-            # Go over all placed tiles but skip the onces that are done
-            for coords, current_id in list(grid_dict.items()):
-
-                if coords in done_tiles:
-                    # Skip already processed tiles
+            # Assign grid coordinates to each tile
+            for row_idx, row in enumerate(rows):
+                for col_idx, (h3_index, _) in enumerate(row):
+                    grid_row = row_idx - center_row_idx
+                    grid_col = col_idx - center_col_idx
+                    grid_dict[(grid_row, grid_col)] = h3_index
+        else:
+            # Original algorithm for regular hexagonal grids
+            # Track which tiles have been placed and their positions
+            position_map = {tile_id: center_coords}
+            
+            # Step 3: Place immediate neighbors of the center tile
+            # This establishes the center tile as the single source of truth
+            for position, neighbor_id in center_tile.neighbor_ids.items():
+                if neighbor_id == "pentagon":
                     continue
+                    
+                if position in relative_coords_for_even_columns:
+                    row_offset, col_offset = relative_coords_for_even_columns[position]
+                    neighbor_coords = (center_coords[0] + row_offset, center_coords[1] + col_offset)
+                    
+                    # Place the neighbor in the grid
+                    grid_dict[neighbor_coords] = neighbor_id
+                    position_map[neighbor_id] = neighbor_coords
 
-                # Load the current tile
-                current_tile = Tile.load(current_id, mod_name)
+            # Step 4: Initialize processing
+            done_tiles = {(0, 0)}  # Set of processed tile coordinates
 
-                if current_tile is None:
-                    logger.info(f"[{datetime.now()}] Tile {current_id} not found in storage, creating new one")
-                    if h3.h3_is_pentagon(current_id):
-                        current_tile = PentagonTile(current_id)
-                    else:
-                        current_tile = HexagonTile(current_id)
+            n_rings = int(max([width, height])/2 + 1)
 
-                    # Save the static data for the newly created tile
-                    current_tile.save_static()
-                    logger.info(f"[{datetime.now()}] New tile {current_id} static data saved to storage")
+            # Step 5: Process neighbors
+            for i in range(n_rings):
+                # Go over all placed tiles but skip the ones that are done
+                for coords, current_id in list(grid_dict.items()):
 
-                # Process each neighbor
-                error=False
-                for position, neighbor_id in current_tile.neighbor_ids.items():
-                    # Skip pentagon placeholders
-                    if neighbor_id == "pentagon":
+                    if coords in done_tiles:
+                        # Skip already processed tiles
                         continue
 
-                    # Find the relative coordinates
-                    if coords[1] % 2 == 0:  # Even column
-                        relative_coords = (coords[0]+relative_coords_for_even_columns[position][0],
-                                           coords[1]+relative_coords_for_even_columns[position][1])
-                    else:  # Odd column
-                        relative_coords = (coords[0] + relative_coords_for_odd_columns[position][0],
-                                           coords[1] + relative_coords_for_odd_columns[position][1])
+                    # Load the current tile
+                    current_tile = Tile.load(current_id, mod_name)
 
-                    # Place the neighbor in the grid
-                    if relative_coords in grid_dict and grid_dict[relative_coords] != neighbor_id:
-                        print('ERROR: trying to overwrite existing tile %s with new data %s' % (relative_coords, neighbor_id))
-                        error=True
+                    if current_tile is None:
+                        logger.info(f"[{datetime.now()}] Tile {current_id} not found in storage, creating new one")
+                        if h3.h3_is_pentagon(current_id):
+                            current_tile = PentagonTile(current_id)
+                        else:
+                            current_tile = HexagonTile(current_id)
+
+                        # Save the static data for the newly created tile
+                        current_tile.save_static()
+                        logger.info(f"[{datetime.now()}] New tile {current_id} static data saved to storage")
+
+                    # Process each neighbor
+                    error=False
+                    for position, neighbor_id in current_tile.neighbor_ids.items():
+                        # Skip pentagon placeholders
+                        if neighbor_id == "pentagon":
+                            continue
+
+                        # Find the relative coordinates
+                        if coords[1] % 2 == 0:  # Even column
+                            relative_coords = (coords[0]+relative_coords_for_even_columns[position][0],
+                                            coords[1]+relative_coords_for_even_columns[position][1])
+                        else:  # Odd column
+                            relative_coords = (coords[0] + relative_coords_for_odd_columns[position][0],
+                                            coords[1] + relative_coords_for_odd_columns[position][1])
+
+                        # Place the neighbor in the grid
+                        if relative_coords in grid_dict and grid_dict[relative_coords] != neighbor_id:
+                            print('ERROR: trying to overwrite existing tile %s with new data %s' % (relative_coords, neighbor_id))
+                            error=True
+                            break
+
+                        grid_dict[relative_coords] = neighbor_id
+
+                    if error:
                         break
 
-                    grid_dict[relative_coords] = neighbor_id
-
-                if error:
-                    break
-
-                # Mark the current tile as done
-                done_tiles.add(coords)
+                    # Mark the current tile as done
+                    done_tiles.add(coords)
 
         # Identify pentagon positions
         pentagon_positions = []
