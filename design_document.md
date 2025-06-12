@@ -344,12 +344,44 @@ The map generation process ensures that:
 - Implemented conditional navigation button when exactly one tile is selected
 - Implemented timestamp-based versioning system for hex map images
 - Added automatic retrieval of the latest map version for each tile
+- Implemented unrestricted tile content movement between any tiles regardless of proximity
+- Added "Go To" navigation feature with H3 index and address input support
+- Implemented address-to-H3 conversion using Nominatim/OpenStreetMap
+- Implemented pentagon grid rendering solution for handling irregular topology at low resolutions
 
-### 6.2 In Progress
+### 6.2 Pentagon Grid Rendering
+
+HexGlobe uses the H3 library which creates a global hexagonal grid with 12 pentagons at resolution 0. These pentagons create topological irregularities that need special handling:
+
+#### 6.2.1 Problem
+
+- Pentagons have 5 neighbors instead of 6, creating coordinate conflicts in a regular grid layout
+- The original neighbor-based grid placement algorithm assumes a regular hexagonal grid
+- When pentagons are present, the algorithm fails to place all tiles correctly
+
+#### 6.2.2 Solution
+
+HexGlobe implements a dual-algorithm approach for grid generation:
+
+1. **Regular Hexagonal Grid Algorithm**:
+   - Used when no pentagons are present in the grid
+   - Places tiles based on neighbor relationships and relative grid coordinates
+   - Maintains a regular hexagonal grid structure
+
+2. **Geographic Coordinate-Based Algorithm**:
+   - Automatically activated when pentagons are detected in the grid
+   - Groups tiles by latitude into buckets (rows) based on the square root of total tiles
+   - Sorts tiles within each row by longitude (west to east)
+   - Assigns grid coordinates relative to the center tile's position
+   - Ensures the center tile is always at (0,0) in the grid
+
+This approach preserves the spherical topology of the H3 grid while providing a consistent 2D representation that can be rendered by the frontend without modification.
+
+### 6.3 In Progress
 - Enhancing frontend to utilize the ordered neighbor_ids for more intuitive navigation
 - Implementing UI for displaying and navigating between different resolution levels
 
-### 6.3 Future Enhancements
+### 6.4 Future Enhancements
 - WebSocket integration for real-time updates
 - Map data integration within hexagons
 - User authentication and authorization
