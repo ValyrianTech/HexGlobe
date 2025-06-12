@@ -55,10 +55,10 @@ window.hexGlobeApp = {
         // Set up the canvas
         this.setupCanvas();
         
-        // Get H3 index from URL query parameter or set default based on resolution
-        this.getH3IndexFromUrl();
+        // Get H3 index and zoom level from URL query parameters or set defaults
+        this.getParametersFromUrl();
         
-        console.log(`After URL parsing, active tile ID is: ${this.state.activeTileId}`);
+        console.log(`After URL parsing, active tile ID is: ${this.state.activeTileId}, zoom level: ${this.state.zoomLevel}`);
         
         // Initialize zoom slider with current zoom level
         document.getElementById("zoom-value").textContent = this.state.zoomLevel;
@@ -106,14 +106,16 @@ window.hexGlobeApp = {
         });
     },
     
-    // Get H3 index from URL query parameter
-    getH3IndexFromUrl: function() {
+    // Get parameters from URL query parameters
+    getParametersFromUrl: function() {
         const urlParams = new URLSearchParams(window.location.search);
         const h3Index = urlParams.get('h3');
+        const zoomParam = urlParams.get('zoom');
         
         // Default H3 index to use if none is provided
         const defaultH3Index = this.getDefaultH3IndexForResolution(this.state.resolution);
         
+        // Process H3 index parameter
         if (h3Index) {
             // Use the H3 index from URL
             this.state.activeTileId = h3Index;
@@ -127,9 +129,28 @@ window.hexGlobeApp = {
             console.log(`Using default H3 index: ${this.state.activeTileId} (resolution: ${this.state.resolution})`);
         }
         
-        // Ensure URL reflects the actual H3 index being used
+        // Process zoom level parameter
+        if (zoomParam) {
+            const zoomLevel = parseInt(zoomParam);
+            if (!isNaN(zoomLevel) && zoomLevel >= 1 && zoomLevel <= 10) {
+                this.state.zoomLevel = zoomLevel;
+                console.log(`Using zoom level from URL: ${zoomLevel}`);
+            } else {
+                console.log(`Invalid zoom level in URL: ${zoomParam}, using default: ${this.state.zoomLevel}`);
+            }
+        } else {
+            console.log(`No zoom level in URL, using default: ${this.state.zoomLevel}`);
+        }
+        
+        // Ensure URL reflects the actual parameters being used
+        this.updateUrlParameters();
+    },
+    
+    // Update URL parameters without reloading the page
+    updateUrlParameters: function() {
         const url = new URL(window.location);
         url.searchParams.set('h3', this.state.activeTileId);
+        url.searchParams.set('zoom', this.state.zoomLevel);
         window.history.replaceState({}, '', url);
     },
     
@@ -228,6 +249,9 @@ window.hexGlobeApp = {
             this.state.zoomLevel = parseInt(event.target.value);
             document.getElementById("zoom-value").textContent = this.state.zoomLevel;
             
+            // Update URL with new zoom level without reloading the page
+            this.updateUrlParameters();
+            
             // Generate grid and wait for it to complete before rendering
             this.generateGrid().then(() => {
                 this.render();
@@ -255,17 +279,19 @@ window.hexGlobeApp = {
                     
                     console.log(`Updated H3 index to resolution ${this.state.resolution} using API data: ${newIndex}`);
                     
-                    // Update URL to reflect the new H3 index
+                    // Update URL to reflect the new H3 index and preserve zoom level
                     const url = new URL(window.location);
                     url.searchParams.set('h3', newIndex);
+                    url.searchParams.set('zoom', this.state.zoomLevel);
                     window.location.href = url.toString(); // This will reload the page with the new URL
                 } else {
                     // Use default index if resolution_ids not available
                     this.state.activeTileId = this.getDefaultH3IndexForResolution(this.state.resolution);
                     
-                    // Update URL and reload the page
+                    // Update URL and reload the page, preserving zoom level
                     const url = new URL(window.location);
                     url.searchParams.set('h3', this.state.activeTileId);
+                    url.searchParams.set('zoom', this.state.zoomLevel);
                     window.location.href = url.toString(); // This will reload the page with the new URL
                 }
             }
@@ -298,9 +324,10 @@ window.hexGlobeApp = {
         
         if (isH3Index) {
             console.log(`Navigating to H3 index: ${input}`);
-            // Update URL to navigate to the H3 index
+            // Update URL to navigate to the H3 index, preserving zoom level
             const url = new URL(window.location);
             url.searchParams.set('h3', input);
+            url.searchParams.set('zoom', this.state.zoomLevel);
             window.location.href = url.toString(); // This will reload the page with the new URL
         } else {
             console.log(`Geocoding address: ${input}`);
@@ -325,9 +352,10 @@ window.hexGlobeApp = {
                     console.log("Geocoding successful:", data);
                     
                     if (data.h3_index) {
-                        // Navigate to the returned H3 index
+                        // Navigate to the returned H3 index, preserving zoom level
                         const url = new URL(window.location);
                         url.searchParams.set('h3', data.h3_index);
+                        url.searchParams.set('zoom', this.state.zoomLevel);
                         window.location.href = url.toString();
                     } else {
                         throw new Error("No H3 index returned from geocoding service");
