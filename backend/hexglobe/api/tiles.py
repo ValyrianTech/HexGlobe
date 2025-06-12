@@ -4,6 +4,7 @@ import h3
 import logging
 from datetime import datetime
 import os
+import math
 
 from ..models.tile import Tile, HexagonTile, PentagonTile, VisualProperties, get_latest_hex_map_path
 
@@ -492,57 +493,107 @@ async def get_tile_grid(
             
             # Group tiles by latitude (rows)
             # First, sort all tiles by latitude
-            sorted_by_lat = sorted(tile_coords.items(), key=lambda x: x[1][0], reverse=True)  # reverse=True for north-to-south
+            sorted_by_lat = sorted(tile_coords.items(), key=lambda x: x[1][0], reverse=False)  # reverse=False for south-to-north
             
-            # Determine the number of latitude buckets (rows)
-            num_rows = height
+            # Calculate the ideal number of rows based on square root of total tiles
+            total_tiles = len(sorted_by_lat)
+            ideal_rows = max(int(math.sqrt(total_tiles)), 1)
+            
+            # Ensure we don't exceed the requested height
+            num_rows = min(ideal_rows, height * 2)
+            
+            logger.info(f"Geographic algorithm: Total tiles: {total_tiles}, Ideal rows: {ideal_rows}, Using rows: {num_rows}")
             
             # Calculate the latitude range
             min_lat = min(lat for _, (lat, _) in sorted_by_lat)
             max_lat = max(lat for _, (lat, _) in sorted_by_lat)
             lat_range = max_lat - min_lat
             
-            # Create latitude buckets
+            logger.info(f"Latitude range: {min_lat} to {max_lat} (range: {lat_range})")
+            
+            # Create latitude buckets with approximately equal number of tiles per bucket
             lat_buckets = []
-            if lat_range > 0:
-                bucket_size = lat_range / num_rows
+            if lat_range > 0 and num_rows > 1:
+                # Distribute tiles evenly across buckets
+                tiles_per_bucket = total_tiles // num_rows
+                if tiles_per_bucket < 1:
+                    tiles_per_bucket = 1
+                
                 for i in range(num_rows):
-                    bucket_min = max_lat - (i + 1) * bucket_size
-                    bucket_max = max_lat - i * bucket_size
-                    lat_buckets.append((bucket_min, bucket_max))
+                    start_idx = i * tiles_per_bucket
+                    end_idx = min((i + 1) * tiles_per_bucket, total_tiles)
+                    
+                    # If this is the last bucket, include all remaining tiles
+                    if i == num_rows - 1:
+                        end_idx = total_tiles
+                    
+                    # Skip empty buckets
+                    if start_idx >= end_idx:
+                        continue
+                    
+                    # Get min and max latitude for this bucket
+                    bucket_tiles = sorted_by_lat[start_idx:end_idx]
+                    bucket_min_lat = min(lat for _, (lat, _) in bucket_tiles)
+                    bucket_max_lat = max(lat for _, (lat, _) in bucket_tiles)
+                    
+                    # Add a small buffer to avoid edge cases
+                    buffer = (lat_range * 0.01)
+                    if i > 0:  # Not the first bucket
+                        bucket_min_lat -= buffer
+                    if i < num_rows - 1:  # Not the last bucket
+                        bucket_max_lat += buffer
+                    
+                    lat_buckets.append((bucket_min_lat, bucket_max_lat))
+                    logger.info(f"Bucket {i}: {bucket_min_lat} to {bucket_max_lat} with {len(bucket_tiles)} tiles")
             else:
-                # If all tiles have the same latitude, create a single bucket
+                # If all tiles have the same latitude or only one row, create a single bucket
                 lat_buckets.append((min_lat, max_lat))
             
             # Assign tiles to buckets
             rows = [[] for _ in range(len(lat_buckets))]
             for h3_index, (lat, lng) in tile_coords.items():
+                assigned = False
                 for i, (bucket_min, bucket_max) in enumerate(lat_buckets):
-                    if bucket_min <= lat <= bucket_max or (i == 0 and lat > bucket_max) or (i == len(lat_buckets) - 1 and lat < bucket_min):
+                    if bucket_min <= lat <= bucket_max or (i == 0 and lat < bucket_min) or (i == len(lat_buckets) - 1 and lat > bucket_max):
                         rows[i].append((h3_index, lng))
+                        assigned = True
                         break
+                if not assigned:
+                    logger.warning(f"Tile {h3_index} with lat {lat} not assigned to any bucket!")
+            
+            # Log the number of tiles in each row
+            for i, row in enumerate(rows):
+                logger.info(f"Row {i} has {len(row)} tiles")
             
             # Sort tiles within each row by longitude (west to east)
             for i in range(len(rows)):
                 rows[i].sort(key=lambda x: x[1])
             
-            # Calculate grid coordinates
-            center_row_idx = len(rows) // 2
-            
-            # Find the column of the center tile in its row
-            center_col_idx = None
+            # Log the sorted rows
             for i, row in enumerate(rows):
-                for j, (h3_index, _) in enumerate(row):
+                if row:
+                    logger.info(f"Row {i} after sorting: {[h3_idx for h3_idx, _ in row]}")
+            
+            # Calculate grid coordinates
+            center_row_idx = None
+            center_col_idx = None
+            
+            # Find the row and column of the center tile
+            for row_idx, row in enumerate(rows):
+                for col_idx, (h3_index, _) in enumerate(row):
                     if h3_index == tile_id:
-                        center_row_idx = i
-                        center_col_idx = j
+                        center_row_idx = row_idx
+                        center_col_idx = col_idx
+                        logger.info(f"Found center tile at row {row_idx}, col {col_idx}")
                         break
-                if center_col_idx is not None:
+                if center_row_idx is not None:
                     break
             
             # If center tile wasn't found in any row, default to middle position
-            if center_col_idx is None:
+            if center_row_idx is None:
+                center_row_idx = len(rows) // 2
                 center_col_idx = 0
+                logger.warning(f"Center tile not found in any row. Using default position: row {center_row_idx}, col {center_col_idx}")
                 
             # Assign grid coordinates to each tile
             for row_idx, row in enumerate(rows):
@@ -550,6 +601,7 @@ async def get_tile_grid(
                     grid_row = row_idx - center_row_idx
                     grid_col = col_idx - center_col_idx
                     grid_dict[(grid_row, grid_col)] = h3_index
+                    logger.info(f"Assigned tile {h3_index} to grid position ({grid_row}, {grid_col})")
         else:
             # Original algorithm for regular hexagonal grids
             # Track which tiles have been placed and their positions
