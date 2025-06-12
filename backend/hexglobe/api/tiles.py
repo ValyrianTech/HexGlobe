@@ -595,6 +595,12 @@ async def get_tile_grid(
                 center_col_idx = 0
                 logger.warning(f"Center tile not found in any row. Using default position: row {center_row_idx}, col {center_col_idx}")
                 
+            # Verify that the center tile will be at (0,0)
+            test_grid_row = center_row_idx - center_row_idx
+            test_grid_col = center_col_idx - center_col_idx
+            if test_grid_row != 0 or test_grid_col != 0:
+                logger.error(f"Center tile calculation error! Would be at ({test_grid_row}, {test_grid_col}) instead of (0,0)")
+                
             # Assign grid coordinates to each tile
             for row_idx, row in enumerate(rows):
                 for col_idx, (h3_index, _) in enumerate(row):
@@ -602,6 +608,12 @@ async def get_tile_grid(
                     grid_col = col_idx - center_col_idx
                     grid_dict[(grid_row, grid_col)] = h3_index
                     logger.info(f"Assigned tile {h3_index} to grid position ({grid_row}, {grid_col})")
+            
+            # Double-check that the center tile is at (0,0)
+            if tile_id != grid_dict.get((0, 0)):
+                logger.error(f"Center tile {tile_id} not at (0,0)! Found {grid_dict.get((0, 0))} instead.")
+                # Force the center tile to be at (0,0)
+                grid_dict[(0, 0)] = tile_id
         else:
             # Original algorithm for regular hexagonal grids
             # Track which tiles have been placed and their positions
