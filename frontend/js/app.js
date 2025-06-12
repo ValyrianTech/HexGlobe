@@ -61,8 +61,17 @@ window.hexGlobeApp = {
         console.log(`After URL parsing, active tile ID is: ${this.state.activeTileId}, zoom level: ${this.state.zoomLevel}`);
         
         // Initialize zoom slider with current zoom level
-        document.getElementById("zoom-value").textContent = this.state.zoomLevel;
-        document.getElementById("zoom-slider").value = this.state.zoomLevel;
+        // Make sure the zoom slider reflects the value from URL parameters
+        const zoomSlider = document.getElementById("zoom-slider");
+        const zoomValue = document.getElementById("zoom-value");
+        
+        if (zoomSlider && zoomValue) {
+            console.log(`Setting zoom slider UI to: ${this.state.zoomLevel}`);
+            zoomSlider.value = this.state.zoomLevel;
+            zoomValue.textContent = this.state.zoomLevel;
+        } else {
+            console.error("Zoom slider or value element not found in DOM");
+        }
         
         // Initialize resolution dropdown with current resolution if no URL parameter is provided
         const urlParams = new URLSearchParams(window.location.search);
@@ -77,7 +86,7 @@ window.hexGlobeApp = {
         // Set up event listeners
         this.setupEventListeners();
         
-        // Generate the initial grid
+        // Generate the initial grid with the zoom level from URL
         this.generateGrid().then(() => {
             this.render();
             this.updateDebugPanel();
