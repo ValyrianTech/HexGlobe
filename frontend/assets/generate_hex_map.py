@@ -457,6 +457,43 @@ def scale_polygon(vertices, scale_factor, center=None):
     return scaled_vertices
 
 
+def reorder_vertices_by_position(vertices):
+    """
+    Reorder vertices based on their positions to match the expected order:
+    right-middle, bottom-right, bottom-left, left-middle, top-left, top-right
+    
+    Args:
+        vertices: List of (x, y) vertex coordinates
+        
+    Returns:
+        List of vertices in the order: right-middle, bottom-right, bottom-left, left-middle, top-left, top-right
+    """
+    # Sort vertices by y-coordinate (top to bottom)
+    sorted_by_y = sorted(enumerate(vertices), key=lambda x: x[1][1])
+    
+    # Get top two vertices (smallest y-coordinates)
+    top_vertices = sorted_by_y[:2]
+    # Get middle two vertices (middle y-coordinates)
+    middle_vertices = sorted_by_y[2:4]
+    # Get bottom two vertices (largest y-coordinates)
+    bottom_vertices = sorted_by_y[4:]
+    
+    # Sort each pair by x-coordinate (left to right)
+    top_left, top_right = sorted(top_vertices, key=lambda x: x[1][0])
+    middle_left, middle_right = sorted(middle_vertices, key=lambda x: x[1][0])
+    bottom_left, bottom_right = sorted(bottom_vertices, key=lambda x: x[1][0])
+    
+    # Return vertices in the order: right-middle, bottom-right, bottom-left, left-middle, top-left, top-right
+    return [
+        vertices[middle_right[0]],  # right-middle
+        vertices[bottom_right[0]],  # bottom-right
+        vertices[bottom_left[0]],   # bottom-left
+        vertices[middle_left[0]],   # left-middle
+        vertices[top_left[0]],      # top-left
+        vertices[top_right[0]]      # top-right
+    ]
+
+
 def apply_vertical_scaling_and_skew(image, pixel_vertices):
     """
     Apply vertical scaling and horizontal skew to the image to make the H3 hexagon match a perfect hexagon.
@@ -478,28 +515,16 @@ def apply_vertical_scaling_and_skew(image, pixel_vertices):
         (768.0, 68.6)     # top right
     ]
     
-    # Map the actual vertices to match the perfect hexagon order
-    # pixel_vertices order: top-right, top-left, left, bottom-left, bottom-right, right
-    # perfect_hexagon order: right, bottom-right, bottom-left, left, top-left, top-right
-    vertex_mapping = {
-        0: 5,  # top-right -> top-right
-        1: 4,  # top-left -> top-left
-        2: 3,  # left -> left
-        3: 2,  # bottom-left -> bottom-left
-        4: 1,  # bottom-right -> bottom-right
-        5: 0,  # right -> right
-    }
-    
-    # Reorder actual vertices to match perfect hexagon order
-    mapped_vertices = [pixel_vertices[i] for i in range(len(pixel_vertices))]
+    # Reorder the vertices based on their positions to match the perfect hexagon order
+    ordered_vertices = reorder_vertices_by_position(pixel_vertices)
     
     # Calculate vertical scaling factor
     # Get the average y-coordinate for top vertices
-    actual_top_y_avg = (pixel_vertices[0][1] + pixel_vertices[1][1]) / 2
+    actual_top_y_avg = (ordered_vertices[4][1] + ordered_vertices[5][1]) / 2
     perfect_top_y_avg = (perfect_hexagon[4][1] + perfect_hexagon[5][1]) / 2
     
     # Get the average y-coordinate for bottom vertices
-    actual_bottom_y_avg = (pixel_vertices[3][1] + pixel_vertices[4][1]) / 2
+    actual_bottom_y_avg = (ordered_vertices[1][1] + ordered_vertices[2][1]) / 2
     perfect_bottom_y_avg = (perfect_hexagon[1][1] + perfect_hexagon[2][1]) / 2
     
     # Calculate the vertical distance in both cases
@@ -514,15 +539,15 @@ def apply_vertical_scaling_and_skew(image, pixel_vertices):
     
     # Calculate horizontal skew factor
     # Get the x-offsets at the top
-    actual_top_left_x = pixel_vertices[1][0]
+    actual_top_left_x = ordered_vertices[4][0]
     perfect_top_left_x = perfect_hexagon[4][0]
-    actual_top_right_x = pixel_vertices[0][0]
+    actual_top_right_x = ordered_vertices[5][0]
     perfect_top_right_x = perfect_hexagon[5][0]
     
     # Get the x-offsets at the bottom
-    actual_bottom_left_x = pixel_vertices[3][0]
+    actual_bottom_left_x = ordered_vertices[2][0]
     perfect_bottom_left_x = perfect_hexagon[2][0]
-    actual_bottom_right_x = pixel_vertices[4][0]
+    actual_bottom_right_x = ordered_vertices[1][0]
     perfect_bottom_right_x = perfect_hexagon[1][0]
     
     # Calculate average offsets
@@ -722,7 +747,6 @@ def create_hexagon_map(h3_index, zoom=None, rotate=True, debug=False, vertical_a
         
         # Draw the bottom edge in a different color if debug is enabled
         if debug:
-            draw = ImageDraw.Draw(unrotated_image)
             draw.line([v1, v2], fill="cyan", width=5)
             unrotated_image.save(f"{h3_index}_bottom_edge.png")
             print(f"Image with bottom edge highlighted saved to {h3_index}_bottom_edge.png")
