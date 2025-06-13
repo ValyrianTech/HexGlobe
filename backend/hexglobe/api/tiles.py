@@ -415,6 +415,10 @@ async def get_tile_grid(
             logger.warning(f"Invalid H3 index: {tile_id}")
             raise HTTPException(status_code=400, detail="Invalid H3 index")
         
+        # Add debug info about the tile
+        resolution = h3.h3_get_resolution(tile_id)
+        logger.info(f"DEBUG: Tile {tile_id} has resolution {resolution}")
+        
         # Use a dictionary to store the grid with coordinate tuples as keys
         # This allows for negative indexes with the center tile at (0,0)
         grid_dict = {}
@@ -455,11 +459,34 @@ async def get_tile_grid(
         # Load or create the center tile
         center_tile = Tile.load(tile_id, mod_name)
         if center_tile is None:
+            logger.info(f"DEBUG: Center tile {tile_id} not found in storage, creating new one")
             if h3.h3_is_pentagon(tile_id):
                 center_tile = PentagonTile(tile_id)
             else:
                 center_tile = HexagonTile(tile_id)
             center_tile.save_static()
+        else:
+            logger.info(f"DEBUG: Center tile {tile_id} loaded from storage")
+        
+        # Debug: Check if the center tile has neighbors
+        logger.info(f"DEBUG: Center tile neighbor_ids: {center_tile.neighbor_ids}")
+        
+        # Debug: Check if H3 library can find neighbors directly
+        direct_neighbors = h3.k_ring(tile_id, 1)
+        direct_neighbors = [n for n in direct_neighbors if n != tile_id]
+        logger.info(f"DEBUG: Direct H3 neighbors: {direct_neighbors}")
+        logger.info(f"DEBUG: Number of direct neighbors: {len(direct_neighbors)}")
+        
+        # Fix for resolution 15 tiles: If neighbor_ids is empty but H3 can find neighbors,
+        # update the neighbor_ids and save the tile
+        if not center_tile.neighbor_ids and direct_neighbors:
+            logger.info(f"DEBUG: Fixing empty neighbor_ids for resolution {resolution} tile")
+            # Use the _get_positioned_neighbors method to get proper position labels
+            center_tile.neighbor_ids = center_tile._get_positioned_neighbors(tile_id)
+            logger.info(f"DEBUG: Updated neighbor_ids: {center_tile.neighbor_ids}")
+            # Save the updated static data
+            center_tile.save_static()
+            logger.info(f"DEBUG: Saved updated static data with neighbor_ids")
         
         # Check if we need to use the geographic coordinate-based algorithm
         # We'll use it if the center tile is a pentagon or if we detect pentagons in the k-ring
@@ -472,7 +499,10 @@ async def get_tile_grid(
             for h3_index in k_ring:
                 if h3.h3_is_pentagon(h3_index):
                     use_geographic_algorithm = True
+                    logger.info(f"DEBUG: Pentagon detected in k-ring: {h3_index}")
                     break
+        
+        logger.info(f"DEBUG: Using geographic algorithm: {use_geographic_algorithm}")
         
         if use_geographic_algorithm:
             # Geographic coordinate-based algorithm for grids with pentagons
@@ -621,30 +651,41 @@ async def get_tile_grid(
             
             # Step 3: Place immediate neighbors of the center tile
             # This establishes the center tile as the single source of truth
+            logger.info(f"DEBUG: Placing immediate neighbors of center tile")
             for position, neighbor_id in center_tile.neighbor_ids.items():
+                logger.info(f"DEBUG: Processing neighbor at position {position}: {neighbor_id}")
                 if neighbor_id == "pentagon":
+                    logger.info(f"DEBUG: Skipping pentagon placeholder at position {position}")
                     continue
                     
                 if position in relative_coords_for_even_columns:
                     row_offset, col_offset = relative_coords_for_even_columns[position]
                     neighbor_coords = (center_coords[0] + row_offset, center_coords[1] + col_offset)
+                    logger.info(f"DEBUG: Placing neighbor {neighbor_id} at coordinates {neighbor_coords}")
                     
                     # Place the neighbor in the grid
                     grid_dict[neighbor_coords] = neighbor_id
                     position_map[neighbor_id] = neighbor_coords
+                else:
+                    logger.warning(f"DEBUG: Position {position} not found in relative_coords_for_even_columns")
 
             # Step 4: Initialize processing
             done_tiles = {(0, 0)}  # Set of processed tile coordinates
+            logger.info(f"DEBUG: Initial done_tiles: {done_tiles}")
 
             n_rings = int(max([width, height])/2 + 1)
+            logger.info(f"DEBUG: Processing {n_rings} rings")
 
             # Step 5: Process neighbors
             for i in range(n_rings):
+                logger.info(f"DEBUG: Processing ring {i+1} of {n_rings}")
                 # Go over all placed tiles but skip the ones that are done
                 for coords, current_id in list(grid_dict.items()):
+                    logger.info(f"DEBUG: Processing tile {current_id} at coordinates {coords}")
 
                     if coords in done_tiles:
                         # Skip already processed tiles
+                        logger.info(f"DEBUG: Skipping already processed tile {current_id} at {coords}")
                         continue
 
                     # Load the current tile
@@ -660,36 +701,48 @@ async def get_tile_grid(
                         # Save the static data for the newly created tile
                         current_tile.save_static()
                         logger.info(f"[{datetime.now()}] New tile {current_id} static data saved to storage")
+                    
+                    # Debug: Check if the current tile has neighbors
+                    logger.info(f"DEBUG: Current tile {current_id} neighbor_ids: {current_tile.neighbor_ids}")
 
                     # Process each neighbor
                     error=False
                     for position, neighbor_id in current_tile.neighbor_ids.items():
+                        logger.info(f"DEBUG: Processing neighbor at position {position}: {neighbor_id}")
                         # Skip pentagon placeholders
                         if neighbor_id == "pentagon":
+                            logger.info(f"DEBUG: Skipping pentagon placeholder at position {position}")
                             continue
 
                         # Find the relative coordinates
                         if coords[1] % 2 == 0:  # Even column
                             relative_coords = (coords[0]+relative_coords_for_even_columns[position][0],
                                             coords[1]+relative_coords_for_even_columns[position][1])
+                            logger.info(f"DEBUG: Using even column offset for position {position}: {relative_coords_for_even_columns[position]}")
                         else:  # Odd column
                             relative_coords = (coords[0] + relative_coords_for_odd_columns[position][0],
                                             coords[1] + relative_coords_for_odd_columns[position][1])
+                            logger.info(f"DEBUG: Using odd column offset for position {position}: {relative_coords_for_odd_columns[position]}")
+                        
+                        logger.info(f"DEBUG: Calculated relative coordinates for neighbor {neighbor_id}: {relative_coords}")
 
                         # Place the neighbor in the grid
                         if relative_coords in grid_dict and grid_dict[relative_coords] != neighbor_id:
-                            print('ERROR: trying to overwrite existing tile %s with new data %s' % (relative_coords, neighbor_id))
+                            logger.error(f'ERROR: trying to overwrite existing tile {relative_coords} with new data {neighbor_id}')
                             error=True
                             break
 
                         grid_dict[relative_coords] = neighbor_id
+                        logger.info(f"DEBUG: Added neighbor {neighbor_id} to grid at position {relative_coords}")
 
                     if error:
+                        logger.error(f"DEBUG: Error detected, breaking out of neighbor processing loop")
                         break
 
                     # Mark the current tile as done
                     done_tiles.add(coords)
-
+                    logger.info(f"DEBUG: Marked tile {current_id} at {coords} as done")
+        
         # Identify pentagon positions
         pentagon_positions = []
         for coords, grid_tile_id in grid_dict.items():
