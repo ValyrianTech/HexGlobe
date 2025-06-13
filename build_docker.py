@@ -41,7 +41,7 @@ def build(docker_repo, tag, from_docker=None):
     if from_docker is not None:
         docker_build_arg += f" --build-arg DOCKER_FROM={from_docker}"
 
-    build_command = f"docker build {docker_build_arg} {dockerLLM_dir}/{docker_repo}"
+    build_command = f"docker build {docker_build_arg} -f {dockerLLM_dir}/{docker_repo}/Dockerfile {dockerLLM_dir}"
     push_command = f"docker push {docker_container}"
 
     docker_command(build_command)
