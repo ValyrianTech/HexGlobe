@@ -492,3 +492,6 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - [Uber H3](https://github.com/uber/h3) - Hexagonal hierarchical geospatial indexing system
 - [HTML5 Canvas](https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API) - For rendering the hexagonal grid
 - [FastAPI](https://fastapi.tiangolo.com/) - Modern, fast web framework for building APIs with Python
+
+## Brought to you by
+[Valyrian Tech](https://linktr.ee/ValyrianTech)
