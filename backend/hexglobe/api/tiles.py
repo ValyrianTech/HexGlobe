@@ -673,7 +673,7 @@ async def get_tile_grid(
             done_tiles = {(0, 0)}  # Set of processed tile coordinates
             logger.info(f"DEBUG: Initial done_tiles: {done_tiles}")
 
-            n_rings = int(max([width, height])/2 + 1)
+            n_rings = int(max([width, height]) + 1)
             logger.info(f"DEBUG: Processing {n_rings} rings")
 
             # Step 5: Process neighbors
