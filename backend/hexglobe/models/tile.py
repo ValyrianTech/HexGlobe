@@ -159,28 +159,39 @@ class Tile(ABC):
         try:
             # Get the resolution of the current tile
             self.resolution = h3.h3_get_resolution(id)
+            logger.info(f"Initializing tile {id} with resolution {self.resolution}")
             
             self.parent_id = h3.h3_to_parent(id, self.resolution - 1) if self.resolution > 0 else None
-            self.children_ids = list(h3.h3_to_children(id, self.resolution + 1))
+            
+            # Only get children if we're not at max resolution
+            if self.resolution < 15:
+                self.children_ids = list(h3.h3_to_children(id, self.resolution + 1))
+            else:
+                logger.info(f"Tile {id} is at max resolution 15, no children available")
+                self.children_ids = []
             
             # Get neighbor IDs with position labels
             self.neighbor_ids = self._get_positioned_neighbors(id)
             
-            # Get different resolution IDs
+            # Get different resolution IDs for all resolutions (0-15)
             self.resolution_ids = {}
             current_res = self.resolution
+            logger.info(f"Current resolution: {current_res}")
             
-            # Get IDs for lower resolutions (parent hierarchy)
-            temp_id = id
-            for res in range(current_res - 1, -1, -1):
-                temp_id = h3.h3_to_parent(temp_id, res)
-                self.resolution_ids[str(res)] = temp_id
-            
-            # Get IDs for higher resolutions (child at center)
+            # Get geographic coordinates of this location
             lat, lng = h3.h3_to_geo(id)
-            for res in range(current_res + 1, 16):  # H3 supports resolutions 0-15
-                self.resolution_ids[str(res)] = h3.geo_to_h3(lat, lng, res)
-                
+            logger.info(f"Calculating all resolution IDs for location ({lat}, {lng})")
+            
+            # Calculate IDs for all resolutions (0-15)
+            for res in range(16):  # H3 supports resolutions 0-15
+                if res == current_res:
+                    # For current resolution, use the existing ID
+                    self.resolution_ids[str(res)] = id
+                else:
+                    # For other resolutions, calculate the ID at this location
+                    logger.info(f"Calculating resolution {res} ID")
+                    self.resolution_ids[str(res)] = h3.geo_to_h3(lat, lng, res)
+            
         except ValueError as e:
             logger.error(f"Error initializing tile {id}: {str(e)}")
             self.parent_id = None
