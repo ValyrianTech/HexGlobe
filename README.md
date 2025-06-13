@@ -1,6 +1,45 @@
 # HexGlobe
 
-A web application that implements a hexagonal grid mapping system using HTML5 Canvas for visualization.
+A web application framework that implements a global hexagonal grid system using Uber's H3 library.
+
+## What is HexGlobe?
+
+HexGlobe is an innovative platform that provides a hexagonal/pentagonal tile-based world map with a 2D representation. It allows developers to build applications on top of a consistent global grid where each tile can store content and be navigated by users. Think of it as a new way to visualize and interact with geographic data, games, simulations, or any application that benefits from a hexagonal grid structure.
+
+### Why Hexagons?
+
+Hexagonal grids offer several advantages over traditional square grids:
+- More natural representation of distances (each neighbor is equidistant)
+- Better connectivity (six neighbors instead of four)
+- More efficient area coverage
+- Reduced distortion when mapping a sphere (Earth) to a 2D representation
+
+## Potential Applications
+
+HexGlobe can be used for a wide variety of applications:
+
+- **Games**: Strategy games (like Civilization), resource management games, or multiplayer worlds
+- **Simulations**: Virus spread modeling, climate change effects, population movements
+- **Data Visualization**: Geographic data representation, heat maps, choropleth maps
+- **Urban Planning**: Land use analysis, transportation network planning
+- **Education**: Interactive learning tools for geography, ecology, or social studies
+- **Real-world Economics**: Supply chain visualization, resource distribution modeling
+
+## Current Status
+
+HexGlobe is currently in proof-of-concept stage. The existing frontend is primarily designed for debugging and demonstration purposes rather than production use. It showcases the core functionality but is not optimized for aesthetics or user experience.
+
+**Known Limitation**: The current implementation has issues with pentagon tiles (which occur at 12 locations on the globe due to the nature of mapping a sphere to hexagons). When a pentagon is visible on screen, the grid layout may not match up correctly. To avoid this issue, use higher resolutions and zoom in to areas away from these pentagon vertices.
+
+## Call for Frontend Developers
+
+We encourage developers to create their own frontend implementations using the HexGlobe backend API. If you build an improved frontend for HexGlobe, we would be happy to feature a link to your GitHub repository here. The ideal frontend would:
+
+- Have a more polished and intuitive user interface
+- Provide smoother navigation and interaction
+- Handle pentagon tiles gracefully
+- Potentially add 3D visualization capabilities
+- Implement specific use cases (games, simulations, etc.)
 
 ## Overview
 
