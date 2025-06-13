@@ -18,6 +18,10 @@ HexGlobe provides a framework for visualizing and interacting with a hexagonal g
 - Neighbor visualization and highlighting
 - Customizable visual properties (border color, thickness, style)
 - Zoom control slider (1-10) to adjust visible hex tiles
+  - Zoom level 1: Shows only the active tile (taking up 80% of the canvas)
+  - Zoom level 2: Shows the active tile plus 1 ring of neighbors (3 hexagons in diameter)
+  - Zoom level 3: Shows the active tile plus 2 rings of neighbors (5 hexagons in diameter)
+  - And so on for higher zoom levels
 - H3 resolution slider (0-15) to adjust hexagon size on Earth's surface
 - Tile information display
 - Backend API integration for tile data persistence

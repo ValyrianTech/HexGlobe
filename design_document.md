@@ -208,6 +208,10 @@ HexGlobe is a web application framework that implements a global hexagonal grid 
 - **HexTile Component**: Canvas-based hexagon rendering with grid pattern and tile info
 - **Navigation Controls**: Allows users to navigate between tiles and change resolution levels
 - **Zoom Control**: Slider to adjust the zoom level (1-10), controlling how many hex tiles are visible
+  - Zoom level 1: Shows only the active tile (taking up 80% of the canvas)
+  - Zoom level 2: Shows the active tile plus 1 ring of neighbors (3 hexagons in diameter)
+  - Zoom level 3: Shows the active tile plus 2 rings of neighbors (5 hexagons in diameter)
+  - And so on for higher zoom levels
 - **Resolution Control**: Slider to adjust the H3 resolution (0-15), controlling the size of hexagons on Earth's surface
 
 ### 5.2 Hexagon Rendering Specifications
