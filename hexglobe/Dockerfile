@@ -82,11 +82,11 @@ COPY --from=builder --chown=appuser:appuser /usr/local/lib/python3.12/site-packa
 
 # Copy the start script
 COPY --chown=root:root hexglobe/start.sh /app/start.sh
-RUN chmod +x /app/start.sh
 
 # Expose ports for FastAPI and frontend
 EXPOSE 8000 8080
 
 # Start supervisord to manage both backend and frontend
 USER root
+RUN chmod +x /app/start.sh
 CMD ["/app/start.sh"]
