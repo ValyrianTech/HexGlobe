@@ -4,7 +4,7 @@ A web application framework that implements a global hexagonal grid system using
 
 ## What is HexGlobe?
 
-HexGlobe is an innovative platform that provides a hexagonal/pentagonal tile-based world map with a 2D representation. It allows developers to build applications on top of a consistent global grid where each tile can store content and be navigated by users. Think of it as a new way to visualize and interact with geographic data, games, simulations, or any application that benefits from a hexagonal grid structure.
+HexGlobe is an innovative platform that provides a hexagonal tile-based world map with a 2D representation. It allows developers to build applications on top of a consistent global grid where each tile can store content and be navigated by users. Think of it as a new way to visualize and interact with geographic data, games, simulations, or any application that benefits from a hexagonal grid structure.
 
 ### Why Hexagons?
 
