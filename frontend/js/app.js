@@ -387,43 +387,49 @@ window.hexGlobeApp = {
         const availableWidth = this.canvas.width - (this.config.padding * 2);
         const availableHeight = this.canvas.height - (this.config.padding * 2);
         
-        // Calculate hex dimensions
-        // Adjust hex size based on zoom level
-        // At zoom level 1, hex size is very large (active tile takes most of screen)
-        // At zoom level 10, hex size is small (many tiles visible)
-        // Using exponential scaling to make zoom level 1 much larger
-        let zoomFactor;
+        // Calculate hex dimensions based on zoom level
+        // At zoom level 1, only show the active tile (80% of canvas)
+        // At zoom level 2, show active tile + 1 ring (3 hexagons in diameter)
+        // At zoom level 3, show active tile + 2 rings (5 hexagons in diameter)
+        // And so on...
+        
+        let adjustedHexSize;
+        let gridWidth, gridHeight;
+        
+        // Calculate the number of rings based on zoom level
+        // Zoom level 1: 0 rings (just the active tile)
+        // Zoom level 2: 1 ring
+        // Zoom level 3: 2 rings
+        // And so on...
+        const rings = this.state.zoomLevel - 1;
+        
+        // Calculate grid dimensions based on rings
+        // Diameter = (2 * rings) + 1
+        const diameter = rings > 0 ? (2 * rings) + 1 : 1;
+        gridWidth = diameter;
+        gridHeight = diameter;
+        
+        // Calculate hex size based on available space and grid dimensions
+        // For zoom level 1, make the hex take up 80% of the smaller dimension
         if (this.state.zoomLevel === 1) {
-            zoomFactor = 4.5; // Much larger factor for zoom level 1
+            // For a single hex, use 80% of the smaller canvas dimension
+            const smallerDimension = Math.min(availableWidth, availableHeight);
+            adjustedHexSize = smallerDimension * 0.4; // Radius is half of diameter, 80% = 0.8/2 = 0.4
         } else {
-            zoomFactor = 1 + (10 - this.state.zoomLevel) * 0.4;
+            // For multiple hexes, calculate size based on how many need to fit
+            // We use 0.75 * hexWidth for horizontal spacing because hexes overlap horizontally
+            const hexWidth = 2; // Normalized width (will be multiplied by size)
+            const hexHeight = Math.sqrt(3); // Normalized height (will be multiplied by size)
+            
+            // Calculate the maximum size that will fit the grid
+            const maxWidthSize = availableWidth / ((gridWidth - 0.25) * 0.75 * hexWidth);
+            const maxHeightSize = availableHeight / (gridHeight * hexHeight);
+            
+            // Use the smaller of the two to ensure the grid fits
+            adjustedHexSize = Math.min(maxWidthSize, maxHeightSize);
         }
         
-        const baseHexSize = this.config.hexSize;
-        const adjustedHexSize = baseHexSize * zoomFactor;
-        
-        // Calculate how many hexes can fit in the available space
-        const hexHeight = Math.sqrt(3) * adjustedHexSize;
-        const hexWidth = adjustedHexSize * 2;
-        
-        // We use 0.75 * hexWidth for horizontal spacing because hexes overlap horizontally
-        const cols = Math.max(1, Math.floor(availableWidth / (hexWidth * 0.75)));
-        const rows = Math.max(1, Math.floor(availableHeight / hexHeight));
-        
-        // For zoom level 1, we want to show just the active tile and immediate neighbors
-        // For zoom level 10, we want to show at least 10 rings of neighbors
-        let gridWidth = cols;
-        let gridHeight = rows;
-        
-        // Ensure we have enough tiles to show the desired number of rings based on zoom level
-        // For zoom level 1, show only 1 ring of neighbors
-        const minRings = this.state.zoomLevel === 1 ? 1 : this.state.zoomLevel;
-        const minTilesForRings = minRings * 2 + 1; // Diameter of the grid in tiles
-        
-        gridWidth = Math.max(gridWidth, minTilesForRings);
-        gridHeight = Math.max(gridHeight, minTilesForRings);
-        
-        console.log(`Grid dimensions: ${gridWidth}x${gridHeight}, hex size: ${adjustedHexSize}, zoom level: ${this.state.zoomLevel}, resolution: ${this.state.resolution}`);
+        console.log(`Grid dimensions: ${gridWidth}x${gridHeight}, hex size: ${adjustedHexSize}, zoom level: ${this.state.zoomLevel}, rings: ${rings}, resolution: ${this.state.resolution}`);
         
         return {
             hexSize: adjustedHexSize,
@@ -452,17 +458,11 @@ window.hexGlobeApp = {
         
         // Fetch grid data from the API
         try {
-            // For zoom level 1, limit the grid to 7x7 regardless of calculated dimensions
+            // Use the calculated grid dimensions based on zoom level
             let apiGridWidth = width;
             let apiGridHeight = height;
             
-            if (this.state.zoomLevel === 1) {
-                apiGridWidth = 7;
-                apiGridHeight = 7;
-                console.log(`Zoom level 1: Limiting grid request to ${apiGridWidth}x${apiGridHeight}`);
-            }
-            
-            console.log(`Fetching grid data for dimensions: ${apiGridWidth}x${apiGridHeight}`);
+            console.log(`Fetching grid data for dimensions: ${apiGridWidth}x${apiGridHeight}, zoom level: ${this.state.zoomLevel}`);
             const gridData = await this.state.navigation.fetchTileGrid(apiGridWidth, apiGridHeight);
             console.log("Grid data received:", gridData);
             
