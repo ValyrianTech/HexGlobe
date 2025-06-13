@@ -100,6 +100,15 @@ HexGlobe provides a framework for visualizing and interacting with a hexagonal g
   - Dynamic data: Content and visual properties
   - Map images: Timestamped versions for historical tracking
 
+### Docker
+- Container image: `valyriantech/hexglobe:latest`
+- Runs both backend and frontend services
+- Backend API available on port 8000
+- Frontend web interface available on port 8080
+- Custom start script with shell access option:
+  - Default mode: `/app/start.sh` (runs services)
+  - Shell mode: `/app/start.sh shell` (provides bash shell)
+
 ## Getting Started
 
 ### Prerequisites
@@ -108,7 +117,28 @@ HexGlobe provides a framework for visualizing and interacting with a hexagonal g
 - Python 3.12
 - Poetry (for Python dependency management)
 
-### Installation
+### Docker Deployment
+
+The easiest way to run HexGlobe is using Docker:
+
+```bash
+# Pull the latest image
+docker pull valyriantech/hexglobe:latest
+
+# Run the container with both services
+docker run -p 8000:8000 -p 8080:8080 valyriantech/hexglobe:latest
+
+# Access the frontend at http://localhost:8080
+# Access the API at http://localhost:8000
+```
+
+To build the Docker image from source:
+
+```bash
+docker build -t hexglobe -f hexglobe/Dockerfile .
+```
+
+### Local Development Setup
 
 #### Backend
 
