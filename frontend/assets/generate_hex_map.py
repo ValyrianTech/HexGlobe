@@ -479,9 +479,30 @@ def reorder_vertices_by_position(vertices):
     bottom_vertices = sorted_by_y[4:]
     
     # Sort each pair by x-coordinate (left to right)
-    top_left, top_right = sorted(top_vertices, key=lambda x: x[1][0])
-    middle_left, middle_right = sorted(middle_vertices, key=lambda x: x[1][0])
-    bottom_left, bottom_right = sorted(bottom_vertices, key=lambda x: x[1][0])
+    # Handle cases where we might have more or fewer than expected vertices
+    if len(top_vertices) >= 2:
+        top_sorted = sorted(top_vertices, key=lambda x: x[1][0])
+        top_left, top_right = top_sorted[0], top_sorted[1]
+    else:
+        # Default values if we don't have enough vertices
+        top_left = top_vertices[0] if top_vertices else (0, (0, 0))
+        top_right = top_vertices[-1] if len(top_vertices) > 1 else top_left
+    
+    if len(middle_vertices) >= 2:
+        middle_sorted = sorted(middle_vertices, key=lambda x: x[1][0])
+        middle_left, middle_right = middle_sorted[0], middle_sorted[1]
+    else:
+        # Default values if we don't have enough vertices
+        middle_left = middle_vertices[0] if middle_vertices else (0, (0, 0))
+        middle_right = middle_vertices[-1] if len(middle_vertices) > 1 else middle_left
+    
+    if len(bottom_vertices) >= 2:
+        bottom_sorted = sorted(bottom_vertices, key=lambda x: x[1][0])
+        bottom_left, bottom_right = bottom_sorted[0], bottom_sorted[1]
+    else:
+        # Default values if we don't have enough vertices
+        bottom_left = bottom_vertices[0] if bottom_vertices else (0, (0, 0))
+        bottom_right = bottom_vertices[-1] if len(bottom_vertices) > 1 else bottom_left
     
     # Return vertices in the order: right-middle, bottom-right, bottom-left, left-middle, top-left, top-right
     return [
