@@ -50,6 +50,10 @@ RUN mkdir -p /app/data/static /app/data/dynamic /app/data/hex_maps && \
 # Create symbolic link from /data to /app/data for backend compatibility
 RUN ln -sf /app/data /data
 
+# Create symbolic links in frontend directory for mods and data
+RUN ln -sf /app/mods /app/frontend/mods && \
+    ln -sf /app/data /app/frontend/data
+
 # Create supervisor configuration
 RUN mkdir -p /etc/supervisor/conf.d
 COPY hexglobe/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
