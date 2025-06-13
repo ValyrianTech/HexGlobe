@@ -876,6 +876,22 @@ def create_hexagon_map(h3_index, zoom=None, rotate=True, debug=False, vertical_a
         crop_right = min(image.width, crop_right)
         crop_bottom = min(image.height, crop_bottom)
         
+        # Ensure crop box has valid dimensions (right > left, bottom > top)
+        if crop_right <= crop_left:
+            # If invalid width, use full width
+            crop_left = 0
+            crop_right = image.width
+            
+        if crop_bottom <= crop_top:
+            # If invalid height, use full height
+            crop_top = 0
+            crop_bottom = image.height
+            
+        # Add debug info if needed
+        if debug:
+            print(f"Crop box: ({crop_left}, {crop_top}, {crop_right}, {crop_bottom})")
+            print(f"Image dimensions: {image.width} x {image.height}")
+        
         # Crop the image
         cropped_image = image.crop((crop_left, crop_top, crop_right, crop_bottom))
         
