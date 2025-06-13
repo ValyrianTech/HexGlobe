@@ -27,6 +27,9 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
         curl supervisor && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
+# Install dependencies for map generation
+RUN pip install pillow staticmap numpy h3
+
 # Create a user for the application
 RUN useradd --create-home appuser
 
@@ -49,6 +52,9 @@ RUN mkdir -p /app/data/static /app/data/dynamic /app/data/hex_maps && \
 
 # Create symbolic link from /data to /app/data for backend compatibility
 RUN ln -sf /app/data /data
+
+# Create symbolic link from /frontend to /app/frontend for map generation script compatibility
+RUN ln -sf /app/frontend /frontend
 
 # Create symbolic links in frontend directory for mods and data
 RUN ln -sf /app/mods /app/frontend/mods && \
