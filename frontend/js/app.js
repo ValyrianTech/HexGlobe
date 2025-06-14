@@ -121,6 +121,24 @@ window.hexGlobeApp = {
         const h3Index = urlParams.get('h3');
         const zoomParam = urlParams.get('zoom');
         
+        // Check if both h3 and zoom parameters are missing
+        if (!h3Index && !zoomParam) {
+            // Default H3 index to use if none is provided
+            const defaultH3Index = this.getDefaultH3IndexForResolution(this.state.resolution);
+            const defaultZoom = this.state.zoomLevel;
+            
+            // Construct URL with default parameters
+            const url = new URL(window.location);
+            url.searchParams.set('h3', defaultH3Index);
+            url.searchParams.set('zoom', defaultZoom);
+            
+            console.log(`No URL parameters found. Redirecting to default tile: ${defaultH3Index} with zoom: ${defaultZoom}`);
+            
+            // Redirect to the URL with parameters (this will cause a page reload)
+            window.location.href = url.toString();
+            return; // Stop execution as we're redirecting
+        }
+        
         // Default H3 index to use if none is provided
         const defaultH3Index = this.getDefaultH3IndexForResolution(this.state.resolution);
         
