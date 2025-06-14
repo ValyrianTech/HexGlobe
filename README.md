@@ -6,7 +6,35 @@ A web application framework that implements a global hexagonal grid system using
 
 HexGlobe is an innovative platform that provides a hexagonal tile-based world map with a 2D representation. It allows developers to build applications on top of a consistent global grid where each tile can store content and be navigated by users. Think of it as a new way to visualize and interact with geographic data, games, simulations, or any application that benefits from a hexagonal grid structure.
 
-### Why Hexagons?
+## Screenshots
+
+Here are some screenshots showcasing HexGlobe at different resolution and zoom levels:
+
+### City View with Multiple Hexagons
+![Resolution 9, Zoom 3 Complete Map](/screenshots/Screenshot_resolution_9_zoom_3_complete_map.png)
+*Resolution 9 with zoom level 3 showing a detailed city view with complete map rendering*
+
+### Park and Lake View
+![Resolution 10, Zoom 1](/screenshots/Screenshot_resolution_10_zoom_1.png)
+*Resolution 10 with zoom level 1 showing a single hexagon with detailed map*
+
+### Grid Overview
+![Resolution 9, Zoom 10](/screenshots/Screenshot_resolution_9_zoom_10.png)
+*Resolution 9 with zoom level 10 showing a wider area with multiple hexagons*
+
+### Regional View
+![Resolution 7, Zoom 1 Complete Map](/screenshots/Screenshot_resolution_7_zoom_1_complete_map.png)
+*Resolution 7 with zoom level 1 showing a larger geographic area with complete map rendering*
+
+### Partial Map with Hexagon Outlines
+![Resolution 7, Zoom 1 Incomplete Map](/screenshots/Screenshot_resolution_7_zoom_1_incomplete_map.png)
+*Resolution 7 with zoom level 1 showing partial map rendering*
+
+### Central Tile with Neighbors
+![Resolution 9, Zoom 3 Incomplete Map](/screenshots/Screenshot_resolution_9_zoom_3_incomplete_map.png)
+*Resolution 9 with zoom level 3 showing a central tile with its neighboring tiles*
+
+## Why Hexagons?
 
 Hexagonal grids offer several advantages over traditional square grids:
 - More natural representation of distances (each neighbor is equidistant)
