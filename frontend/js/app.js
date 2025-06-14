@@ -165,28 +165,28 @@ window.hexGlobeApp = {
     
     // Get a default H3 index for a specific resolution
     getDefaultH3IndexForResolution: function(resolution) {
-        // These are example H3 indexes for different resolutions
-        // Each represents approximately the same area but at different resolutions
+        // These are H3 indexes for different resolutions
+        // Each represents the same area but at different resolutions
         const defaultIndexes = {
-            0: "8001fffffffffff", // Res 0
-            1: "81007ffffffffff", // Res 1
-            2: "820043fffffffff", // Res 2
-            3: "83000dfffffffff", // Res 3
-            4: "8400013ffffffff", // Res 4
-            5: "85000033fffffff", // Res 5
-            6: "860000057ffffff", // Res 6
-            7: "870000051ffffff", // Res 7 - Updated to a valid index
-            8: "880000003ffffff", // Res 8
-            9: "890000000ffffff", // Res 9
-            10: "8a0000000ffffff", // Res 10
-            11: "8b00000003fffff", // Res 11
-            12: "8c000000003ffff", // Res 12
-            13: "8d0000000003fff", // Res 13
-            14: "8e00000000003ff", // Res 14
-            15: "8f000000000003f"  // Res 15
+            0: "801ffffffffffff", // Res 0
+            1: "811fbffffffffff", // Res 1
+            2: "821fa7fffffffff", // Res 2
+            3: "831fa4fffffffff", // Res 3
+            4: "841fa45ffffffff", // Res 4
+            5: "851fa443fffffff", // Res 5
+            6: "861fa441fffffff", // Res 6
+            7: "871fa4418ffffff", // Res 7
+            8: "881fa44181fffff", // Res 8
+            9: "891fa441803ffff", // Res 9
+            10: "8a1fa4418007fff", // Res 10
+            11: "8b1fa4418000fff", // Res 11
+            12: "8c1fa44180001ff", // Res 12
+            13: "8d1fa441800003f", // Res 13
+            14: "8e1fa4418000007", // Res 14
+            15: "8f1fa4418000000"  // Res 15
         };
         
-        return defaultIndexes[resolution] || "870000051ffffff"; // Default to res 7 if not found
+        return defaultIndexes[resolution] || "871fa4418ffffff"; // Default to res 7 if not found
     },
     
     // Set up the canvas
