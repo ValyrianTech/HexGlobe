@@ -379,12 +379,29 @@ canvas {
 }
 
 footer {
-    padding: 0.3rem;
+    padding: 0.5rem;
     margin-top: auto;
-    font-size: 0.8rem;
+    font-size: 0.9rem;
     background-color: var(--footer-bg);
     color: var(--footer-text);
     text-align: center;
+    box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
+}
+
+footer a {
+    color: var(--footer-text);
+    text-decoration: none;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 4px;
+    transition: all 0.2s ease-in-out;
+    background-color: rgba(255, 255, 255, 0.15);
+}
+
+footer a:hover {
+    background-color: rgba(255, 255, 255, 0.25);
+    text-decoration: underline;
+    box-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
 }
 
 /* Responsive adjustments */
