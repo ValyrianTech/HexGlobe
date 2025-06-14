@@ -15,6 +15,7 @@ class HexNavigation {
         this.neighbors = [];
         this.showNeighbors = true;
         this.apiBaseUrl = options.apiBaseUrl || "http://localhost:8000/api";
+        this.isGeneratingMap = false; // Track if map generation is in progress
     }
 
     /**
@@ -53,6 +54,13 @@ class HexNavigation {
             
             const tileData = await response.json();
             this.activeTile = tileData;
+            
+            // Check if the active tile has a map image
+            // If not, trigger map generation
+            if (!tileData.latest_map && !this.isGeneratingMap) {
+                console.log(`No map found for active tile ${tileData.id}, triggering map generation...`);
+                this.generateMapForActiveTile(tileData.id);
+            }
             
             // Dispatch an event to notify that the active tile has changed
             // Include the resolution from the backend in the event
@@ -94,6 +102,74 @@ class HexNavigation {
             window.dispatchEvent(event);
             
             return fallbackTile;
+        }
+    }
+
+    /**
+     * Generate a map for the active tile
+     * @param {string} tileId - The ID of the tile to generate a map for
+     * @returns {Promise} - Promise that resolves when map generation is complete
+     */
+    async generateMapForActiveTile(tileId) {
+        // Set flag to prevent multiple simultaneous generation attempts
+        this.isGeneratingMap = true;
+        
+        // Create and show status message
+        const statusElement = document.createElement('div');
+        statusElement.id = 'map-generation-status';
+        statusElement.style.position = 'fixed';
+        statusElement.style.bottom = '20px';
+        statusElement.style.right = '20px';
+        statusElement.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+        statusElement.style.color = 'white';
+        statusElement.style.padding = '10px';
+        statusElement.style.borderRadius = '5px';
+        statusElement.style.zIndex = '1000';
+        statusElement.textContent = `Generating map for active tile ${tileId}...`;
+        document.body.appendChild(statusElement);
+        
+        try {
+            console.log(`Calling API to generate map for tile ${tileId}...`);
+            
+            // Call the API to generate the map
+            const response = await fetch(`${this.apiBaseUrl}/tiles/${tileId}/generate-map`, {
+                method: 'POST',
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error ${response.status}`);
+            }
+            
+            const data = await response.json();
+            console.log(`Map generated successfully for tile ${tileId}:`, data);
+            
+            // Update status message
+            statusElement.textContent = `Map generated successfully! Refreshing...`;
+            statusElement.style.backgroundColor = 'rgba(0, 128, 0, 0.7)';
+            
+            // Wait a moment to show the success message before refreshing
+            setTimeout(() => {
+                // Reload the page to show the new map
+                window.location.reload();
+            }, 1500);
+            
+        } catch (error) {
+            console.error(`Error generating map for tile ${tileId}:`, error);
+            
+            // Update status message with error
+            statusElement.textContent = `Error generating map: ${error.message}`;
+            statusElement.style.backgroundColor = 'rgba(255, 0, 0, 0.7)';
+            
+            // Remove the status message after a delay
+            setTimeout(() => {
+                if (document.body.contains(statusElement)) {
+                    document.body.removeChild(statusElement);
+                }
+            }, 5000);
+            
+        } finally {
+            // Reset the flag
+            this.isGeneratingMap = false;
         }
     }
 
