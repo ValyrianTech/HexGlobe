@@ -462,10 +462,9 @@ document.addEventListener('tileContentUpdated', (event) => {
 2. Click on any tile to select it. Selected tiles will be highlighted with an orange border and yellow fill.
 3. Click on a selected tile to unselect it.
 4. You can select multiple tiles to compare them.
-5. When exactly one tile is selected, a "Navigate to Selected Tile" button will appear in the debug panel.
-6. Click this button to make the selected tile the new active tile, which will center the grid on that tile.
-7. Use the zoom slider to adjust how many tiles are visible on screen.
-8. Use the resolution slider to change the size of the hexagons on Earth's surface.
+5. The tile that has the focus will display a link on top of the debug panel that allows you to navigate to it.
+6. Use the zoom slider to adjust how many tiles are visible on screen.
+7. Use the resolution slider to change the size of the hexagons on Earth's surface.
 
 ### Debug Panel
 
@@ -473,10 +472,8 @@ The debug panel on the right side of the screen provides information about:
 - The active tile's H3 index
 - Resolution information (backend and frontend)
 - Current zoom level
-- Grid position of the active tile
 - Tile content (if available)
 - List of currently selected tiles
-- Navigation button (when exactly one tile is selected)
 
 ## Tile Data Structure
 
