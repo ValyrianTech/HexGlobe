@@ -55,13 +55,14 @@ def get_dynamic_path(h3_index: str, mod_name: str = "default") -> str:
     dynamic_dir = os.path.join(BASE_DATA_DIR, "dynamic", mod_name, f"res_{resolution}", *path_segments)
     return os.path.join(dynamic_dir, f"{h3_index}.json")
 
-def get_hex_map_path(h3_index: str, timestamp: str = None) -> str:
+def get_hex_map_path(h3_index: str, timestamp: str = None, create_dirs: bool = False) -> str:
     """
     Calculate the path for hex map image based on H3 index and optional timestamp.
     
     Args:
         h3_index: The H3 index of the tile
         timestamp: Optional timestamp for versioning
+        create_dirs: Whether to create the directory structure (default: False)
         
     Returns:
         The absolute file path for the hex map PNG file
@@ -78,7 +79,10 @@ def get_hex_map_path(h3_index: str, timestamp: str = None) -> str:
     
     # Construct the path
     hex_maps_dir = os.path.join(BASE_DATA_DIR, "hex_maps", f"res_{resolution}", *path_segments)
-    os.makedirs(hex_maps_dir, exist_ok=True)
+    
+    # Only create directories if explicitly requested
+    if create_dirs:
+        os.makedirs(hex_maps_dir, exist_ok=True)
     
     # If timestamp is provided, include it in the filename
     if timestamp:
@@ -96,36 +100,39 @@ def get_latest_hex_map_path(h3_index: str) -> str:
     Returns:
         The absolute file path for the most recent hex map PNG file
     """
-    # Get the directory where map images are stored
+    # Get resolution from the index
     resolution = h3.h3_get_resolution(h3_index)
+    
+    # Create directory structure with 2-digit segments
     path_segments = []
     for i in range(0, len(h3_index) - 1, 2):
         if i + 1 < len(h3_index):
             segment = h3_index[i:i+2]
             path_segments.append(segment)
     
+    # Construct the path
     hex_maps_dir = os.path.join(BASE_DATA_DIR, "hex_maps", f"res_{resolution}", *path_segments)
     
-    # If directory doesn't exist, return the default path
+    # Check if directory exists before trying to list files
     if not os.path.exists(hex_maps_dir):
-        return get_hex_map_path(h3_index)
+        return None
     
-    # Find all map files for this tile
+    # Look for timestamped map files
     import glob
     map_files = glob.glob(os.path.join(hex_maps_dir, f"{h3_index}_*.png"))
     
-    # If no timestamped files exist, check for the default file
-    if not map_files:
-        default_path = get_hex_map_path(h3_index)
-        if os.path.exists(default_path):
-            return default_path
-        return None
+    if map_files:
+        # Sort by timestamp (newest first)
+        map_files.sort(reverse=True)
+        return map_files[0]
     
-    # Sort by timestamp (newest first)
-    map_files.sort(reverse=True)
+    # Check for a non-timestamped file
+    default_path = get_hex_map_path(h3_index)
+    if os.path.exists(default_path):
+        return default_path
     
-    # Return the newest file
-    return map_files[0]
+    # No map file found
+    return None
 
 class VisualProperties(BaseModel):
     """Visual properties for a tile."""
@@ -512,8 +519,8 @@ class Tile(ABC):
             # Generate timestamp in ISO format (with colons replaced to be filename-safe)
             timestamp = datetime.now().isoformat().replace(':', '-').replace('.', '-')
             
-            # Get the path for the hex map with timestamp
-            hex_map_path = get_hex_map_path(self.id, timestamp)
+            # Get the path for the hex map with timestamp, and create directories
+            hex_map_path = get_hex_map_path(self.id, timestamp, create_dirs=True)
             
             # Ensure the directory exists
             os.makedirs(os.path.dirname(hex_map_path), exist_ok=True)
