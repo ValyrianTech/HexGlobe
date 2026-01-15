@@ -388,7 +388,8 @@ class Tile(ABC):
             "children_ids": list(self.children_ids) if isinstance(self.children_ids, set) else self.children_ids,
             "neighbor_ids": self.neighbor_ids,  # Now a dictionary with position keys
             "resolution_ids": self.resolution_ids,
-            "resolution": self.resolution
+            "resolution": self.resolution,
+            "geometry": self.get_geometry()  # Boundary coordinates for 3D rendering
         }
     
     def to_static_dict(self) -> Dict:

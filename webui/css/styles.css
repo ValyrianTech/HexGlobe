@@ -1,0 +1,221 @@
+/* HexGlobe 3D Styles */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #0a0a1a;
+    color: #ffffff;
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+}
+
+#container {
+    width: 100%;
+    height: 100%;
+    position: relative;
+}
+
+#globe-canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+/* Info Panel */
+.panel {
+    position: absolute;
+    background: rgba(10, 10, 30, 0.85);
+    border: 1px solid rgba(100, 150, 255, 0.3);
+    border-radius: 8px;
+    padding: 16px;
+    backdrop-filter: blur(10px);
+}
+
+#info-panel {
+    top: 20px;
+    right: 20px;
+    width: 280px;
+    max-height: calc(100vh - 40px);
+    overflow-y: auto;
+}
+
+#info-panel h2 {
+    font-size: 1.4em;
+    margin-bottom: 12px;
+    color: #6af;
+    border-bottom: 1px solid rgba(100, 150, 255, 0.3);
+    padding-bottom: 8px;
+}
+
+#tile-info {
+    margin-bottom: 16px;
+    font-size: 0.9em;
+    line-height: 1.5;
+}
+
+#tile-info p {
+    margin-bottom: 8px;
+}
+
+#tile-info .tile-id {
+    font-family: monospace;
+    background: rgba(100, 150, 255, 0.1);
+    padding: 4px 8px;
+    border-radius: 4px;
+    word-break: break-all;
+}
+
+#tile-info .tile-content {
+    background: rgba(100, 150, 255, 0.1);
+    padding: 8px;
+    border-radius: 4px;
+    margin-top: 8px;
+}
+
+/* Controls */
+#controls {
+    border-top: 1px solid rgba(100, 150, 255, 0.3);
+    padding-top: 12px;
+}
+
+.control-group {
+    margin-bottom: 12px;
+}
+
+.control-group label {
+    display: block;
+    margin-bottom: 4px;
+    font-size: 0.85em;
+    color: #aac;
+}
+
+.control-group select {
+    width: 100%;
+    padding: 8px;
+    background: rgba(20, 20, 50, 0.8);
+    border: 1px solid rgba(100, 150, 255, 0.3);
+    border-radius: 4px;
+    color: #fff;
+    font-size: 0.9em;
+    cursor: pointer;
+}
+
+.control-group select:hover {
+    border-color: rgba(100, 150, 255, 0.6);
+}
+
+.control-group select:focus {
+    outline: none;
+    border-color: #6af;
+}
+
+.control-group input[type="checkbox"] {
+    margin-right: 8px;
+}
+
+/* Loading Overlay */
+#loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(10, 10, 30, 0.95);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    transition: opacity 0.5s ease;
+}
+
+#loading-overlay.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.spinner {
+    width: 50px;
+    height: 50px;
+    border: 3px solid rgba(100, 150, 255, 0.2);
+    border-top-color: #6af;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 16px;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+#loading-overlay p {
+    color: #6af;
+    font-size: 1.1em;
+}
+
+/* Tooltip for hovering hexagons */
+#tooltip {
+    position: absolute;
+    background: rgba(10, 10, 30, 0.9);
+    border: 1px solid rgba(100, 150, 255, 0.5);
+    border-radius: 4px;
+    padding: 8px 12px;
+    font-size: 0.85em;
+    pointer-events: none;
+    z-index: 100;
+    display: none;
+    max-width: 200px;
+}
+
+#tooltip.visible {
+    display: block;
+}
+
+/* Navigation button */
+.nav-button {
+    display: inline-block;
+    margin-top: 12px;
+    padding: 8px 16px;
+    background: linear-gradient(135deg, #4a6cf7, #6a8cff);
+    border: none;
+    border-radius: 4px;
+    color: #fff;
+    font-size: 0.9em;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.nav-button:hover {
+    background: linear-gradient(135deg, #5a7cff, #7a9cff);
+    transform: translateY(-1px);
+}
+
+.nav-button:active {
+    transform: translateY(0);
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(10, 10, 30, 0.5);
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(100, 150, 255, 0.3);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(100, 150, 255, 0.5);
+}
