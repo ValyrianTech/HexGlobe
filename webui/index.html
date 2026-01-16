@@ -16,6 +16,13 @@
         <h2>HexGlobe 3D</h2>
         <div id="tile-info">
             <p>Click on a hexagon to view details</p>
+            <p class="hint">Ctrl+click to select multiple tiles</p>
+        </div>
+        <div id="selection-info" style="display: none;">
+            <p><strong>Selected:</strong> <span id="selection-count">0</span> tiles</p>
+            <button id="generate-maps-btn" class="action-btn">Generate Maps</button>
+            <button id="clear-selection-btn" class="action-btn secondary">Clear Selection</button>
+            <div id="generation-status" style="display: none;"></div>
         </div>
         <div id="controls">
             <div class="control-group">

@@ -26,6 +26,7 @@ class HexGlobeApp {
         // Set up callbacks
         this.globe.onTileClick = (tileData) => this.handleTileClick(tileData);
         this.globe.onTileHover = (tileData) => this.handleTileHover(tileData);
+        this.globe.onSelectionChange = (selectedIds) => this.handleSelectionChange(selectedIds);
         
         // Set up UI controls
         this.setupControls();
@@ -60,21 +61,37 @@ class HexGlobeApp {
                 await this.refreshCurrentLayer();
             });
         }
+        
+        // Generate maps button
+        const generateMapsBtn = document.getElementById('generate-maps-btn');
+        if (generateMapsBtn) {
+            generateMapsBtn.addEventListener('click', () => this.generateMapsForSelection());
+        }
+        
+        // Clear selection button
+        const clearSelectionBtn = document.getElementById('clear-selection-btn');
+        if (clearSelectionBtn) {
+            clearSelectionBtn.addEventListener('click', () => {
+                this.globe.clearSelection();
+                this.handleSelectionChange([]);
+            });
+        }
     }
     
     /**
      * Load hexagons for a specific resolution
      * @param {number} resolution - H3 resolution level
+     * @param {boolean} noCache - If true, bypass browser cache when fetching tiles
      */
-    async loadHexagonLayer(resolution) {
+    async loadHexagonLayer(resolution, noCache = false) {
         console.log(`Loading hexagon layer for resolution ${resolution}...`);
         
         // Show loading state
         this.showLoading();
         
         try {
-            // Check cache first
-            if (this.loadedTiles[resolution]) {
+            // Check cache first (unless noCache is set)
+            if (!noCache && this.loadedTiles[resolution]) {
                 console.log(`Using cached tiles for resolution ${resolution}`);
                 this.globe.addHexagonLayer(resolution, this.loadedTiles[resolution], this.showAllHexagons);
                 this.hideLoading();
@@ -86,7 +103,7 @@ class HexGlobeApp {
             
             if (resolution === 0) {
                 // For resolution 0, get all base cells
-                tiles = await hexGlobeAPI.getAllBaseCells();
+                tiles = await hexGlobeAPI.getAllBaseCells(noCache);
             } else {
                 // For other resolutions, get a grid centered on a default tile
                 const defaultTile = hexGlobeAPI.getDefaultTileForResolution(resolution);
@@ -97,7 +114,7 @@ class HexGlobeApp {
                     
                     // Fetch full data for each tile
                     for (const tileId of tileIds) {
-                        const tile = await hexGlobeAPI.getTile(tileId);
+                        const tile = await hexGlobeAPI.getTile(tileId, noCache);
                         if (tile) {
                             tiles.push(tile);
                         }
@@ -167,6 +184,99 @@ class HexGlobeApp {
     handleTileHover(tileData) {
         // Could update a tooltip here
         // For now, we'll just update cursor style (handled in globe.js)
+    }
+    
+    /**
+     * Handle selection change
+     * @param {Array<string>} selectedIds - Array of selected tile IDs
+     */
+    handleSelectionChange(selectedIds) {
+        const selectionInfo = document.getElementById('selection-info');
+        const selectionCount = document.getElementById('selection-count');
+        const generationStatus = document.getElementById('generation-status');
+        
+        if (selectionInfo && selectionCount) {
+            if (selectedIds.length > 0) {
+                selectionInfo.style.display = 'block';
+                selectionCount.textContent = selectedIds.length;
+            } else {
+                selectionInfo.style.display = 'none';
+            }
+        }
+        
+        // Hide generation status when selection changes
+        if (generationStatus) {
+            generationStatus.style.display = 'none';
+        }
+    }
+    
+    /**
+     * Generate maps for all selected tiles
+     */
+    async generateMapsForSelection() {
+        const selectedIds = this.globe.getSelectedTileIds();
+        if (selectedIds.length === 0) {
+            return;
+        }
+        
+        const generateBtn = document.getElementById('generate-maps-btn');
+        const generationStatus = document.getElementById('generation-status');
+        
+        // Disable button during generation
+        if (generateBtn) {
+            generateBtn.disabled = true;
+            generateBtn.textContent = 'Generating...';
+        }
+        
+        // Show progress
+        if (generationStatus) {
+            generationStatus.style.display = 'block';
+            generationStatus.className = 'progress';
+            generationStatus.textContent = `Generating maps: 0/${selectedIds.length}`;
+        }
+        
+        try {
+            const results = await hexGlobeAPI.generateMapsForTiles(selectedIds, (current, total) => {
+                if (generationStatus) {
+                    generationStatus.textContent = `Generating maps: ${current}/${total}`;
+                }
+            });
+            
+            // Count successes and failures
+            const successes = results.filter(r => r.success).length;
+            const failures = results.filter(r => !r.success).length;
+            
+            if (generationStatus) {
+                if (failures === 0) {
+                    generationStatus.className = 'success';
+                    generationStatus.textContent = `Successfully generated ${successes} maps!`;
+                } else {
+                    generationStatus.className = 'error';
+                    generationStatus.textContent = `Generated ${successes} maps, ${failures} failed`;
+                }
+            }
+            
+            // Refresh the current layer to show new textures
+            // Clear tile cache and force fresh fetch from API
+            delete this.loadedTiles[this.currentResolution];
+            await this.loadHexagonLayer(this.currentResolution, true);  // noCache = true
+            
+            // Update selection UI since layer rebuild clears selection
+            this.handleSelectionChange([]);
+            
+        } catch (error) {
+            console.error('Error generating maps:', error);
+            if (generationStatus) {
+                generationStatus.className = 'error';
+                generationStatus.textContent = `Error: ${error.message}`;
+            }
+        }
+        
+        // Re-enable button
+        if (generateBtn) {
+            generateBtn.disabled = false;
+            generateBtn.textContent = 'Generate Maps';
+        }
     }
     
     /**

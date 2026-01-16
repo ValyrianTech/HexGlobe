@@ -16,9 +16,11 @@ class HexGlobe3D {
         this.raycaster = new THREE.Raycaster();
         this.mouse = new THREE.Vector2();
         this.selectedHexagon = null;
+        this.selectedHexagons = [];  // Array for multi-select
         this.hoveredHexagon = null;
         this.onTileClick = null;  // Callback for tile clicks
         this.onTileHover = null;  // Callback for tile hover
+        this.onSelectionChange = null;  // Callback for selection changes
         
         this.init();
     }
@@ -248,6 +250,7 @@ class HexGlobe3D {
     
     /**
      * Handle mouse click for selection
+     * Ctrl/Cmd + click for multi-select
      */
     onMouseClick(event) {
         const rect = this.canvas.getBoundingClientRect();
@@ -266,26 +269,74 @@ class HexGlobe3D {
         });
         
         const intersects = this.raycaster.intersectObjects(hexagonMeshes);
+        const isMultiSelect = event.ctrlKey || event.metaKey;
         
         if (intersects.length > 0) {
             const hexGroup = intersects[0].object.parent;
             if (hexGroup?.userData?.isHexTile) {
-                // Deselect previous
-                if (this.selectedHexagon) {
-                    const prevData = this.selectedHexagon.userData.tileData;
-                    const color = prevData?.content ? CONFIG.hexagon.contentColor : CONFIG.hexagon.defaultColor;
-                    HexagonUtils.setHexagonColor(this.selectedHexagon, color);
+                if (isMultiSelect) {
+                    // Multi-select mode: toggle selection
+                    const idx = this.selectedHexagons.indexOf(hexGroup);
+                    if (idx >= 0) {
+                        // Already selected, deselect it
+                        this.selectedHexagons.splice(idx, 1);
+                        const tileData = hexGroup.userData.tileData;
+                        const color = tileData?.content ? CONFIG.hexagon.contentColor : CONFIG.hexagon.defaultColor;
+                        HexagonUtils.setHexagonColor(hexGroup, color);
+                    } else {
+                        // Add to selection
+                        this.selectedHexagons.push(hexGroup);
+                        HexagonUtils.setHexagonColor(hexGroup, CONFIG.hexagon.selectedColor);
+                    }
+                    
+                    // Update single selection reference to last clicked
+                    this.selectedHexagon = this.selectedHexagons.length > 0 
+                        ? this.selectedHexagons[this.selectedHexagons.length - 1] 
+                        : null;
+                } else {
+                    // Single select mode: clear previous and select new
+                    this.clearSelection();
+                    
+                    this.selectedHexagon = hexGroup;
+                    this.selectedHexagons = [hexGroup];
+                    HexagonUtils.setHexagonColor(hexGroup, CONFIG.hexagon.selectedColor);
                 }
-                
-                // Select new
-                this.selectedHexagon = hexGroup;
-                HexagonUtils.setHexagonColor(hexGroup, CONFIG.hexagon.selectedColor);
                 
                 if (this.onTileClick) {
                     this.onTileClick(hexGroup.userData.tileData);
                 }
+                
+                if (this.onSelectionChange) {
+                    this.onSelectionChange(this.getSelectedTileIds());
+                }
+            }
+        } else if (!isMultiSelect) {
+            // Clicked on empty space without Ctrl - clear selection
+            this.clearSelection();
+            if (this.onSelectionChange) {
+                this.onSelectionChange([]);
             }
         }
+    }
+    
+    /**
+     * Clear all selected hexagons
+     */
+    clearSelection() {
+        this.selectedHexagons.forEach(hexGroup => {
+            const tileData = hexGroup.userData.tileData;
+            const color = tileData?.content ? CONFIG.hexagon.contentColor : CONFIG.hexagon.defaultColor;
+            HexagonUtils.setHexagonColor(hexGroup, color);
+        });
+        this.selectedHexagons = [];
+        this.selectedHexagon = null;
+    }
+    
+    /**
+     * Get array of selected tile IDs
+     */
+    getSelectedTileIds() {
+        return this.selectedHexagons.map(hexGroup => hexGroup.userData.tileData?.id).filter(id => id);
     }
     
     /**
@@ -447,6 +498,11 @@ class HexGlobe3D {
      * @param {boolean} showAll - Whether to show all tiles or only those with content
      */
     addHexagonLayer(resolution, tiles, showAll = true) {
+        // Clear selection state since we're rebuilding the layer
+        // The old hexagon objects will be removed
+        this.selectedHexagons = [];
+        this.selectedHexagon = null;
+        
         // Remove existing layer if present
         if (this.hexagonLayers[resolution]) {
             this.scene.remove(this.hexagonLayers[resolution]);

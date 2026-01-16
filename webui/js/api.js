@@ -26,10 +26,13 @@ class HexGlobeAPI {
     
     /**
      * Get tile information
+     * @param {string} tileId - The tile ID
+     * @param {boolean} noCache - If true, bypass browser cache
      */
-    async getTile(tileId) {
+    async getTile(tileId, noCache = false) {
         try {
-            const url = this.buildUrl(`/tiles/${tileId}`);
+            const params = noCache ? { _t: Date.now() } : {};
+            const url = this.buildUrl(`/tiles/${tileId}`, params);
             const response = await fetch(url);
             
             if (!response.ok) {
@@ -135,13 +138,15 @@ class HexGlobeAPI {
     
     /**
      * Get all H3 base cells (resolution 0)
-     * Resolution 0 has 122 cells (110 hexagons + 12 pentagons)
+     * @param {boolean} noCache - If true, bypass browser cache
      */
-    async getAllBaseCells() {
+    async getAllBaseCells(noCache = false) {
         try {
             // Use a known resolution 0 tile and get a large grid
             const baseTileId = '801ffffffffffff';
-            const url = this.buildUrl(`/tiles/${baseTileId}/grid`, { width: 15, height: 15 });
+            const params = { width: 15, height: 15 };
+            if (noCache) params._t = Date.now();
+            const url = this.buildUrl(`/tiles/${baseTileId}/grid`, params);
             const response = await fetch(url);
             
             if (!response.ok) {
@@ -156,7 +161,7 @@ class HexGlobeAPI {
             // Fetch full tile data for each
             const tiles = [];
             for (const tileId of tileIds) {
-                const tile = await this.getTile(tileId);
+                const tile = await this.getTile(tileId, noCache);
                 if (tile) {
                     tiles.push(tile);
                 }
@@ -183,6 +188,55 @@ class HexGlobeAPI {
         };
         
         return defaults[resolution] || defaults[0];
+    }
+    
+    /**
+     * Generate map for a tile
+     * @param {string} tileId - The tile ID to generate a map for
+     * @returns {Promise<Object>} - The response data
+     */
+    async generateMap(tileId) {
+        try {
+            const url = this.buildUrl(`/tiles/${tileId}/generate-map`);
+            const response = await fetch(url, {
+                method: 'POST'
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Failed to generate map: ${response.statusText}`);
+            }
+            
+            return await response.json();
+        } catch (error) {
+            console.error(`Error generating map for ${tileId}:`, error);
+            throw error;
+        }
+    }
+    
+    /**
+     * Generate maps for multiple tiles
+     * @param {Array<string>} tileIds - Array of tile IDs to generate maps for
+     * @param {Function} onProgress - Optional callback for progress updates (current, total)
+     * @returns {Promise<Array>} - Array of results
+     */
+    async generateMapsForTiles(tileIds, onProgress = null) {
+        const results = [];
+        
+        for (let i = 0; i < tileIds.length; i++) {
+            const tileId = tileIds[i];
+            try {
+                const result = await this.generateMap(tileId);
+                results.push({ tileId, success: true, data: result });
+            } catch (error) {
+                results.push({ tileId, success: false, error: error.message });
+            }
+            
+            if (onProgress) {
+                onProgress(i + 1, tileIds.length);
+            }
+        }
+        
+        return results;
     }
 }
 

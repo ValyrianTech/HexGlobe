@@ -335,9 +335,11 @@ const HexagonUtils = {
         if (hasTexture) {
             // Construct the full path to the texture
             const texturePath = `${dataBasePath}/${tileData.latest_map}`;
+            console.log(`Loading texture for tile ${tileData.id}: ${texturePath}`);
             
             // Load texture asynchronously and update mesh when ready
             this.loadTexture(texturePath, (loadedTexture) => {
+                console.log(`Texture loaded for tile ${tileData.id}`);
                 // Find the mesh in the group and update its material
                 group.traverse((child) => {
                     if (child.isMesh && child.userData.tileId === tileData.id) {
@@ -347,6 +349,8 @@ const HexagonUtils = {
                     }
                 });
             });
+        } else if (useTextures && !tileData.latest_map) {
+            console.log(`No texture for tile ${tileData.id} (latest_map: ${tileData.latest_map})`);
         }
         if (mesh) {
             mesh.userData = { tileId: tileData.id };
