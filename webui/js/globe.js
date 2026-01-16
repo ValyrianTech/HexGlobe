@@ -59,6 +59,7 @@ class HexGlobe3D {
         this.controls.autoRotate = CONFIG.globe.autoRotate;
         this.controls.autoRotateSpeed = 0.5;
         this.controls.zoomSpeed = 0.3;  // Slower, more granular zoom
+        this.controls.rotateSpeed = 0.5;  // Slower rotation so cursor stays closer to drag point
         this.controls.enablePan = false;  // Disable panning to keep globe centered
         this.controls.target.set(0, 0, 0);  // Always orbit around the center
         
@@ -592,6 +593,16 @@ class HexGlobe3D {
      */
     animate() {
         requestAnimationFrame(() => this.animate());
+        
+        // Dynamically adjust rotation speed based on camera distance
+        // When zoomed in (close), rotate slower so cursor tracks the surface
+        const distance = this.camera.position.length();
+        const maxDist = CONFIG.camera.maxDistance;
+        const minDist = CONFIG.camera.minDistance;
+        // Normalize distance to 0-1 range (0 = closest, 1 = farthest)
+        const normalizedDist = (distance - minDist) / (maxDist - minDist);
+        // Rotate speed: 0.1 when very close, 0.5 when far
+        this.controls.rotateSpeed = 0.1 + normalizedDist * 0.4;
         
         // Update controls
         this.controls.update();
