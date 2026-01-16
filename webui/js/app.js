@@ -33,6 +33,7 @@ class HexGlobeApp {
         
         // Load initial hexagon layer (resolution 0)
         await this.loadHexagonLayer(0);
+        this.globe.setZoomSpeedForResolution(0);
         
         // Hide loading overlay
         this.hideLoading();
@@ -155,6 +156,9 @@ class HexGlobeApp {
         this.currentResolution = newResolution;
         await this.loadHexagonLayer(newResolution);
         this.globe.setLayerVisibility(newResolution, true);
+        
+        // Adjust zoom speed for the new resolution
+        this.globe.setZoomSpeedForResolution(newResolution);
     }
     
     /**

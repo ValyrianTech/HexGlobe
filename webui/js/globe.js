@@ -564,6 +564,20 @@ class HexGlobe3D {
     }
     
     /**
+     * Update zoom speed based on resolution level
+     * Higher resolutions need more granular zoom control
+     * @param {number} resolution - Current resolution level (0-15)
+     */
+    setZoomSpeedForResolution(resolution) {
+        // Base zoom speed for resolution 0, decreasing for higher resolutions
+        // Resolution 0: 0.3, Resolution 15: ~0.02
+        const baseSpeed = 0.3;
+        const minSpeed = 0.02;
+        const speed = Math.max(minSpeed, baseSpeed / (1 + resolution * 0.5));
+        this.controls.zoomSpeed = speed;
+    }
+    
+    /**
      * Clear all hexagon layers
      */
     clearAllLayers() {
