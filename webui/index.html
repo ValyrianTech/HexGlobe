@@ -8,8 +8,16 @@
     <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
-    <div id="container">
-        <canvas id="globe-canvas"></canvas>
+    <div id="main-container">
+        <div id="globe-container">
+            <canvas id="globe-canvas"></canvas>
+        </div>
+        <div id="tile-view-container">
+            <canvas id="tile-canvas"></canvas>
+            <div id="tile-view-placeholder">
+                <p>Select a tile to view</p>
+            </div>
+        </div>
     </div>
     
     <div id="info-panel" class="panel">
@@ -70,6 +78,7 @@
     <script src="js/api.js"></script>
     <script src="js/hexagonUtils.js"></script>
     <script src="js/globe.js"></script>
+    <script src="js/tileView.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>

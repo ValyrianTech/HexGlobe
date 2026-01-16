@@ -7,6 +7,7 @@
 class HexGlobeApp {
     constructor() {
         this.globe = null;
+        this.tileView = null;
         this.currentResolution = 0;
         this.showAllHexagons = true;
         this.loadedTiles = {};  // Cache of loaded tiles by resolution
@@ -22,6 +23,9 @@ class HexGlobeApp {
         
         // Create the 3D globe
         this.globe = new HexGlobe3D('globe-canvas');
+        
+        // Create the 2D tile view
+        this.tileView = new TileView2D('tile-canvas', 'tile-view-placeholder');
         
         // Set up callbacks
         this.globe.onTileClick = (tileData) => this.handleTileClick(tileData);
@@ -179,6 +183,9 @@ class HexGlobeApp {
         
         // Update info panel
         this.updateInfoPanel(tileData, true);
+        
+        // Update 2D tile view
+        this.tileView.showTile(tileData);
     }
     
     /**
@@ -205,6 +212,8 @@ class HexGlobeApp {
                 selectionCount.textContent = selectedIds.length;
             } else {
                 selectionInfo.style.display = 'none';
+                // Clear 2D tile view when selection is cleared
+                this.tileView.clear();
             }
         }
         

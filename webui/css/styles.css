@@ -15,8 +15,15 @@ body {
     width: 100vw;
 }
 
-#container {
+#main-container {
     width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: row;
+}
+
+#globe-container {
+    width: 50%;
     height: 100%;
     position: relative;
 }
@@ -25,6 +32,34 @@ body {
     display: block;
     width: 100%;
     height: 100%;
+}
+
+#tile-view-container {
+    width: 50%;
+    height: 100%;
+    position: relative;
+    background: #0a0a1a;
+    border-left: 1px solid rgba(100, 150, 255, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#tile-canvas {
+    display: block;
+    max-width: 100%;
+    max-height: 100%;
+}
+
+#tile-view-placeholder {
+    position: absolute;
+    color: #6af;
+    font-size: 1.2em;
+    text-align: center;
+}
+
+#tile-view-placeholder.hidden {
+    display: none;
 }
 
 /* Info Panel */
