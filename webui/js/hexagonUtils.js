@@ -92,17 +92,17 @@ const HexagonUtils = {
      * @param {number} radius - Sphere radius for this layer
      * @param {number} color - Hex color
      * @param {number} opacity - Opacity (0-1)
-     * @param {THREE.Texture} texture - Optional texture to apply
+     * @param {boolean} useTextureUVs - Whether to use texture-oriented UV mapping
      * @returns {THREE.Mesh} - The hexagon mesh
      */
-    createHexagonMesh(boundary, radius, color = 0x4a6cf7, opacity = 0.7, texture = null) {
+    createHexagonMesh(boundary, radius, color = 0x4a6cf7, opacity = 0.7, useTextureUVs = false) {
         if (!boundary || boundary.length < 3) {
             console.warn('Invalid boundary for hexagon');
             return null;
         }
         
-        // Reorder boundary to match hex map texture orientation
-        const orderedBoundary = texture ? this.reorderBoundaryForTexture(boundary) : boundary;
+        // Reorder boundary to match hex map texture orientation if using textures
+        const orderedBoundary = useTextureUVs ? this.reorderBoundaryForTexture(boundary) : boundary;
         
         // Convert boundary points to 3D vectors
         const points = orderedBoundary.map(([lat, lng]) => 
@@ -161,7 +161,7 @@ const HexagonUtils = {
         points.forEach((p, i) => {
             vertices.push(p.x, p.y, p.z);
             
-            if (texture && i < uvTemplate.length) {
+            if (useTextureUVs && i < uvTemplate.length) {
                 // Use predefined UV coordinates for textured hexagons
                 uvs.push(uvTemplate[i][0], uvTemplate[i][1]);
             } else {
@@ -185,33 +185,18 @@ const HexagonUtils = {
         geometry.setIndex(indices);
         geometry.computeVertexNormals();
         
-        // Create material - use texture if provided
-        let material;
-        if (texture) {
-            material = new THREE.MeshPhongMaterial({
-                map: texture,
-                transparent: true,
-                opacity: opacity,
-                side: THREE.DoubleSide,
-                shininess: 10,
-                depthWrite: true,
-                polygonOffset: true,
-                polygonOffsetFactor: 0,
-                polygonOffsetUnits: 0
-            });
-        } else {
-            material = new THREE.MeshPhongMaterial({
-                color: color,
-                transparent: true,
-                opacity: opacity,
-                side: THREE.DoubleSide,
-                shininess: 30,
-                depthWrite: true,
-                polygonOffset: true,
-                polygonOffsetFactor: 0,
-                polygonOffsetUnits: 0
-            });
-        }
+        // Create material - always start with color, texture will be applied later
+        const material = new THREE.MeshPhongMaterial({
+            color: color,
+            transparent: true,
+            opacity: opacity,
+            side: THREE.DoubleSide,
+            shininess: 30,
+            depthWrite: true,
+            polygonOffset: true,
+            polygonOffsetFactor: 0,
+            polygonOffsetUnits: 0
+        });
         
         const mesh = new THREE.Mesh(geometry, material);
         mesh.renderOrder = 0;  // Ensure consistent render order

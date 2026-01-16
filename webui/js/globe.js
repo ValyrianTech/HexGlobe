@@ -224,18 +224,10 @@ class HexGlobe3D {
         
         const intersects = this.raycaster.intersectObjects(hexagonMeshes);
         
-        // Reset previous hover
-        if (this.hoveredHexagon && this.hoveredHexagon !== this.selectedHexagon) {
-            const tileData = this.hoveredHexagon.userData.tileData;
-            const color = tileData?.content ? CONFIG.hexagon.contentColor : CONFIG.hexagon.defaultColor;
-            HexagonUtils.setHexagonColor(this.hoveredHexagon, color);
-        }
-        
         if (intersects.length > 0) {
             const hexGroup = intersects[0].object.parent;
-            if (hexGroup?.userData?.isHexTile && hexGroup !== this.selectedHexagon) {
+            if (hexGroup?.userData?.isHexTile) {
                 this.hoveredHexagon = hexGroup;
-                HexagonUtils.setHexagonColor(hexGroup, CONFIG.hexagon.hoverColor);
                 this.canvas.style.cursor = 'pointer';
                 
                 if (this.onTileHover) {
