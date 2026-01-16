@@ -56,6 +56,7 @@ class HexGlobe3D {
         this.controls.maxDistance = CONFIG.camera.maxDistance;
         this.controls.autoRotate = CONFIG.globe.autoRotate;
         this.controls.autoRotateSpeed = 0.5;
+        this.controls.zoomSpeed = 0.3;  // Slower, more granular zoom
         
         // Add lighting
         this.setupLighting();
@@ -186,6 +187,7 @@ class HexGlobe3D {
         // Mouse events for hexagon interaction
         this.canvas.addEventListener('mousemove', (event) => this.onMouseMove(event));
         this.canvas.addEventListener('click', (event) => this.onMouseClick(event));
+        this.canvas.addEventListener('dblclick', (event) => this.onMouseDoubleClick(event));
     }
     
     /**
@@ -293,6 +295,130 @@ class HexGlobe3D {
     }
     
     /**
+     * Handle mouse double-click for zoom to tile
+     */
+    onMouseDoubleClick(event) {
+        const rect = this.canvas.getBoundingClientRect();
+        this.mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+        this.mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+        
+        this.raycaster.setFromCamera(this.mouse, this.camera);
+        
+        const hexagonMeshes = [];
+        Object.values(this.hexagonLayers).forEach(layer => {
+            layer.traverse((child) => {
+                if (child.isMesh && child.parent?.userData?.isHexTile) {
+                    hexagonMeshes.push(child);
+                }
+            });
+        });
+        
+        const intersects = this.raycaster.intersectObjects(hexagonMeshes);
+        
+        if (intersects.length > 0) {
+            const hexGroup = intersects[0].object.parent;
+            if (hexGroup?.userData?.isHexTile) {
+                this.zoomToTile(hexGroup);
+            }
+        }
+    }
+    
+    /**
+     * Zoom camera to look straight down at a tile, filling ~80% of screen height
+     * @param {THREE.Group} hexGroup - The hexagon group to zoom to
+     */
+    zoomToTile(hexGroup) {
+        const tileData = hexGroup.userData.tileData;
+        if (!tileData || !tileData.geometry) return;
+        
+        // Calculate the center of the tile
+        const boundary = tileData.geometry;
+        let centerLat = 0, centerLng = 0;
+        boundary.forEach(([lat, lng]) => {
+            centerLat += lat;
+            centerLng += lng;
+        });
+        centerLat /= boundary.length;
+        centerLng /= boundary.length;
+        
+        // Get the tile center as a 3D position on the globe surface
+        const tileCenter = HexagonUtils.latLngToVector3(centerLat, centerLng, CONFIG.globe.radius);
+        
+        // Calculate the approximate width of the tile in 3D space
+        // Find the maximum distance between opposite vertices
+        const vertices3D = boundary.map(([lat, lng]) => 
+            HexagonUtils.latLngToVector3(lat, lng, CONFIG.globe.radius)
+        );
+        
+        let maxWidth = 0;
+        for (let i = 0; i < vertices3D.length; i++) {
+            for (let j = i + 1; j < vertices3D.length; j++) {
+                const dist = vertices3D[i].distanceTo(vertices3D[j]);
+                maxWidth = Math.max(maxWidth, dist);
+            }
+        }
+        
+        // Calculate camera distance to make tile fill ~80% of screen height
+        // Using basic trigonometry: distance = (size/2) / tan(fov/2)
+        const fovRad = CONFIG.camera.fov * Math.PI / 180;
+        const desiredSize = maxWidth / 0.8; // Tile should be 80% of view
+        const distanceFromTile = (desiredSize / 2) / Math.tan(fovRad / 2);
+        
+        // Camera distance from globe center (tile is on surface at radius 1.0)
+        const cameraDistance = CONFIG.globe.radius + distanceFromTile;
+        
+        // Clamp to min/max distance
+        const clampedDistance = Math.max(CONFIG.camera.minDistance, 
+                                         Math.min(CONFIG.camera.maxDistance, cameraDistance));
+        
+        // Calculate camera position: along the normal vector from globe center through tile center
+        // This ensures the camera looks perpendicular to the tile surface
+        const normal = tileCenter.clone().normalize();
+        const cameraPosition = normal.multiplyScalar(clampedDistance);
+        
+        // The look-at target should be the tile center on the globe surface
+        const lookAtTarget = tileCenter.clone();
+        
+        // Animate camera to new position
+        this.animateCameraTo(cameraPosition, lookAtTarget);
+    }
+    
+    /**
+     * Animate camera to a new position, looking at a target
+     * @param {THREE.Vector3} targetPosition - Where to move the camera
+     * @param {THREE.Vector3} lookAtTarget - What to look at
+     */
+    animateCameraTo(targetPosition, lookAtTarget) {
+        const startPosition = this.camera.position.clone();
+        const startTarget = this.controls.target.clone();
+        
+        const duration = 1000; // ms
+        const startTime = Date.now();
+        
+        const animate = () => {
+            const elapsed = Date.now() - startTime;
+            const t = Math.min(elapsed / duration, 1);
+            
+            // Ease out cubic
+            const easeT = 1 - Math.pow(1 - t, 3);
+            
+            // Interpolate position
+            this.camera.position.lerpVectors(startPosition, targetPosition, easeT);
+            
+            // Interpolate look-at target
+            this.controls.target.lerpVectors(startTarget, lookAtTarget, easeT);
+            
+            this.controls.update();
+            
+            if (t < 1) {
+                requestAnimationFrame(animate);
+            }
+        };
+        
+        animate();
+    }
+    
+    /**
      * Add hexagons for a specific resolution layer
      * @param {number} resolution - H3 resolution level
      * @param {Array} tiles - Array of tile data objects
@@ -330,8 +456,11 @@ class HexGlobe3D {
                 return;
             }
             
-            // Create hexagon object
-            const hexObject = HexagonUtils.createTileObject(tile, radius);
+            // Create hexagon object with texture options
+            const hexObject = HexagonUtils.createTileObject(tile, radius, {
+                useTextures: CONFIG.hexagon.useTextures,
+                dataBasePath: CONFIG.hexagon.dataBasePath
+            });
             if (hexObject) {
                 layerGroup.add(hexObject);
                 addedCount++;

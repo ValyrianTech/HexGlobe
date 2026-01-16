@@ -4,6 +4,10 @@
  * Converts H3 hexagon boundaries to Three.js geometries positioned on a sphere
  */
 
+// Texture loader and cache
+const textureLoader = new THREE.TextureLoader();
+const textureCache = {};
+
 const HexagonUtils = {
     /**
      * Convert lat/lng to 3D position on a sphere
@@ -24,21 +28,84 @@ const HexagonUtils = {
     },
     
     /**
+     * Find the index of the bottom edge (closest to equator) in the boundary
+     * @param {Array} boundary - Array of [lat, lng] coordinates
+     * @returns {number} - Index of the first vertex of the bottom edge
+     */
+    findBottomEdgeIndex(boundary) {
+        let minLatDiff = Infinity;
+        let bottomEdgeIdx = 0;
+        
+        for (let i = 0; i < boundary.length; i++) {
+            const nextI = (i + 1) % boundary.length;
+            // Average latitude of the edge (midpoint)
+            const edgeLat = (boundary[i][0] + boundary[nextI][0]) / 2;
+            const latDiff = Math.abs(edgeLat); // Distance from equator
+            
+            if (latDiff < minLatDiff) {
+                minLatDiff = latDiff;
+                bottomEdgeIdx = i;
+            }
+        }
+        
+        return bottomEdgeIdx;
+    },
+    
+    /**
+     * Reorder boundary vertices to match hex map image orientation
+     * The hex map images have vertices ordered: right-middle, bottom-right, bottom-left, left-middle, top-left, top-right
+     * @param {Array} boundary - Array of [lat, lng] coordinates
+     * @returns {Array} - Reordered boundary with bottom edge at indices 1-2
+     */
+    reorderBoundaryForTexture(boundary) {
+        const bottomEdgeIdx = this.findBottomEdgeIndex(boundary);
+        const numVertices = boundary.length;
+        
+        // The bottom edge starts at bottomEdgeIdx
+        // We want the vertex order to be: right-middle (0), bottom-right (1), bottom-left (2), left-middle (3), top-left (4), top-right (5)
+        // The bottom-right vertex is at bottomEdgeIdx + 1, bottom-left is at bottomEdgeIdx
+        // So we need to start from bottomEdgeIdx + 1 and go backwards (clockwise when looking at flat-bottom hex)
+        
+        // Actually, let's think about this more carefully:
+        // In the hex map image, going clockwise from right-middle: right-middle -> bottom-right -> bottom-left -> left-middle -> top-left -> top-right
+        // The bottom edge is between bottom-right (idx 1) and bottom-left (idx 2)
+        
+        // H3 boundary vertices go counter-clockwise
+        // We need to find where the bottom edge is and reorder accordingly
+        
+        // Start from the vertex after the bottom edge start (which will be bottom-right in our ordering)
+        const startIdx = (bottomEdgeIdx + 1) % numVertices;
+        
+        const reordered = [];
+        for (let i = 0; i < numVertices; i++) {
+            // Go clockwise (reverse direction from H3's counter-clockwise)
+            const idx = (startIdx - i + numVertices) % numVertices;
+            reordered.push(boundary[idx]);
+        }
+        
+        return reordered;
+    },
+    
+    /**
      * Create a hexagon/pentagon mesh from tile boundary coordinates
      * @param {Array} boundary - Array of [lat, lng] coordinates
      * @param {number} radius - Sphere radius for this layer
      * @param {number} color - Hex color
      * @param {number} opacity - Opacity (0-1)
+     * @param {THREE.Texture} texture - Optional texture to apply
      * @returns {THREE.Mesh} - The hexagon mesh
      */
-    createHexagonMesh(boundary, radius, color = 0x4a6cf7, opacity = 0.7) {
+    createHexagonMesh(boundary, radius, color = 0x4a6cf7, opacity = 0.7, texture = null) {
         if (!boundary || boundary.length < 3) {
             console.warn('Invalid boundary for hexagon');
             return null;
         }
         
+        // Reorder boundary to match hex map texture orientation
+        const orderedBoundary = texture ? this.reorderBoundaryForTexture(boundary) : boundary;
+        
         // Convert boundary points to 3D vectors
-        const points = boundary.map(([lat, lng]) => 
+        const points = orderedBoundary.map(([lat, lng]) => 
             this.latLngToVector3(lat, lng, radius)
         );
         
@@ -47,20 +114,64 @@ const HexagonUtils = {
         points.forEach(p => center.add(p));
         center.divideScalar(points.length);
         
-        // Normalize center to be on the sphere surface
-        center.normalize().multiplyScalar(radius);
+        // Place center slightly below the sphere surface so the flat triangular faces
+        // sit closer to the sphere surface rather than floating above it
+        center.normalize().multiplyScalar(radius * 0.999);
         
         // Create geometry using triangles from center to each edge
         const geometry = new THREE.BufferGeometry();
         const vertices = [];
+        const uvs = [];
         const indices = [];
         
-        // Add center vertex
+        // Add center vertex (UV at center of texture)
         vertices.push(center.x, center.y, center.z);
+        uvs.push(0.5, 0.5);
         
-        // Add boundary vertices
-        points.forEach(p => {
+        // Add boundary vertices with UV coordinates
+        // For a flat-bottom hexagon texture, the UV positions are:
+        // Vertex 0 (right-middle): u=1.0, v=0.5
+        // Vertex 1 (bottom-right): u=0.75, v=0.933 (sin(60°)*0.5 + 0.5)
+        // Vertex 2 (bottom-left): u=0.25, v=0.933
+        // Vertex 3 (left-middle): u=0.0, v=0.5
+        // Vertex 4 (top-left): u=0.25, v=0.067
+        // Vertex 5 (top-right): u=0.75, v=0.067
+        
+        const numPoints = points.length;
+        const hexUVs = [
+            [1.0, 0.5],    // right-middle
+            [0.75, 0.933], // bottom-right
+            [0.25, 0.933], // bottom-left
+            [0.0, 0.5],    // left-middle
+            [0.25, 0.067], // top-left
+            [0.75, 0.067]  // top-right
+        ];
+        
+        // Pentagon UVs (5 vertices)
+        const pentUVs = [
+            [1.0, 0.5],    // right
+            [0.65, 0.95],  // bottom-right
+            [0.15, 0.75],  // bottom-left
+            [0.15, 0.25],  // top-left
+            [0.65, 0.05]   // top-right
+        ];
+        
+        const uvTemplate = numPoints === 6 ? hexUVs : pentUVs;
+        
+        points.forEach((p, i) => {
             vertices.push(p.x, p.y, p.z);
+            
+            if (texture && i < uvTemplate.length) {
+                // Use predefined UV coordinates for textured hexagons
+                uvs.push(uvTemplate[i][0], uvTemplate[i][1]);
+            } else {
+                // Fallback: circular UV pattern for non-textured hexagons
+                const angle = (i / numPoints) * Math.PI * 2 - Math.PI / 2;
+                const uvRadius = 0.5;
+                const u = 0.5 + uvRadius * Math.cos(angle);
+                const v = 0.5 + uvRadius * Math.sin(angle);
+                uvs.push(u, v);
+            }
         });
         
         // Create triangles (fan from center)
@@ -70,20 +181,73 @@ const HexagonUtils = {
         }
         
         geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+        geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
         geometry.setIndex(indices);
         geometry.computeVertexNormals();
         
-        // Create material
-        const material = new THREE.MeshPhongMaterial({
-            color: color,
-            transparent: true,
-            opacity: opacity,
-            side: THREE.DoubleSide,
-            shininess: 30
-        });
+        // Create material - use texture if provided
+        let material;
+        if (texture) {
+            material = new THREE.MeshPhongMaterial({
+                map: texture,
+                transparent: true,
+                opacity: opacity,
+                side: THREE.DoubleSide,
+                shininess: 10,
+                depthWrite: true,
+                polygonOffset: true,
+                polygonOffsetFactor: 0,
+                polygonOffsetUnits: 0
+            });
+        } else {
+            material = new THREE.MeshPhongMaterial({
+                color: color,
+                transparent: true,
+                opacity: opacity,
+                side: THREE.DoubleSide,
+                shininess: 30,
+                depthWrite: true,
+                polygonOffset: true,
+                polygonOffsetFactor: 0,
+                polygonOffsetUnits: 0
+            });
+        }
         
         const mesh = new THREE.Mesh(geometry, material);
+        mesh.renderOrder = 0;  // Ensure consistent render order
         return mesh;
+    },
+    
+    /**
+     * Load a texture for a tile
+     * @param {string} texturePath - Path to the texture image
+     * @param {Function} onLoad - Callback when texture is loaded
+     * @returns {THREE.Texture|null} - The texture or null if not available
+     */
+    loadTexture(texturePath, onLoad = null) {
+        if (!texturePath) return null;
+        
+        // Check cache first
+        if (textureCache[texturePath]) {
+            if (onLoad) onLoad(textureCache[texturePath]);
+            return textureCache[texturePath];
+        }
+        
+        // Load texture
+        const texture = textureLoader.load(
+            texturePath,
+            (loadedTexture) => {
+                textureCache[texturePath] = loadedTexture;
+                console.log(`Texture loaded: ${texturePath}`);
+                if (onLoad) onLoad(loadedTexture);
+            },
+            undefined,
+            (error) => {
+                console.warn(`Failed to load texture: ${texturePath}`);
+            }
+        );
+        
+        return texture;
     },
     
     /**
@@ -100,7 +264,7 @@ const HexagonUtils = {
         
         // Convert boundary points to 3D vectors
         const points = boundary.map(([lat, lng]) => 
-            this.latLngToVector3(lat, lng, radius * 1.001) // Slightly larger to avoid z-fighting
+            this.latLngToVector3(lat, lng, radius * 1.0001) // Very slightly larger to avoid z-fighting
         );
         
         // Close the loop
@@ -131,7 +295,9 @@ const HexagonUtils = {
             color = CONFIG.hexagon.defaultColor,
             opacity = CONFIG.hexagon.opacity,
             borderColor = CONFIG.hexagon.borderColor,
-            showBorder = true
+            showBorder = true,
+            useTextures = true,
+            dataBasePath = '../frontend'
         } = options;
         
         // Get boundary from tile geometry or calculate from H3
@@ -156,8 +322,29 @@ const HexagonUtils = {
             tileColor = CONFIG.hexagon.contentColor;
         }
         
-        // Create mesh
-        const mesh = this.createHexagonMesh(boundary, radius, tileColor, opacity);
+        // Check if we should load a texture
+        const hasTexture = useTextures && tileData.latest_map;
+        
+        // Create mesh with proper UV mapping based on whether texture will be used
+        // Pass a placeholder truthy value if texture will be loaded to trigger proper UV mapping
+        const mesh = this.createHexagonMesh(boundary, radius, tileColor, opacity, hasTexture ? true : null);
+        
+        if (hasTexture) {
+            // Construct the full path to the texture
+            const texturePath = `${dataBasePath}/${tileData.latest_map}`;
+            
+            // Load texture asynchronously and update mesh when ready
+            this.loadTexture(texturePath, (loadedTexture) => {
+                // Find the mesh in the group and update its material
+                group.traverse((child) => {
+                    if (child.isMesh && child.userData.tileId === tileData.id) {
+                        child.material.map = loadedTexture;
+                        child.material.color.setHex(0xffffff); // Reset color to white for texture
+                        child.material.needsUpdate = true;
+                    }
+                });
+            });
+        }
         if (mesh) {
             mesh.userData = { tileId: tileData.id };
             group.add(mesh);
