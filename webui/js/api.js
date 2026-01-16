@@ -184,7 +184,17 @@ class HexGlobeAPI {
             2: '821fa7fffffffff',
             3: '831fa4fffffffff',
             4: '841fa45ffffffff',
-            5: '851fa443fffffff'
+            5: '851fa443fffffff',
+            6: '861fa4427ffffff',
+            7: '871fa4420ffffff',
+            8: '881fa44201fffff',
+            9: '891fa442003ffff',
+            10: '8a1fa44200fffff',
+            11: '8b1fa442000ffff',
+            12: '8c1fa44200001ff',
+            13: '8d1fa442000003f',
+            14: '8e1fa4420000007',
+            15: '8f1fa4420000000'
         };
         
         return defaults[resolution] || defaults[0];
