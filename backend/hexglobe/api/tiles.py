@@ -848,11 +848,10 @@ async def get_resolutions(
 
 @router.post("/{tile_id}/generate-map")
 async def generate_map(
-    tile_id: str = Path(..., description="H3 index of the tile to generate map for"),
-    language: str = Query("en", description="Language for map labels (e.g., 'en' for English, 'local' for local names)")
+    tile_id: str = Path(..., description="H3 index of the tile to generate map for")
 ):
     """Generate a map image for a specific tile."""
-    logger.info(f"[{datetime.now()}] POST request received to generate map for tile: {tile_id}, language: {language}")
+    logger.info(f"[{datetime.now()}] POST request received to generate map for tile: {tile_id}")
     try:
         # Validate the H3 index
         if not h3.h3_is_valid(tile_id):
@@ -873,11 +872,11 @@ async def generate_map(
             # Save the static data for the newly created tile
             tile.save_static()
         
-        # Generate the map with specified language
-        logger.info(f"[{datetime.now()}] Generating map for tile: {tile_id} with language: {language}")
-        tile.generate_hex_map(language=language)
+        # Generate the map
+        logger.info(f"[{datetime.now()}] Generating map for tile: {tile_id}")
+        tile.generate_hex_map()
         
-        return {"status": "success", "message": f"Map generated for tile {tile_id}", "language": language}
+        return {"status": "success", "message": f"Map generated for tile {tile_id}"}
     
     except Exception as e:
         logger.error(f"[{datetime.now()}] Error generating map for tile {tile_id}: {str(e)}")

@@ -49,7 +49,17 @@ const CONFIG = {
         2: { radius: 1.00003, visible: false },
         3: { radius: 1.00004, visible: false },
         4: { radius: 1.00005, visible: false },
-        5: { radius: 1.00006, visible: false }
+        5: { radius: 1.00006, visible: false },
+        6: { radius: 1.00007, visible: false },
+        7: { radius: 1.00008, visible: false },
+        8: { radius: 1.00009, visible: false },
+        9: { radius: 1.00010, visible: false },
+        10: { radius: 1.00011, visible: false },
+        11: { radius: 1.00012, visible: false },
+        12: { radius: 1.00013, visible: false },
+        13: { radius: 1.00014, visible: false },
+        14: { radius: 1.00015, visible: false },
+        15: { radius: 1.00016, visible: false }
     },
     
     // Lighting Configuration

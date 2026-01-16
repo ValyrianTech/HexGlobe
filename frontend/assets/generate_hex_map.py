@@ -57,8 +57,6 @@ def parse_arguments():
                         help='Enable debug mode (save intermediate images and print debug info)')
     parser.add_argument('--no-vertical-adjust', action='store_true',
                         help='Skip vertical adjustment')
-    parser.add_argument('--language', default='en',
-                        help='Language for map labels (default: en for English). Use "local" for local language names.')
     return parser.parse_args()
 
 
@@ -624,26 +622,9 @@ def apply_vertical_scaling_and_skew(image, pixel_vertices):
     return final_image
 
 
-def get_tile_url_template(language='en'):
-    """
-    Get the tile URL template for the specified language.
-    
-    Args:
-        language: Language code (e.g., 'en' for English, 'local' for local names)
-    
-    Returns:
-        URL template string for the tile server
-    """
-    if language == 'local':
-        # Use standard OSM tiles with local language names
-        return 'http://a.tile.osm.org/{z}/{x}/{y}.png'
-    else:
-        # Use Wikimedia Maps which supports language parameter
-        # This provides labels in the specified language where available
-        return f'https://maps.wikimedia.org/osm-intl/{{z}}/{{x}}/{{y}}.png'
 
 
-def create_hexagon_map(h3_index, zoom=None, rotate=True, debug=False, vertical_adjust=True, language='en'):
+def create_hexagon_map(h3_index, zoom=None, rotate=True, debug=False, vertical_adjust=True):
     """
     Create a hexagon map image for the given H3 index.
     
@@ -653,7 +634,6 @@ def create_hexagon_map(h3_index, zoom=None, rotate=True, debug=False, vertical_a
         rotate: Whether to rotate the image to align with the hexagon
         debug: Whether to enable debug mode
         vertical_adjust: Whether to apply vertical adjustment to match perfect hexagon
-        language: Language for map labels (default: 'en' for English)
     
     Returns:
         PIL Image object and list of pixel vertices
@@ -678,12 +658,8 @@ def create_hexagon_map(h3_index, zoom=None, rotate=True, debug=False, vertical_a
             zoom = min(max(zoom + 1, 1), 19)  # Ensure zoom is between 1 and 19
         print(f"Calculated zoom level: {zoom}")
     
-    # Get tile URL template based on language
-    tile_url = get_tile_url_template(language)
-    print(f"Using tile server: {tile_url} (language: {language})")
-    
-    # Create a static map centered on the hexagon with the specified tile server
-    m = StaticMap(CANVAS_SIZE, CANVAS_SIZE, url_template=tile_url)
+    # Create a static map centered on the hexagon
+    m = StaticMap(CANVAS_SIZE, CANVAS_SIZE)
     
     # Convert the boundary to a list of (lng, lat) tuples for the Line
     line_points = [(lng, lat) for lat, lng in boundary]
@@ -1057,7 +1033,7 @@ def main():
     args = parse_arguments()
     
     # Create the hexagon map
-    image, vertices = create_hexagon_map(args.h3_index, args.zoom, not args.no_rotate, args.debug, not args.no_vertical_adjust, args.language)
+    image, vertices = create_hexagon_map(args.h3_index, args.zoom, not args.no_rotate, args.debug, not args.no_vertical_adjust)
     
     # Determine the output path
     output_path = args.output

@@ -507,14 +507,11 @@ class Tile(ABC):
             logger.error(f"Error saving dynamic data for tile {self.id}: {str(e)}")
             raise
     
-    def generate_hex_map(self, language: str = "en") -> None:
+    def generate_hex_map(self) -> None:
         """
         Generates a hex map image for this tile using the generate_hex_map.py script.
         The image is saved in the hex_maps directory with the same structure as static/dynamic data.
         Includes a timestamp in the filename for versioning.
-        
-        Args:
-            language: Language for map labels (default: 'en' for English). Use 'local' for local language names.
         """
         try:
             import subprocess
@@ -536,14 +533,13 @@ class Tile(ABC):
             )
             
             # Run the script to generate the hex map
-            logger.info(f"Generating hex map for tile {self.id} with timestamp {timestamp}, language: {language}")
+            logger.info(f"Generating hex map for tile {self.id} with timestamp {timestamp}")
             result = subprocess.run(
                 [
                     "python", 
                     script_path, 
                     "--h3_index", self.id, 
-                    "--output", hex_map_path,
-                    "--language", language
+                    "--output", hex_map_path
                 ],
                 capture_output=True,
                 text=True
