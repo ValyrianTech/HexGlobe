@@ -138,22 +138,24 @@ const HexagonUtils = {
         // Vertex 5 (top-right): u=0.75, v=0.067
         
         const numPoints = points.length;
+        // UV coordinates flipped vertically (1-v) to correct mirroring
+        // In Three.js, V=0 is bottom, V=1 is top, but images have Y=0 at top
         const hexUVs = [
             [1.0, 0.5],    // right-middle
-            [0.75, 0.933], // bottom-right
-            [0.25, 0.933], // bottom-left
+            [0.75, 0.067], // bottom-right (was 0.933)
+            [0.25, 0.067], // bottom-left (was 0.933)
             [0.0, 0.5],    // left-middle
-            [0.25, 0.067], // top-left
-            [0.75, 0.067]  // top-right
+            [0.25, 0.933], // top-left (was 0.067)
+            [0.75, 0.933]  // top-right (was 0.067)
         ];
         
-        // Pentagon UVs (5 vertices)
+        // Pentagon UVs (5 vertices) - also flipped
         const pentUVs = [
             [1.0, 0.5],    // right
-            [0.65, 0.95],  // bottom-right
-            [0.15, 0.75],  // bottom-left
-            [0.15, 0.25],  // top-left
-            [0.65, 0.05]   // top-right
+            [0.65, 0.05],  // bottom-right (was 0.95)
+            [0.15, 0.25],  // bottom-left (was 0.75)
+            [0.15, 0.75],  // top-left (was 0.25)
+            [0.65, 0.95]   // top-right (was 0.05)
         ];
         
         const uvTemplate = numPoints === 6 ? hexUVs : pentUVs;
