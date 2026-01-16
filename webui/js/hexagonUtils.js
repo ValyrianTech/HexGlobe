@@ -58,28 +58,44 @@ const HexagonUtils = {
      * @returns {Array} - Reordered boundary with bottom edge at indices 1-2
      */
     reorderBoundaryForTexture(boundary) {
-        const bottomEdgeIdx = this.findBottomEdgeIndex(boundary);
         const numVertices = boundary.length;
         
-        // The bottom edge starts at bottomEdgeIdx
-        // We want the vertex order to be: right-middle (0), bottom-right (1), bottom-left (2), left-middle (3), top-left (4), top-right (5)
-        // The bottom-right vertex is at bottomEdgeIdx + 1, bottom-left is at bottomEdgeIdx
-        // So we need to start from bottomEdgeIdx + 1 and go backwards (clockwise when looking at flat-bottom hex)
+        // Find the bottom edge (closest to equator)
+        const bottomEdgeIdx = this.findBottomEdgeIndex(boundary);
         
-        // Actually, let's think about this more carefully:
-        // In the hex map image, going clockwise from right-middle: right-middle -> bottom-right -> bottom-left -> left-middle -> top-left -> top-right
-        // The bottom edge is between bottom-right (idx 1) and bottom-left (idx 2)
+        // The bottom edge goes from vertex[bottomEdgeIdx] to vertex[bottomEdgeIdx+1]
+        // In the texture, the order is: right-middle(0), bottom-right(1), bottom-left(2), left-middle(3), top-left(4), top-right(5)
+        // The bottom edge in texture is between indices 1 and 2
         
-        // H3 boundary vertices go counter-clockwise
-        // We need to find where the bottom edge is and reorder accordingly
+        // H3 boundaries are counter-clockwise when viewed from above
+        // We need to determine which vertex of the bottom edge is on the right (bottom-right)
         
-        // Start from the vertex after the bottom edge start (which will be bottom-right in our ordering)
-        const startIdx = (bottomEdgeIdx + 1) % numVertices;
+        const v1 = boundary[bottomEdgeIdx];
+        const v2 = boundary[(bottomEdgeIdx + 1) % numVertices];
         
+        // Compare longitudes to determine which is on the right
+        // The one with larger longitude is on the right (east)
+        let bottomRightIdx, bottomLeftIdx;
+        if (v1[1] > v2[1]) {
+            // v1 is to the right
+            bottomRightIdx = bottomEdgeIdx;
+            bottomLeftIdx = (bottomEdgeIdx + 1) % numVertices;
+        } else {
+            // v2 is to the right
+            bottomRightIdx = (bottomEdgeIdx + 1) % numVertices;
+            bottomLeftIdx = bottomEdgeIdx;
+        }
+        
+        // Now we need to build the array starting from right-middle
+        // Going clockwise from right-middle: right-middle -> bottom-right -> bottom-left -> left-middle -> top-left -> top-right
+        // right-middle is one step before bottom-right in clockwise direction
+        // Since H3 is counter-clockwise, one step before in clockwise = one step forward in H3 order
+        const rightMiddleIdx = (bottomRightIdx + 1) % numVertices;
+        
+        // Build reordered array going clockwise (which is backwards in H3's counter-clockwise order)
         const reordered = [];
         for (let i = 0; i < numVertices; i++) {
-            // Go clockwise (reverse direction from H3's counter-clockwise)
-            const idx = (startIdx - i + numVertices) % numVertices;
+            const idx = (rightMiddleIdx - i + numVertices) % numVertices;
             reordered.push(boundary[idx]);
         }
         
