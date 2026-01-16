@@ -57,6 +57,8 @@ class HexGlobe3D {
         this.controls.autoRotate = CONFIG.globe.autoRotate;
         this.controls.autoRotateSpeed = 0.5;
         this.controls.zoomSpeed = 0.3;  // Slower, more granular zoom
+        this.controls.enablePan = false;  // Disable panning to keep globe centered
+        this.controls.target.set(0, 0, 0);  // Always orbit around the center
         
         // Add lighting
         this.setupLighting();
@@ -366,23 +368,46 @@ class HexGlobe3D {
         // Calculate camera position: along the normal vector from globe center through tile center
         // This ensures the camera looks perpendicular to the tile surface
         const normal = tileCenter.clone().normalize();
-        const cameraPosition = normal.multiplyScalar(clampedDistance);
+        const cameraPosition = normal.clone().multiplyScalar(clampedDistance);
         
         // The look-at target should be the tile center on the globe surface
         const lookAtTarget = tileCenter.clone();
         
-        // Animate camera to new position
-        this.animateCameraTo(cameraPosition, lookAtTarget);
+        // Calculate the camera "up" vector to align the hexagon's bottom edge horizontally
+        // Find the bottom edge of the hexagon (closest to equator)
+        const bottomEdgeIdx = HexagonUtils.findBottomEdgeIndex(boundary);
+        const v1 = boundary[bottomEdgeIdx];
+        const v2 = boundary[(bottomEdgeIdx + 1) % boundary.length];
+        
+        // Get 3D positions of bottom edge vertices
+        const bottomV1 = HexagonUtils.latLngToVector3(v1[0], v1[1], CONFIG.globe.radius);
+        const bottomV2 = HexagonUtils.latLngToVector3(v2[0], v2[1], CONFIG.globe.radius);
+        
+        // The bottom edge direction in 3D space
+        const bottomEdgeDir = new THREE.Vector3().subVectors(bottomV2, bottomV1).normalize();
+        
+        // The camera's "right" direction should be parallel to the bottom edge
+        // The camera's "up" direction is perpendicular to both the view direction (normal) and the right direction
+        const cameraUp = new THREE.Vector3().crossVectors(normal, bottomEdgeDir).normalize();
+        
+        // If the cross product is zero or nearly zero, fall back to world up
+        if (cameraUp.length() < 0.01) {
+            cameraUp.set(0, 1, 0);
+        }
+        
+        // Animate camera to new position with proper orientation
+        // Keep orbit target at center (0,0,0) to maintain centered globe
+        this.animateCameraTo(cameraPosition, cameraUp);
     }
     
     /**
-     * Animate camera to a new position, looking at a target
+     * Animate camera to a new position while keeping the globe centered
      * @param {THREE.Vector3} targetPosition - Where to move the camera
-     * @param {THREE.Vector3} lookAtTarget - What to look at
+     * @param {THREE.Vector3} targetUp - Optional target up vector for camera orientation
      */
-    animateCameraTo(targetPosition, lookAtTarget) {
+    animateCameraTo(targetPosition, targetUp = null) {
         const startPosition = this.camera.position.clone();
-        const startTarget = this.controls.target.clone();
+        const startUp = this.camera.up.clone();
         
         const duration = 1000; // ms
         const startTime = Date.now();
@@ -397,8 +422,13 @@ class HexGlobe3D {
             // Interpolate position
             this.camera.position.lerpVectors(startPosition, targetPosition, easeT);
             
-            // Interpolate look-at target
-            this.controls.target.lerpVectors(startTarget, lookAtTarget, easeT);
+            // Keep target at center - globe always stays centered
+            this.controls.target.set(0, 0, 0);
+            
+            // Interpolate camera up vector if provided
+            if (targetUp) {
+                this.camera.up.lerpVectors(startUp, targetUp, easeT).normalize();
+            }
             
             this.controls.update();
             
