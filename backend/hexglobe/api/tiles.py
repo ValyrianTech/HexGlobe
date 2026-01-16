@@ -509,7 +509,12 @@ async def get_tile_grid(
             logger.info(f"Pentagon detected in grid. Using geographic coordinate-based algorithm.")
             
             # Get the k-ring of tiles around the center
-            k_ring_size = max(width, height) // 2 + 1
+            # For resolution 0, we need k_ring(10) to guarantee all 122 base cells are included
+            # from any starting position. For other resolutions, use the standard calculation.
+            if resolution == 0:
+                k_ring_size = 10  # Minimum needed to cover all 122 res0 cells from any starting point
+            else:
+                k_ring_size = max(width, height) // 2 + 1
             k_ring = h3.k_ring(tile_id, k_ring_size)
             
             # Get geographic coordinates for all tiles in the k-ring

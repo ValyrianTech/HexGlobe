@@ -332,29 +332,25 @@ const HexagonUtils = {
         // Pass a placeholder truthy value if texture will be loaded to trigger proper UV mapping
         const mesh = this.createHexagonMesh(boundary, radius, tileColor, opacity, hasTexture ? true : null);
         
-        if (hasTexture) {
-            // Construct the full path to the texture
-            const texturePath = `${dataBasePath}/${tileData.latest_map}`;
-            console.log(`Loading texture for tile ${tileData.id}: ${texturePath}`);
-            
-            // Load texture asynchronously and update mesh when ready
-            this.loadTexture(texturePath, (loadedTexture) => {
-                console.log(`Texture loaded for tile ${tileData.id}`);
-                // Find the mesh in the group and update its material
-                group.traverse((child) => {
-                    if (child.isMesh && child.userData.tileId === tileData.id) {
-                        child.material.map = loadedTexture;
-                        child.material.color.setHex(0xffffff); // Reset color to white for texture
-                        child.material.needsUpdate = true;
-                    }
-                });
-            });
-        } else if (useTextures && !tileData.latest_map) {
-            console.log(`No texture for tile ${tileData.id} (latest_map: ${tileData.latest_map})`);
-        }
         if (mesh) {
             mesh.userData = { tileId: tileData.id };
             group.add(mesh);
+            
+            if (hasTexture) {
+                // Construct the full path to the texture
+                const texturePath = `${dataBasePath}/${tileData.latest_map}`;
+                console.log(`Loading texture for tile ${tileData.id}: ${texturePath}`);
+                
+                // Load texture and apply directly to mesh (avoids race condition with cached textures)
+                this.loadTexture(texturePath, (loadedTexture) => {
+                    console.log(`Texture loaded for tile ${tileData.id}`);
+                    mesh.material.map = loadedTexture;
+                    mesh.material.color.setHex(0xffffff); // Reset color to white for texture
+                    mesh.material.needsUpdate = true;
+                });
+            } else if (useTextures && !tileData.latest_map) {
+                console.log(`No texture for tile ${tileData.id} (latest_map: ${tileData.latest_map})`);
+            }
         }
         
         // Create border
