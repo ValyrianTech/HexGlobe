@@ -195,6 +195,43 @@ class HexGlobeApp {
     }
     
     /**
+     * Load hexagon layer centered on a specific tile
+     * @param {string} centerTileId - The tile ID to center the grid on
+     */
+    async loadHexagonLayerCenteredOn(centerTileId) {
+        const resolution = this.currentResolution;
+        console.log(`Loading hexagon layer centered on ${centerTileId}...`);
+        
+        this.showLoading();
+        
+        try {
+            const gridData = await hexGlobeAPI.getTileGrid(centerTileId, 10, 10);
+            
+            if (gridData && gridData.grid) {
+                const tileIds = [...new Set(Object.values(gridData.grid))];
+                const tiles = [];
+                
+                for (const tileId of tileIds) {
+                    const tile = await hexGlobeAPI.getTile(tileId, true);
+                    if (tile) {
+                        tiles.push(tile);
+                    }
+                }
+                
+                console.log(`Loaded ${tiles.length} tiles centered on ${centerTileId}`);
+                
+                // Cache and display
+                this.loadedTiles[resolution] = tiles;
+                this.globe.addHexagonLayer(resolution, tiles, this.showAllHexagons);
+            }
+        } catch (error) {
+            console.error(`Error loading hexagon layer centered on ${centerTileId}:`, error);
+        }
+        
+        this.hideLoading();
+    }
+    
+    /**
      * Handle tile click
      * @param {Object} tileData - The clicked tile's data
      */
@@ -395,6 +432,10 @@ class HexGlobeApp {
                     }
                     await this.changeResolution(tileData.resolution);
                 }
+                
+                // Load the hex grid centered on this tile
+                delete this.loadedTiles[this.currentResolution];
+                await this.loadHexagonLayerCenteredOn(tileId);
                 
                 // Focus on the tile position
                 if (tileData.geometry && tileData.geometry.length > 0) {
