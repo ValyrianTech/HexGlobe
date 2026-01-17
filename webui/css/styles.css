@@ -23,9 +23,10 @@ body {
 }
 
 #globe-container {
-    width: 50%;
+    flex: 1;
     height: 100%;
     position: relative;
+    min-width: 0;
 }
 
 #globe-canvas {
@@ -35,7 +36,7 @@ body {
 }
 
 #tile-view-container {
-    width: 50%;
+    flex: 1;
     height: 100%;
     position: relative;
     background: #0a0a1a;
@@ -43,6 +44,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
+    min-width: 0;
 }
 
 #tile-canvas {
@@ -64,20 +66,16 @@ body {
 
 /* Info Panel */
 .panel {
-    position: absolute;
-    background: rgba(10, 10, 30, 0.85);
-    border: 1px solid rgba(100, 150, 255, 0.3);
-    border-radius: 8px;
+    background: rgba(10, 10, 30, 0.95);
+    border-left: 1px solid rgba(100, 150, 255, 0.3);
     padding: 16px;
-    backdrop-filter: blur(10px);
 }
 
 #info-panel {
-    top: 20px;
-    right: 20px;
     width: 280px;
-    max-height: calc(100vh - 40px);
+    height: 100%;
     overflow-y: auto;
+    flex-shrink: 0;
 }
 
 #info-panel h2 {

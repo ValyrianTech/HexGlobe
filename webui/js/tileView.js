@@ -63,37 +63,32 @@ class TileView2D {
         const numVertices = this.currentTile.geometry ? this.currentTile.geometry.length : 6;
         const isPentagon = numVertices === 5;
         
-        // Calculate hexagon dimensions to fit container
-        // For a flat-bottom hexagon: width = 2 * size, height = sqrt(3) * size
-        // For a pentagon, approximate similar proportions
-        const hexRatio = isPentagon ? 1.0 : Math.sqrt(3) / 2; // height/width ratio
+        // The hex map images are 1024x1024 with the hexagon vertices at specific positions:
+        // Width spans full 1024 (x: 0 to 1024)
+        // Height spans 886.8 pixels (y: 68.6 to 955.4)
+        // So the actual hexagon aspect ratio is 886.8/1024 = 0.866 (sqrt(3)/2)
+        // But the IMAGE is square (1024x1024), so we need to use square canvas
+        const hexRatio = isPentagon ? 1.0 : 1.0; // Image is square
         
         // Calculate size to fit container with padding
         const padding = 20;
         const availableWidth = containerWidth - padding * 2;
         const availableHeight = containerHeight - padding * 2;
         
-        let hexWidth, hexHeight;
-        if (availableWidth * hexRatio <= availableHeight) {
-            // Width is the constraint
-            hexWidth = availableWidth;
-            hexHeight = hexWidth * hexRatio;
+        let canvasSize;
+        if (availableWidth <= availableHeight) {
+            canvasSize = availableWidth;
         } else {
-            // Height is the constraint
-            hexHeight = availableHeight;
-            hexWidth = hexHeight / hexRatio;
+            canvasSize = availableHeight;
         }
         
-        // Set canvas size to match hexagon bounds
-        this.canvas.width = hexWidth;
-        this.canvas.height = hexHeight;
+        // Set canvas size to match the square hex map image proportions
+        this.canvas.width = canvasSize;
+        this.canvas.height = canvasSize;
         
-        const centerX = hexWidth / 2;
-        const centerY = hexHeight / 2;
-        const size = hexWidth / 2; // Distance from center to vertex
-        
-        // Generate vertices for flat-bottom hexagon/pentagon
-        const vertices = this.generateVertices(centerX, centerY, size, numVertices);
+        // Generate vertices matching the hex map image coordinates (scaled to canvas size)
+        // Original hex map: 1024x1024 with vertices at specific positions
+        const vertices = this.generateVerticesFromHexMap(canvasSize, numVertices);
         
         // Check if we have a texture to load
         if (this.currentTile.latest_map) {
@@ -104,7 +99,43 @@ class TileView2D {
     }
     
     /**
-     * Generate vertices for a flat-bottom polygon
+     * Generate vertices matching the hex map image coordinates
+     * The hex map images are 1024x1024 with vertices at specific positions
+     * @param {number} canvasSize - Size of the canvas (square)
+     * @param {number} numVertices - Number of vertices (5 or 6)
+     * @returns {Array} Array of {x, y} vertices
+     */
+    generateVerticesFromHexMap(canvasSize, numVertices) {
+        // Reference points from the hex map generator (1024x1024 image)
+        // These are the exact vertex positions in the generated hex map images
+        const hexMapVertices = [
+            { x: 1024.0, y: 512.0 },   // right middle
+            { x: 768.0, y: 955.4 },    // bottom right
+            { x: 256.0, y: 955.4 },    // bottom left
+            { x: 0.0, y: 512.0 },      // left middle
+            { x: 256.0, y: 68.6 },     // top left
+            { x: 768.0, y: 68.6 }      // top right
+        ];
+        
+        // Scale factor from 1024 to canvas size
+        const scale = canvasSize / 1024;
+        
+        // Scale vertices to canvas size
+        const vertices = [];
+        const count = numVertices === 5 ? 5 : 6;
+        
+        for (let i = 0; i < count; i++) {
+            vertices.push({
+                x: hexMapVertices[i].x * scale,
+                y: hexMapVertices[i].y * scale
+            });
+        }
+        
+        return vertices;
+    }
+    
+    /**
+     * Generate vertices for a flat-bottom polygon (fallback for non-textured tiles)
      * @param {number} cx - Center X
      * @param {number} cy - Center Y
      * @param {number} size - Size (center to vertex distance)
