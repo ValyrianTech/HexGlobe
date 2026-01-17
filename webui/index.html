@@ -19,46 +19,80 @@
             </div>
         </div>
         <div id="info-panel" class="panel">
-        <h2>HexGlobe 3D</h2>
-        <div id="tile-info">
-            <p>Click on a hexagon to view details</p>
-            <p class="hint">Ctrl+click to select multiple tiles</p>
-        </div>
-        <div id="selection-info" style="display: none;">
-            <p><strong>Selected:</strong> <span id="selection-count">0</span> tiles</p>
-            <button id="generate-maps-btn" class="action-btn">Generate Maps</button>
-            <button id="clear-selection-btn" class="action-btn secondary">Clear Selection</button>
-            <div id="generation-status" style="display: none;"></div>
-        </div>
-        <div id="controls">
+            <h2>HexGlobe 3D</h2>
+            
+            <!-- Go To Navigation -->
             <div class="control-group">
-                <label for="resolution-select">Resolution:</label>
-                <select id="resolution-select">
-                    <option value="0" selected>0 (Largest)</option>
-                    <option value="1">1</option>
-                    <option value="2">2</option>
-                    <option value="3">3</option>
-                    <option value="4">4</option>
-                    <option value="5">5</option>
-                    <option value="6">6</option>
-                    <option value="7">7</option>
-                    <option value="8">8</option>
-                    <option value="9">9</option>
-                    <option value="10">10</option>
-                    <option value="11">11</option>
-                    <option value="12">12</option>
-                    <option value="13">13</option>
-                    <option value="14">14</option>
-                    <option value="15">15 (Smallest)</option>
-                </select>
+                <label for="goto-input">Go To:</label>
+                <div class="input-group">
+                    <input type="text" id="goto-input" placeholder="H3 index or address">
+                    <button id="goto-btn" class="action-btn">Go</button>
+                </div>
             </div>
-            <div class="control-group">
-                <label>
-                    <input type="checkbox" id="show-all-hexagons" checked>
-                    Show all hexagons
-                </label>
+            
+            <div id="tile-info">
+                <p>Click on a hexagon to view details</p>
+                <p class="hint">Ctrl+click to select multiple tiles</p>
             </div>
-        </div>
+            
+            <!-- Content Editor (shown when tile selected) -->
+            <div id="content-editor" style="display: none;">
+                <div class="control-group">
+                    <label for="tile-content">Content:</label>
+                    <textarea id="tile-content" rows="3" placeholder="Enter tile content..."></textarea>
+                </div>
+                <button id="update-content-btn" class="action-btn">Update Content</button>
+                <div id="update-status" class="status-message"></div>
+            </div>
+            
+            <!-- Move Content (shown when tile selected) -->
+            <div id="move-content-section" style="display: none;">
+                <div class="control-group">
+                    <label for="move-target">Move Content To:</label>
+                    <div class="input-group">
+                        <input type="text" id="move-target" placeholder="Target H3 index">
+                        <button id="move-content-btn" class="action-btn">Move</button>
+                    </div>
+                </div>
+                <div id="move-status" class="status-message"></div>
+            </div>
+            
+            <div id="selection-info" style="display: none;">
+                <p><strong>Selected:</strong> <span id="selection-count">0</span> tiles</p>
+                <button id="generate-maps-btn" class="action-btn">Generate Maps</button>
+                <button id="clear-selection-btn" class="action-btn secondary">Clear Selection</button>
+                <div id="generation-status" style="display: none;"></div>
+            </div>
+            
+            <div id="controls">
+                <div class="control-group">
+                    <label for="resolution-select">Resolution:</label>
+                    <select id="resolution-select">
+                        <option value="0" selected>0 (Largest)</option>
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                        <option value="3">3</option>
+                        <option value="4">4</option>
+                        <option value="5">5</option>
+                        <option value="6">6</option>
+                        <option value="7">7</option>
+                        <option value="8">8</option>
+                        <option value="9">9</option>
+                        <option value="10">10</option>
+                        <option value="11">11</option>
+                        <option value="12">12</option>
+                        <option value="13">13</option>
+                        <option value="14">14</option>
+                        <option value="15">15 (Smallest)</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label>
+                        <input type="checkbox" id="show-all-hexagons" checked>
+                        Show all hexagons
+                    </label>
+                </div>
+            </div>
         </div>
     </div>
     

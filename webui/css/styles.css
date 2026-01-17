@@ -152,6 +152,66 @@ body {
     margin-right: 8px;
 }
 
+.control-group input[type="text"],
+.control-group textarea {
+    width: 100%;
+    padding: 8px;
+    background: rgba(20, 20, 50, 0.8);
+    border: 1px solid rgba(100, 150, 255, 0.3);
+    border-radius: 4px;
+    color: #fff;
+    font-size: 0.9em;
+    font-family: inherit;
+    resize: vertical;
+}
+
+.control-group input[type="text"]:focus,
+.control-group textarea:focus {
+    outline: none;
+    border-color: #6af;
+}
+
+.input-group {
+    display: flex;
+    gap: 8px;
+}
+
+.input-group input[type="text"] {
+    flex: 1;
+}
+
+.input-group .action-btn {
+    flex-shrink: 0;
+    margin: 0;
+}
+
+.status-message {
+    margin-top: 8px;
+    padding: 6px 8px;
+    border-radius: 4px;
+    font-size: 0.85em;
+    min-height: 1.2em;
+}
+
+.status-message:empty {
+    display: none;
+}
+
+.status-message.success {
+    background: rgba(0, 200, 100, 0.2);
+    color: #00c864;
+}
+
+.status-message.error {
+    background: rgba(255, 100, 100, 0.2);
+    color: #ff6464;
+}
+
+.status-message.loading {
+    background: rgba(255, 200, 0, 0.2);
+    color: #ffc800;
+}
+
 /* Loading Overlay */
 #loading-overlay {
     position: fixed;

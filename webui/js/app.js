@@ -81,6 +81,28 @@ class HexGlobeApp {
                 this.handleSelectionChange([]);
             });
         }
+        
+        // Go To button
+        const gotoBtn = document.getElementById('goto-btn');
+        const gotoInput = document.getElementById('goto-input');
+        if (gotoBtn && gotoInput) {
+            gotoBtn.addEventListener('click', () => this.handleGoTo());
+            gotoInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') this.handleGoTo();
+            });
+        }
+        
+        // Update content button
+        const updateContentBtn = document.getElementById('update-content-btn');
+        if (updateContentBtn) {
+            updateContentBtn.addEventListener('click', () => this.handleUpdateContent());
+        }
+        
+        // Move content button
+        const moveContentBtn = document.getElementById('move-content-btn');
+        if (moveContentBtn) {
+            moveContentBtn.addEventListener('click', () => this.handleMoveContent());
+        }
     }
     
     /**
@@ -186,6 +208,9 @@ class HexGlobeApp {
         
         // Update 2D tile view
         this.tileView.showTile(tileData);
+        
+        // Show content editor
+        this.showContentEditor(tileData);
     }
     
     /**
@@ -214,6 +239,8 @@ class HexGlobeApp {
                 selectionInfo.style.display = 'none';
                 // Clear 2D tile view when selection is cleared
                 this.tileView.clear();
+                // Hide content editor
+                this.hideContentEditor();
             }
         }
         
@@ -312,21 +339,6 @@ class HexGlobeApp {
             <p><strong>Resolution:</strong> ${tileData.resolution || 'N/A'}</p>
         `;
         
-        if (tileData.content) {
-            html += `
-                <p><strong>Content:</strong></p>
-                <div class="tile-content">${tileData.content}</div>
-            `;
-        }
-        
-        if (showNavButton) {
-            html += `
-                <button class="nav-button" onclick="hexGlobeApp.navigateToTile('${tileData.id}')">
-                    Navigate to Tile
-                </button>
-            `;
-        }
-        
         infoPanel.innerHTML = html;
     }
     
@@ -341,6 +353,217 @@ class HexGlobeApp {
         url.searchParams.set('zoom', '3');
         
         window.location.href = url.toString();
+    }
+    
+    /**
+     * Handle Go To navigation
+     */
+    async handleGoTo() {
+        const input = document.getElementById('goto-input');
+        const btn = document.getElementById('goto-btn');
+        if (!input || !input.value.trim()) return;
+        
+        const value = input.value.trim();
+        const isH3Index = /^[0-9a-fA-F]+$/.test(value);
+        
+        btn.disabled = true;
+        btn.textContent = 'Loading...';
+        
+        try {
+            let tileId;
+            
+            if (isH3Index) {
+                tileId = value;
+            } else {
+                // Geocode the address
+                const result = await hexGlobeAPI.geocode(value, this.currentResolution);
+                if (result && result.h3_index) {
+                    tileId = result.h3_index;
+                } else {
+                    throw new Error('Could not geocode address');
+                }
+            }
+            
+            // Fetch the tile data
+            const tileData = await hexGlobeAPI.getTile(tileId);
+            if (tileData) {
+                // Update resolution if different
+                if (tileData.resolution !== undefined && tileData.resolution !== this.currentResolution) {
+                    const resolutionSelect = document.getElementById('resolution-select');
+                    if (resolutionSelect) {
+                        resolutionSelect.value = tileData.resolution;
+                    }
+                    await this.changeResolution(tileData.resolution);
+                }
+                
+                // Focus on the tile position
+                if (tileData.geometry && tileData.geometry.length > 0) {
+                    let centerLat = 0, centerLng = 0;
+                    tileData.geometry.forEach(([lat, lng]) => {
+                        centerLat += lat;
+                        centerLng += lng;
+                    });
+                    centerLat /= tileData.geometry.length;
+                    centerLng /= tileData.geometry.length;
+                    
+                    this.globe.focusOnPosition(centerLat, centerLng);
+                }
+                
+                // Update UI
+                this.updateInfoPanel(tileData, true);
+                this.tileView.showTile(tileData);
+                this.showContentEditor(tileData);
+                
+                input.value = '';
+            }
+        } catch (error) {
+            console.error('Error navigating to tile:', error);
+            alert(`Error: ${error.message}`);
+        }
+        
+        btn.disabled = false;
+        btn.textContent = 'Go';
+    }
+    
+    /**
+     * Show content editor for a tile
+     * @param {Object} tileData - The tile data
+     */
+    showContentEditor(tileData) {
+        const contentEditor = document.getElementById('content-editor');
+        const moveSection = document.getElementById('move-content-section');
+        const tileContent = document.getElementById('tile-content');
+        
+        if (contentEditor && tileContent) {
+            contentEditor.style.display = 'block';
+            tileContent.value = tileData.content || '';
+            contentEditor.dataset.tileId = tileData.id;
+        }
+        
+        if (moveSection) {
+            moveSection.style.display = 'block';
+            moveSection.dataset.tileId = tileData.id;
+        }
+    }
+    
+    /**
+     * Hide content editor
+     */
+    hideContentEditor() {
+        const contentEditor = document.getElementById('content-editor');
+        const moveSection = document.getElementById('move-content-section');
+        
+        if (contentEditor) {
+            contentEditor.style.display = 'none';
+        }
+        if (moveSection) {
+            moveSection.style.display = 'none';
+        }
+    }
+    
+    /**
+     * Handle update content button click
+     */
+    async handleUpdateContent() {
+        const contentEditor = document.getElementById('content-editor');
+        const tileContent = document.getElementById('tile-content');
+        const updateStatus = document.getElementById('update-status');
+        const updateBtn = document.getElementById('update-content-btn');
+        
+        if (!contentEditor || !tileContent) return;
+        
+        const tileId = contentEditor.dataset.tileId;
+        const content = tileContent.value;
+        
+        if (!tileId) return;
+        
+        updateBtn.disabled = true;
+        updateStatus.textContent = 'Updating...';
+        updateStatus.className = 'status-message loading';
+        
+        try {
+            await hexGlobeAPI.updateTileContent(tileId, content);
+            
+            updateStatus.textContent = 'Content updated successfully!';
+            updateStatus.className = 'status-message success';
+            
+            // Refresh tile data
+            const tileData = await hexGlobeAPI.getTile(tileId, true);
+            if (tileData) {
+                this.updateInfoPanel(tileData, true);
+            }
+            
+            setTimeout(() => {
+                updateStatus.textContent = '';
+                updateStatus.className = 'status-message';
+            }, 3000);
+        } catch (error) {
+            updateStatus.textContent = `Error: ${error.message}`;
+            updateStatus.className = 'status-message error';
+            
+            setTimeout(() => {
+                updateStatus.textContent = '';
+                updateStatus.className = 'status-message';
+            }, 5000);
+        }
+        
+        updateBtn.disabled = false;
+    }
+    
+    /**
+     * Handle move content button click
+     */
+    async handleMoveContent() {
+        const moveSection = document.getElementById('move-content-section');
+        const moveTarget = document.getElementById('move-target');
+        const moveStatus = document.getElementById('move-status');
+        const moveBtn = document.getElementById('move-content-btn');
+        
+        if (!moveSection || !moveTarget) return;
+        
+        const sourceTileId = moveSection.dataset.tileId;
+        const targetTileId = moveTarget.value.trim();
+        
+        if (!sourceTileId || !targetTileId) {
+            alert('Please enter a target H3 index');
+            return;
+        }
+        
+        moveBtn.disabled = true;
+        moveStatus.textContent = 'Moving content...';
+        moveStatus.className = 'status-message loading';
+        
+        try {
+            await hexGlobeAPI.moveContent(sourceTileId, targetTileId);
+            
+            moveStatus.textContent = 'Content moved successfully!';
+            moveStatus.className = 'status-message success';
+            
+            // Refresh source tile data
+            const tileData = await hexGlobeAPI.getTile(sourceTileId, true);
+            if (tileData) {
+                this.updateInfoPanel(tileData, true);
+                this.tileView.showTile(tileData);
+                document.getElementById('tile-content').value = tileData.content || '';
+            }
+            
+            moveTarget.value = '';
+            
+            setTimeout(() => {
+                moveStatus.textContent = '';
+                moveStatus.className = 'status-message';
+            }, 3000);
+        } catch (error) {
+            moveStatus.textContent = `Error: ${error.message}`;
+            moveStatus.className = 'status-message error';
+            
+            setTimeout(() => {
+                moveStatus.textContent = '';
+                moveStatus.className = 'status-message';
+            }, 5000);
+        }
+        
+        moveBtn.disabled = false;
     }
     
     /**

@@ -248,6 +248,83 @@ class HexGlobeAPI {
         
         return results;
     }
+    
+    /**
+     * Update tile content
+     * @param {string} tileId - The tile ID to update
+     * @param {string} content - The new content
+     * @returns {Promise<Object>} - The updated tile data
+     */
+    async updateTileContent(tileId, content) {
+        try {
+            const url = this.buildUrl(`/tiles/${tileId}`);
+            const response = await fetch(url, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ content })
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Failed to update tile content: ${response.statusText}`);
+            }
+            
+            return await response.json();
+        } catch (error) {
+            console.error(`Error updating tile ${tileId}:`, error);
+            throw error;
+        }
+    }
+    
+    /**
+     * Move content from one tile to another
+     * @param {string} sourceTileId - The source tile ID
+     * @param {string} targetTileId - The target tile ID
+     * @returns {Promise<Object>} - The response data
+     */
+    async moveContent(sourceTileId, targetTileId) {
+        try {
+            const url = this.buildUrl(`/tiles/${sourceTileId}/move-content/${targetTileId}`);
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Failed to move content: ${response.statusText}`);
+            }
+            
+            return await response.json();
+        } catch (error) {
+            console.error(`Error moving content from ${sourceTileId} to ${targetTileId}:`, error);
+            throw error;
+        }
+    }
+    
+    /**
+     * Geocode an address to get H3 index
+     * @param {string} address - The address to geocode
+     * @param {number} resolution - The H3 resolution
+     * @returns {Promise<Object>} - The geocoding result with h3_index
+     */
+    async geocode(address, resolution) {
+        try {
+            const url = this.buildUrl('/geocode/', { address, resolution });
+            const response = await fetch(url);
+            
+            if (!response.ok) {
+                throw new Error(`Failed to geocode address: ${response.statusText}`);
+            }
+            
+            return await response.json();
+        } catch (error) {
+            console.error(`Error geocoding address ${address}:`, error);
+            throw error;
+        }
+    }
 }
 
 // Create global API instance
