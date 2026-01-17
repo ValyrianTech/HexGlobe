@@ -46,7 +46,7 @@ Hexagonal grids offer several advantages over traditional square grids:
 
 HexGlobe can be used for a wide variety of applications:
 
-- **Games**: Strategy games (like Civilization), resource management games, or multiplayer worlds
+- **Games**: Strategy games, resource management games, or multiplayer worlds
 - **Simulations**: Virus spread modeling, climate change effects, population movements
 - **Data Visualization**: Geographic data representation, heat maps, choropleth maps
 - **Urban Planning**: Land use analysis, transportation network planning
@@ -115,11 +115,17 @@ HexGlobe provides a framework for visualizing and interacting with a hexagonal g
 - H3 Python bindings
 - JSON-based file storage
 
-### Frontend
+### Frontend (2D)
 - Vanilla JavaScript
 - HTML5 Canvas for rendering
 - HTML5/CSS3
 - Fetch API for backend communication
+
+### Web UI (3D Globe)
+- Three.js for 3D rendering
+- OrbitControls for camera navigation
+- HTML5 Canvas for 2D tile view
+- Real-time hexagon visualization on a 3D globe
 
 ### Data Storage
 - File-based JSON storage
@@ -213,6 +219,41 @@ python -m http.server 8080
 
 The application will be available at `http://localhost:8080` by default.
 
+#### 3D Web UI
+
+The 3D globe interface can be served similarly:
+
+```bash
+# With virtual environment activated
+cd webui
+python -m http.server 8081
+```
+
+The 3D interface will be available at `http://localhost:8081`.
+
+## 3D Web UI
+
+HexGlobe includes a 3D globe interface built with Three.js that provides an immersive way to explore the hexagonal grid.
+
+### Features
+
+- **Interactive 3D Globe**: Rotate, zoom, and pan around a 3D Earth with hexagonal tiles
+- **Split-Screen Layout**: Three-panel interface with globe view, 2D tile detail, and info panel
+- **Go To Navigation**: Navigate directly to any location by H3 index or address
+- **Content Management**: Edit tile content and move content between tiles
+- **Multi-Resolution Support**: Switch between H3 resolutions 0-15
+- **Dynamic Zoom**: Zoom speed adjusts based on resolution level
+- **Tile Selection**: Click tiles to view details, Ctrl+click for multi-select
+- **Map Generation**: Generate map textures for selected tiles
+
+### Controls
+
+- **Left-click + drag**: Rotate the globe
+- **Scroll wheel**: Zoom in/out
+- **Click on tile**: Select and view tile details
+- **Ctrl + click**: Multi-select tiles
+- **Go To field**: Enter H3 index or address to navigate
+
 ## Project Structure
 
 ```
@@ -249,6 +290,17 @@ HexGlobe/
 │   │   └── modLoader.js    # Mod loading and management
 │   ├── index.html          # Main HTML entry point
 │   └── mods/               # Symbolic link to root mods directory
+├── webui/                  # 3D Globe Web UI
+│   ├── css/
+│   │   └── styles.css      # 3D UI stylesheet
+│   ├── js/
+│   │   ├── app.js          # Main 3D application logic
+│   │   ├── api.js          # API communication layer
+│   │   ├── config.js       # Configuration settings
+│   │   ├── globe.js        # Three.js globe rendering
+│   │   ├── hexagonUtils.js # Hexagon geometry utilities
+│   │   └── tileView.js     # 2D tile view panel
+│   └── index.html          # 3D UI entry point
 ├── mods/                   # Mod directory containing all available mods
 │   ├── default/            # Default mod (fallback)
 │   │   ├── manifest.json   # Mod metadata
